@@ -323,6 +323,94 @@ html, body {
   flex-shrink: 0;
 }
 
+/* ---- XY PAD WIDGET ---- */
+.wt-xypad {
+  width: 100%; height: 100%;
+  position: relative;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid;
+  border-radius: 5px;
+  overflow: hidden;
+  cursor: crosshair;
+}
+/* Subtle grid */
+.wt-xypad::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 25% 25%;
+  pointer-events: none;
+}
+/* Centre crosshair */
+.xypad-cx, .xypad-cy {
+  position: absolute;
+  background: rgba(255,255,255,0.06);
+  pointer-events: none;
+}
+.xypad-cx { left: 0; right: 0; top: 50%; height: 1px; }
+.xypad-cy { top: 0; bottom: 0; left: 50%; width: 1px; }
+/* Dynamic crosshair lines that follow the dot */
+.xypad-hline {
+  position: absolute; left: 0; right: 0; height: 1px;
+  opacity: 0.35; pointer-events: none;
+  transform: translateY(-50%);
+}
+.xypad-vline {
+  position: absolute; top: 0; bottom: 0; width: 1px;
+  opacity: 0.35; pointer-events: none;
+  transform: translateX(-50%);
+}
+.xypad-dot {
+  position: absolute;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 10px currentColor, 0 0 3px #000;
+  z-index: 2;
+}
+.xypad-info {
+  position: absolute; bottom: 4px; left: 0; right: 0;
+  display: flex; flex-direction: column; align-items: center;
+  pointer-events: none; z-index: 3; gap: 1px;
+}
+.xypad-label {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  color: rgba(255,255,255,0.8);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.xypad-vals {
+  font-size: 9px; color: rgba(255,255,255,0.45);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+
+/* ---- RECEIVE-ONLY BADGE (edit mode) ---- */
+.rx-badge {
+  position: absolute;
+  top: 4px; right: 4px;
+  background: rgba(48,200,112,0.15);
+  border: 1px solid var(--success);
+  color: var(--success);
+  font-size: 8px; font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 1px 4px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* ---- OSC RECEIVE FLASH ---- */
+@keyframes rxflash {
+  0%   { box-shadow: 0 0 0 2px var(--success); }
+  60%  { box-shadow: 0 0 0 4px rgba(48,200,112,0.25); }
+  100% { box-shadow: none; }
+}
+.w.rx-flash .w-inner { animation: rxflash 0.4s ease-out forwards; }
+
 /* ============ PROPS PANEL ============ */
 #props {
   width: 248px;
@@ -500,16 +588,6 @@ body.performing #canvas-drop-hint { display: none; }
 
 /* Hidden file input */
 #file-inp { display: none; }
-
-/* ============ KIOSK MODE ============ */
-/* Activated by ?kiosk in the URL — hides all chrome, fullscreen perform only */
-body.kiosk #toolbar { display: none; }
-body.kiosk #layout { top: 0; }
-body.kiosk #props { display: none; }
-body.kiosk #toast { display: none; }
-body.kiosk .modal-bg { display: none !important; }
-/* No cursor in kiosk — feels native on touch screens */
-body.kiosk * { cursor: none !important; }
 </style>
 </head>
 <body>
@@ -526,6 +604,7 @@ body.kiosk * { cursor: none !important; }
     <button class="tb-btn" data-add="hslider">▬ H-Slider</button>
     <button class="tb-btn" data-add="vslider">▮ V-Slider</button>
     <button class="tb-btn" data-add="knob">◎ Knob</button>
+    <button class="tb-btn" data-add="xypad">⊕ XY Pad</button>
   </div>
 
   <div class="tb-group" id="tg-grid">
@@ -628,7 +707,6 @@ body.kiosk * { cursor: none !important; }
 // ═══════════════════════════════════════════════════════════
 const S = {
   mode: 'edit',           // 'edit' | 'perform'
-  kiosk: new URLSearchParams(window.location.search).has('kiosk'), // ?kiosk param
   widgets: [],            // array of widget data objects
   sel: null,              // selected widget id
   gridSize: 20,
@@ -694,7 +772,7 @@ function makeWidget(type, x, y) {
   const color = nextColor();
   const base = { id, type, x, y, w: 120, h: 80, label: type, color,
                   osc: '/osc/1/' + type + '/' + id.slice(1),
-                  min: 0, max: 1, value: 0 };
+                  min: 0, max: 1, value: 0, receiveOnly: false };
   switch(type) {
     case 'button':
       return { ...base, w:140, h:70, toggle:true, onVal:1, offVal:0 };
@@ -704,6 +782,12 @@ function makeWidget(type, x, y) {
       return { ...base, w:60, h:200 };
     case 'knob':
       return { ...base, w:90, h:110 };
+    case 'xypad':
+      return { ...base, w:200, h:200,
+               oscX: '/osc/1/xypad/' + id.slice(1) + '/x',
+               oscY: '/osc/1/xypad/' + id.slice(1) + '/y',
+               valueX: 0, valueY: 0,
+               minX: 0, maxX: 1, minY: 0, maxY: 1 };
   }
   return base;
 }
@@ -755,6 +839,7 @@ function knobSVG(w) {
 }
 
 function wHTML(w) {
+  const rxBadge = (w.receiveOnly && S.mode === 'edit') ? '<div class="rx-badge">RX</div>' : '';
   switch(w.type) {
     case 'button': {
       const on = w.value >= w.onVal;
@@ -764,7 +849,7 @@ function wHTML(w) {
                color:${on ? '#000' : w.color};
                font-size:${Math.max(9, Math.min(16, w.h * 0.22))}px">
         <span>${w.label}</span>
-      </div>`;
+      </div>${rxBadge}`;
     }
     case 'hslider': {
       const t = norm(w.value, w.min, w.max);
@@ -775,7 +860,7 @@ function wHTML(w) {
           <div class="slider-name" style="font-size:${Math.max(9,Math.min(13,w.h*0.2))}px">${w.label}</div>
           <div class="slider-val">${fmtVal(w.value, w.min, w.max)}</div>
         </div>
-      </div>`;
+      </div>${rxBadge}`;
     }
     case 'vslider': {
       const t = norm(w.value, w.min, w.max);
@@ -785,13 +870,30 @@ function wHTML(w) {
           <div class="slider-name" style="font-size:${Math.max(8,Math.min(11,w.w*0.18))}px;writing-mode:vertical-lr;transform:rotate(180deg)">${w.label}</div>
           <div class="slider-val">${fmtVal(w.value, w.min, w.max)}</div>
         </div>
-      </div>`;
+      </div>${rxBadge}`;
     }
     case 'knob': {
       return `<div class="wt-knob">
         <div class="knob-svg-wrap">${knobSVG(w)}</div>
         <div class="knob-name">${w.label}</div>
-      </div>`;
+      </div>${rxBadge}`;
+    }
+    case 'xypad': {
+      const tx = norm(w.valueX, w.minX, w.maxX);
+      const ty = norm(w.valueY, w.minY, w.maxY);
+      const xPct = (clamp(tx,0,1)*100).toFixed(2);
+      const yPct = ((1-clamp(ty,0,1))*100).toFixed(2); // flip Y: top=max
+      return `<div class="wt-xypad" style="border-color:${w.color}40">
+        <div class="xypad-cx"></div>
+        <div class="xypad-cy"></div>
+        <div class="xypad-hline" style="top:${yPct}%;background:${w.color}"></div>
+        <div class="xypad-vline" style="left:${xPct}%;background:${w.color}"></div>
+        <div class="xypad-dot" style="left:${xPct}%;top:${yPct}%;background:${w.color};color:${w.color}"></div>
+        <div class="xypad-info">
+          <div class="xypad-label">${w.label}</div>
+          <div class="xypad-vals">x:${fmtVal(w.valueX,w.minX,w.maxX)} y:${fmtVal(w.valueY,w.minY,w.maxY)}</div>
+        </div>
+      </div>${rxBadge}`;
     }
   }
   return '';
@@ -1184,8 +1286,6 @@ function clearAll() {
 //  MODE
 // ═══════════════════════════════════════════════════════════
 function setMode(mode) {
-  // In kiosk mode, perform is the only allowed mode
-  if (S.kiosk) mode = 'perform';
   S.mode = mode;
   document.body.classList.toggle('performing', mode === 'perform');
   const btn = $('btn-mode');
@@ -1439,14 +1539,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initToolbar();
   applyGrid();
   autorestore();
-
-  // Kiosk mode: lock into fullscreen perform, hide all editor chrome
-  if (S.kiosk) {
-    document.body.classList.add('kiosk');
-    setMode('perform');
-    // Auto-connect WebSocket if a URL is already saved
-    if (S.wsUrl && S.wsUrl !== 'ws://localhost:8080') connectWS(S.wsUrl);
-  }
 });
 </script>
 </body>
