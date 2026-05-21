@@ -500,6 +500,16 @@ body.performing #canvas-drop-hint { display: none; }
 
 /* Hidden file input */
 #file-inp { display: none; }
+
+/* ============ KIOSK MODE ============ */
+/* Activated by ?kiosk in the URL — hides all chrome, fullscreen perform only */
+body.kiosk #toolbar { display: none; }
+body.kiosk #layout { top: 0; }
+body.kiosk #props { display: none; }
+body.kiosk #toast { display: none; }
+body.kiosk .modal-bg { display: none !important; }
+/* No cursor in kiosk — feels native on touch screens */
+body.kiosk * { cursor: none !important; }
 </style>
 </head>
 <body>
@@ -618,6 +628,7 @@ body.performing #canvas-drop-hint { display: none; }
 // ═══════════════════════════════════════════════════════════
 const S = {
   mode: 'edit',           // 'edit' | 'perform'
+  kiosk: new URLSearchParams(window.location.search).has('kiosk'), // ?kiosk param
   widgets: [],            // array of widget data objects
   sel: null,              // selected widget id
   gridSize: 20,
@@ -1173,6 +1184,8 @@ function clearAll() {
 //  MODE
 // ═══════════════════════════════════════════════════════════
 function setMode(mode) {
+  // In kiosk mode, perform is the only allowed mode
+  if (S.kiosk) mode = 'perform';
   S.mode = mode;
   document.body.classList.toggle('performing', mode === 'perform');
   const btn = $('btn-mode');
@@ -1426,6 +1439,14 @@ document.addEventListener('DOMContentLoaded', () => {
   initToolbar();
   applyGrid();
   autorestore();
+
+  // Kiosk mode: lock into fullscreen perform, hide all editor chrome
+  if (S.kiosk) {
+    document.body.classList.add('kiosk');
+    setMode('perform');
+    // Auto-connect WebSocket if a URL is already saved
+    if (S.wsUrl && S.wsUrl !== 'ws://localhost:8080') connectWS(S.wsUrl);
+  }
 });
 </script>
 </body>
