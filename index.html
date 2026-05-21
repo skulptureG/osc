@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OSC Touch Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface2: #1e1e1e;
+  --surface3: #282828;
+  --border: #2a2a2a;
+  --border2: #3a3a3a;
+  --text: #d8d8d8;
+  --text-dim: #555;
+  --text-mid: #888;
+  --accent: #e8a020;
+  --accent-dark: #b07810;
+  --accent2: #e04030;
+  --success: #30c870;
+  --grid-line: rgba(255,255,255,0.035);
+  --mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+/* ============ TOOLBAR ============ */
+#toolbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 44px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  z-index: 500;
+  padding: 0 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+#toolbar::-webkit-scrollbar { height: 3px; }
+#toolbar::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.tb-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 8px;
+  border-right: 1px solid var(--border);
+  height: 44px;
+  flex-shrink: 0;
+}
+.tb-group:last-child { border-right: none; }
+
+.tb-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+.tb-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text-mid);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+  white-space: nowrap;
+  line-height: 1;
+}
+.tb-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tb-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+.tb-btn.danger { border-color: var(--accent2); color: var(--accent2); }
+.tb-btn.danger:hover { background: var(--accent2); color: #fff; }
+
+#btn-mode {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 5px 14px;
+}
+#btn-mode.performing {
+  background: #2a1a00;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tb-select {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text-mid);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 3px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  outline: none;
+}
+.tb-select:focus { border-color: var(--accent); }
+
+#ws-status-area {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 0 12px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.status-dot.connected { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.status-dot.connecting { background: var(--accent); animation: blink 0.8s ease-in-out infinite; }
+.status-dot.error { background: var(--accent2); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+#status-label { font-size: 10px; color: var(--text-dim); }
+
+/* ============ LAYOUT ============ */
+#layout {
+  position: fixed;
+  top: 44px; left: 0; right: 0; bottom: 0;
+  display: flex;
+}
+
+/* ============ CANVAS ============ */
+#canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+#canvas {
+  position: absolute;
+  inset: 0;
+}
+
+#canvas.grid-on {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-px, 20px) var(--grid-px, 20px);
+}
+
+#canvas-drop-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  gap: 12px;
+}
+#canvas-drop-hint .hint-box {
+  border: 1px dashed var(--border2);
+  padding: 40px 60px;
+  text-align: center;
+  border-radius: 6px;
+  opacity: 0.5;
+}
+#canvas-drop-hint .hint-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+#canvas-drop-hint .hint-sub { font-size: 11px; color: var(--text-dim); line-height: 2; }
+
+/* ============ WIDGETS ============ */
+.w {
+  position: absolute;
+  cursor: grab;
+  touch-action: none;
+  /* important: inner content ignores pointer in edit mode */
+}
+.w:active { cursor: grabbing; }
+
+.w-inner {
+  width: 100%; height: 100%;
+  position: relative;
+  pointer-events: none; /* all events go to .w */
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+/* Selection ring */
+.w.sel .w-inner {
+  outline: 2px solid var(--accent);
+  outline-offset: 0px;
+  border-radius: 5px;
+}
+
+/* Resize handles */
+.rh {
+  position: absolute;
+  width: 9px; height: 9px;
+  background: var(--accent);
+  border: 1px solid #000;
+  border-radius: 2px;
+  z-index: 20;
+  display: none;
+  touch-action: none;
+}
+.w.sel .rh { display: block; }
+.rh.nw { top:-4px; left:-4px; cursor:nw-resize; }
+.rh.n  { top:-4px; left:calc(50% - 4px); cursor:n-resize; }
+.rh.ne { top:-4px; right:-4px; cursor:ne-resize; }
+.rh.e  { top:calc(50% - 4px); right:-4px; cursor:e-resize; }
+.rh.se { bottom:-4px; right:-4px; cursor:se-resize; }
+.rh.s  { bottom:-4px; left:calc(50% - 4px); cursor:s-resize; }
+.rh.sw { bottom:-4px; left:-4px; cursor:sw-resize; }
+.rh.w  { top:calc(50% - 4px); left:-4px; cursor:w-resize; }
+
+/* ---- BUTTON WIDGET ---- */
+.wt-button {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 5px;
+  border: 2px solid;
+  font-family: var(--mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: background 0.06s, color 0.06s;
+  position: relative;
+  overflow: hidden;
+}
+.wt-button::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 40%;
+  background: linear-gradient(rgba(255,255,255,0.07), transparent);
+  pointer-events: none;
+}
+.wt-button.btn-on  { }
+.wt-button.btn-off { background: rgba(0,0,0,0.5); }
+
+/* ---- SLIDER WIDGET ---- */
+.wt-slider {
+  width: 100%; height: 100%;
+  position: relative;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 5px;
+  overflow: hidden;
+  cursor: crosshair;
+}
+.slider-fill {
+  position: absolute;
+  transition: none;
+}
+.slider-labels {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 2;
+}
+.slider-name {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255,255,255,0.85);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  max-width: 95%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.slider-val {
+  font-size: 10px; font-weight: 400;
+  color: rgba(255,255,255,0.55);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+
+/* ---- KNOB WIDGET ---- */
+.wt-knob {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px;
+  cursor: ns-resize;
+}
+.knob-svg-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.knob-name {
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ============ PROPS PANEL ============ */
+#props {
+  width: 248px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: width 0.15s;
+}
+#props.hidden { width: 0; border-left: none; }
+
+#props-head {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+#props-type {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--accent);
+}
+#btn-props-close {
+  background: none; border: none; color: var(--text-dim);
+  font-size: 14px; cursor: pointer; line-height: 1;
+  padding: 2px 4px;
+}
+#btn-props-close:hover { color: var(--text); }
+
+#props-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#props-body::-webkit-scrollbar { width: 4px; }
+#props-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.ps { /* prop section */
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.ps-title {
+  font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--text-dim);
+  margin-bottom: 7px;
+}
+.pr { /* prop row */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  gap: 6px;
+}
+.pr.col { flex-direction: column; align-items: stretch; gap: 3px; }
+.pl { /* prop label */
+  font-size: 10px; color: var(--text-mid);
+  white-space: nowrap; flex-shrink: 0;
+}
+
+.pi { /* prop input */
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.12s;
+}
+.pi:focus { border-color: var(--accent); }
+input[type="color"].pi {
+  padding: 1px;
+  width: 36px; height: 26px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+input[type="number"].pi { width: 80px; flex-shrink: 0; }
+input[type="checkbox"] { accent-color: var(--accent); width:14px; height:14px; cursor:pointer; }
+
+.btn-del {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--accent2);
+  color: var(--accent2);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background 0.12s, color 0.12s;
+}
+.btn-del:hover { background: var(--accent2); color: #fff; }
+
+/* ============ MODAL ============ */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+.modal-bg.hidden { display: none; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 22px 24px;
+  min-width: 380px;
+  max-width: min(90vw, 480px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+}
+.modal-title {
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-row { margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+.modal-row label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.modal-row .pi { width: 100%; }
+.modal-note {
+  font-size: 10px; line-height: 1.7;
+  color: var(--text-dim);
+  background: rgba(0,0,0,0.3);
+  border-left: 2px solid var(--accent);
+  padding: 8px 10px;
+  border-radius: 0 3px 3px 0;
+  margin: 14px 0;
+}
+.modal-note code {
+  color: var(--accent);
+  font-family: var(--mono);
+  background: rgba(232,160,32,0.1);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.modal-note strong { color: var(--text-mid); }
+.modal-actions {
+  display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;
+}
+
+/* ============ TOAST ============ */
+#toast {
+  position: fixed;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-size: 11px;
+  padding: 7px 16px;
+  border-radius: 4px;
+  z-index: 3000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+#toast.ok { border-color: var(--success); color: var(--success); }
+#toast.err { border-color: var(--accent2); color: var(--accent2); }
+
+/* ============ PERFORM MODE ============ */
+body.performing .w { cursor: default; }
+body.performing .w:active { cursor: default; }
+body.performing .w-inner { pointer-events: auto; } /* allow touch on inner in perform */
+body.performing #canvas-drop-hint { display: none; }
+
+/* Hidden file input */
+#file-inp { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ============ TOOLBAR ============ -->
+<div id="toolbar">
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-mode">✏  EDIT</button>
+  </div>
+
+  <div class="tb-group" id="tg-add">
+    <span class="tb-label">Add</span>
+    <button class="tb-btn" data-add="button">⬛ Button</button>
+    <button class="tb-btn" data-add="hslider">▬ H-Slider</button>
+    <button class="tb-btn" data-add="vslider">▮ V-Slider</button>
+    <button class="tb-btn" data-add="knob">◎ Knob</button>
+  </div>
+
+  <div class="tb-group" id="tg-grid">
+    <span class="tb-label">Grid</span>
+    <button class="tb-btn active" id="btn-grid">Grid</button>
+    <button class="tb-btn active" id="btn-snap">Snap</button>
+    <select class="tb-select" id="sel-grid-size">
+      <option value="10">10 px</option>
+      <option value="20" selected>20 px</option>
+      <option value="40">40 px</option>
+      <option value="80">80 px</option>
+    </select>
+  </div>
+
+  <div class="tb-group" id="tg-file">
+    <span class="tb-label">File</span>
+    <button class="tb-btn" id="btn-save">↓ Save</button>
+    <button class="tb-btn" id="btn-load">↑ Load</button>
+    <button class="tb-btn danger" id="btn-clear">✕ Clear</button>
+  </div>
+
+  <div class="tb-group">
+    <span class="tb-label">OSC</span>
+    <button class="tb-btn" id="btn-osc-cfg">⚡ Bridge</button>
+    <button class="tb-btn" id="btn-osc-connect">Connect</button>
+  </div>
+
+  <div id="ws-status-area">
+    <div class="status-dot" id="dot"></div>
+    <span id="status-label">Disconnected</span>
+  </div>
+</div>
+
+<!-- ============ MAIN LAYOUT ============ -->
+<div id="layout">
+  <!-- Canvas -->
+  <div id="canvas-wrap">
+    <div id="canvas" class="grid-on">
+      <div id="canvas-drop-hint">
+        <div class="hint-box">
+          <div class="hint-title">OSC Touch Editor</div>
+          <div class="hint-sub">
+            Use the toolbar above to add widgets<br>
+            Drag to position · Handles to resize · Click to select<br>
+            Switch to <strong style="color:var(--accent)">PERFORM</strong> to send OSC
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Properties Panel -->
+  <div id="props" class="hidden">
+    <div id="props-head">
+      <span id="props-type">Properties</span>
+      <button id="btn-props-close">✕</button>
+    </div>
+    <div id="props-body"></div>
+  </div>
+</div>
+
+<!-- ============ OSC BRIDGE MODAL ============ -->
+<div class="modal-bg hidden" id="modal-osc">
+  <div class="modal">
+    <div class="modal-title">⚡ OSC / WebSocket Bridge</div>
+    <div class="modal-row">
+      <label>WebSocket URL</label>
+      <input type="text" class="pi" id="inp-ws-url" placeholder="ws://localhost:8080">
+    </div>
+    <div class="modal-row">
+      <label>Message Format</label>
+      <select class="pi" id="inp-ws-fmt">
+        <option value="json">JSON — {address, args:[value]}</option>
+        <option value="oscjson">osc.js — {address, args:[{type,value}]}</option>
+        <option value="plain">Plain text — /address value</option>
+      </select>
+    </div>
+    <div class="modal-note">
+      <strong>Browsers can't send UDP OSC directly.</strong> You need a local WebSocket→OSC bridge.<br><br>
+      Quick start with Node.js:<br>
+      <code>npm i -g osc-bridge && osc-bridge --ws 8080 --udp 57120</code><br><br>
+      Or run <strong>Open Stage Control</strong> as a relay (it includes a WS server).<br>
+      With Max/MSP: use <strong>Node4Max</strong> or <strong>CNMAT odot</strong> externals.<br>
+      With Python: <code>pip install python-osc websockets</code> + custom bridge script.
+    </div>
+    <div class="modal-actions">
+      <button class="tb-btn" id="btn-modal-cancel">Cancel</button>
+      <button class="tb-btn active" id="btn-modal-save">Save &amp; Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input -->
+<input type="file" id="file-inp" accept=".json">
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+const S = {
+  mode: 'edit',           // 'edit' | 'perform'
+  widgets: [],            // array of widget data objects
+  sel: null,              // selected widget id
+  gridSize: 20,
+  showGrid: true,
+  snap: true,
+  wsUrl: localStorage.getItem('osc_ws_url') || 'ws://localhost:8080',
+  wsFmt: localStorage.getItem('osc_ws_fmt') || 'json',
+  ws: null,
+  wsState: 'disconnected',
+  idCtr: 1,
+};
+
+// Drag/interaction state
+const D = {
+  on: false,
+  type: null,   // 'move'|'resize'|'hslider'|'vslider'|'knob'|'button'
+  id: null,
+  dir: null,    // resize direction
+  ox: 0, oy: 0,          // pointer start
+  owx: 0, owy: 0,        // widget start pos
+  oww: 0, owh: 0,        // widget start size
+  sv: 0,                  // start value (knob/slider)
+  momentary: false,
+};
+
+// ═══════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const snap = v => S.snap ? Math.round(v / S.gridSize) * S.gridSize : v;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const norm = (v, mn, mx) => mx === mn ? 0 : (v - mn) / (mx - mn);
+const denorm = (t, mn, mx) => mn + t * (mx - mn);
+function fmtVal(v, mn, mx) {
+  const range = mx - mn;
+  if (range === 0) return v.toFixed(2);
+  if (Number.isInteger(mn) && Number.isInteger(mx)) return Math.round(v).toString();
+  const decimals = range >= 10 ? 1 : 2;
+  return v.toFixed(decimals);
+}
+function uid() { return 'w' + (S.idCtr++); }
+function eXY(e) {
+  if (e.touches?.length) return [e.touches[0].clientX, e.touches[0].clientY];
+  if (e.changedTouches?.length) return [e.changedTouches[0].clientX, e.changedTouches[0].clientY];
+  return [e.clientX, e.clientY];
+}
+function canvasXY(cx, cy) {
+  const r = $('canvas').getBoundingClientRect();
+  return [cx - r.left, cy - r.top];
+}
+function gw(id) { return S.widgets.find(w => w.id === id); }
+function gel(id) { return document.getElementById('w-' + id); }
+
+// ═══════════════════════════════════════════════════════════
+//  DEFAULT WIDGET DATA
+// ═══════════════════════════════════════════════════════════
+const COLORS = ['#e8a020','#e04030','#30b870','#3090e0','#a040e0','#e060a0','#30d0c0','#e0d030'];
+let colorCtr = 0;
+function nextColor() { return COLORS[colorCtr++ % COLORS.length]; }
+
+function makeWidget(type, x, y) {
+  const id = uid();
+  const color = nextColor();
+  const base = { id, type, x, y, w: 120, h: 80, label: type, color,
+                  osc: '/osc/1/' + type + '/' + id.slice(1),
+                  min: 0, max: 1, value: 0 };
+  switch(type) {
+    case 'button':
+      return { ...base, w:140, h:70, toggle:true, onVal:1, offVal:0 };
+    case 'hslider':
+      return { ...base, w:220, h:60 };
+    case 'vslider':
+      return { ...base, w:60, h:200 };
+    case 'knob':
+      return { ...base, w:90, h:110 };
+  }
+  return base;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER — Widget HTML
+// ═══════════════════════════════════════════════════════════
+function knobSVG(w) {
+  const pad = 6;
+  const svgSize = Math.max(40, Math.min(w.w, w.h - 26) - pad * 2);
+  const cx = svgSize / 2, cy = svgSize / 2;
+  const R = svgSize * 0.37;
+  const START = 135, SWEEP = 270;
+  const t = norm(w.value, w.min, w.max);
+
+  function pt(deg) {
+    const r = deg * Math.PI / 180;
+    return [+(cx + R * Math.cos(r)).toFixed(2), +(cy + R * Math.sin(r)).toFixed(2)];
+  }
+  function arcPath(sd, ed) {
+    const [sx, sy] = pt(sd), [ex, ey] = pt(ed);
+    const sw = ((ed - sd) % 360 + 360) % 360;
+    if (sw < 0.5) return `M${sx} ${sy}`;
+    return `M${sx} ${sy} A${R.toFixed(2)} ${R.toFixed(2)} 0 ${sw > 180 ? 1 : 0} 1 ${ex} ${ey}`;
+  }
+
+  const vAngle = START + t * SWEEP;
+  const bgPath = arcPath(START, START + SWEEP);
+  const valPath = t > 0.003 ? arcPath(START, vAngle) : null;
+  const [lx, ly] = pt(vAngle);
+  const lOuter = R - 1, lInner = R * 0.38;
+  const [lox, loy] = [+(cx + lOuter * Math.cos(vAngle*Math.PI/180)).toFixed(2),
+                      +(cy + lOuter * Math.sin(vAngle*Math.PI/180)).toFixed(2)];
+  const [lix, liy] = [+(cx + lInner * Math.cos(vAngle*Math.PI/180)).toFixed(2),
+                      +(cy + lInner * Math.sin(vAngle*Math.PI/180)).toFixed(2)];
+  const fs = Math.max(7, Math.min(11, svgSize * 0.15));
+  const sw = Math.max(2.5, Math.min(5, svgSize * 0.065));
+
+  return `<svg viewBox="0 0 ${svgSize} ${svgSize}" width="${svgSize}" height="${svgSize}" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="${cx}" cy="${cy}" r="${R + sw + 3}" fill="#0d0d0d" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+    <path d="${bgPath}" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="${sw}" stroke-linecap="round"/>
+    ${valPath ? `<path d="${valPath}" fill="none" stroke="${w.color}" stroke-width="${sw}" stroke-linecap="round"/>` : ''}
+    <circle cx="${cx}" cy="${cy}" r="${R*0.42}" fill="#181818" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <line x1="${lix}" y1="${liy}" x2="${lox}" y2="${loy}" stroke="${w.color}" stroke-width="2" stroke-linecap="round" opacity="0.95"/>
+    <text x="${cx}" y="${(cy+fs*0.35).toFixed(1)}" text-anchor="middle"
+      font-family="JetBrains Mono,monospace" font-size="${fs}" font-weight="500"
+      fill="rgba(255,255,255,0.55)">${fmtVal(w.value, w.min, w.max)}</text>
+  </svg>`;
+}
+
+function wHTML(w) {
+  switch(w.type) {
+    case 'button': {
+      const on = w.value >= w.onVal;
+      return `<div class="wt-button ${on?'btn-on':'btn-off'}"
+        style="background:${on ? w.color : 'rgba(0,0,0,0.5)'};
+               border-color:${w.color};
+               color:${on ? '#000' : w.color};
+               font-size:${Math.max(9, Math.min(16, w.h * 0.22))}px">
+        <span>${w.label}</span>
+      </div>`;
+    }
+    case 'hslider': {
+      const t = norm(w.value, w.min, w.max);
+      return `<div class="wt-slider">
+        <div class="slider-fill" style="left:0;top:0;bottom:0;width:${(t*100).toFixed(2)}%;background:${w.color};opacity:0.8"></div>
+        <div class="slider-fill" style="right:0;top:0;bottom:0;width:${((1-t)*100).toFixed(2)}%;background:rgba(0,0,0,0)"></div>
+        <div class="slider-labels">
+          <div class="slider-name" style="font-size:${Math.max(9,Math.min(13,w.h*0.2))}px">${w.label}</div>
+          <div class="slider-val">${fmtVal(w.value, w.min, w.max)}</div>
+        </div>
+      </div>`;
+    }
+    case 'vslider': {
+      const t = norm(w.value, w.min, w.max);
+      return `<div class="wt-slider">
+        <div class="slider-fill" style="left:0;right:0;bottom:0;height:${(t*100).toFixed(2)}%;background:${w.color};opacity:0.8"></div>
+        <div class="slider-labels">
+          <div class="slider-name" style="font-size:${Math.max(8,Math.min(11,w.w*0.18))}px;writing-mode:vertical-lr;transform:rotate(180deg)">${w.label}</div>
+          <div class="slider-val">${fmtVal(w.value, w.min, w.max)}</div>
+        </div>
+      </div>`;
+    }
+    case 'knob': {
+      return `<div class="wt-knob">
+        <div class="knob-svg-wrap">${knobSVG(w)}</div>
+        <div class="knob-name">${w.label}</div>
+      </div>`;
+    }
+  }
+  return '';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DOM WIDGET MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+function mountWidget(w) {
+  const el = document.createElement('div');
+  el.className = 'w';
+  el.id = 'w-' + w.id;
+  el.dataset.id = w.id;
+  el.style.cssText = `left:${w.x}px;top:${w.y}px;width:${w.w}px;height:${w.h}px`;
+  el.style.touchAction = 'none';
+
+  const inner = document.createElement('div');
+  inner.className = 'w-inner';
+  inner.innerHTML = wHTML(w);
+  el.appendChild(inner);
+
+  for (const dir of ['nw','n','ne','e','se','s','sw','w']) {
+    const h = document.createElement('div');
+    h.className = 'rh ' + dir;
+    h.dataset.dir = dir;
+    el.appendChild(h);
+  }
+
+  $('canvas').appendChild(el);
+  updateHint();
+}
+
+function refreshWidget(w) {
+  const el = gel(w.id);
+  if (!el) return;
+  el.style.left = w.x + 'px';
+  el.style.top = w.y + 'px';
+  el.style.width = w.w + 'px';
+  el.style.height = w.h + 'px';
+  el.classList.toggle('sel', S.sel === w.id);
+  el.querySelector('.w-inner').innerHTML = wHTML(w);
+}
+
+function unmountWidget(id) {
+  gel(id)?.remove();
+  updateHint();
+}
+
+function updateHint() {
+  $('canvas-drop-hint').style.display = S.widgets.length === 0 ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SELECTION & PROPS
+// ═══════════════════════════════════════════════════════════
+function select(id) {
+  const prev = S.sel;
+  S.sel = id;
+  if (prev) { const pw = gw(prev); if (pw) refreshWidget(pw); }
+  if (id)   { const w  = gw(id);  if (w) refreshWidget(w); buildProps(id); }
+  else       { closeProps(); }
+}
+
+function closeProps() {
+  $('props').classList.add('hidden');
+  S.sel = null;
+}
+
+function buildProps(id) {
+  const w = gw(id);
+  if (!w) return;
+  const panel = $('props');
+  panel.classList.remove('hidden');
+  $('props-type').textContent = w.type.toUpperCase();
+
+  const ranges = [
+    ['Custom',''],['0 → 1','0,1'],['0 → 100','0,100'],['-1 → 1','-1,1'],
+    ['0 → 127 (MIDI)','0,127'],['0 → 255','0,255'],['-180 → 180°','-180,180'],['0 → 360°','0,360'],
+  ];
+  const rangeOpts = ranges.map(([l,v]) =>
+    `<option value="${v}" ${(v===`${w.min},${w.max}`)?'selected':''}>${l}</option>`).join('');
+
+  let extra = '';
+  if (w.type === 'button') {
+    extra = `<div class="ps"><div class="ps-title">Button Options</div>
+      <div class="pr"><span class="pl">Mode</span>
+        <select class="pi" id="pi-toggle" style="width:110px">
+          <option value="1" ${w.toggle?'selected':''}>Toggle</option>
+          <option value="0" ${!w.toggle?'selected':''}>Momentary</option>
+        </select></div>
+      <div class="pr"><span class="pl">On value</span>
+        <input type="number" class="pi" id="pi-onval" value="${w.onVal}" step="any"></div>
+      <div class="pr"><span class="pl">Off value</span>
+        <input type="number" class="pi" id="pi-offval" value="${w.offVal}" step="any"></div>
+    </div>`;
+  }
+
+  $('props-body').innerHTML = `
+    <div class="ps">
+      <div class="ps-title">Identity</div>
+      <div class="pr col"><span class="pl">Label</span>
+        <input type="text" class="pi" id="pi-label" value="${w.label}"></div>
+      <div class="pr col"><span class="pl">OSC Address</span>
+        <input type="text" class="pi" id="pi-osc" value="${w.osc}" placeholder="/control/1"></div>
+    </div>
+    <div class="ps">
+      <div class="ps-title">Value Range</div>
+      <div class="pr"><span class="pl">Min</span>
+        <input type="number" class="pi" id="pi-min" value="${w.min}" step="any"></div>
+      <div class="pr"><span class="pl">Max</span>
+        <input type="number" class="pi" id="pi-max" value="${w.max}" step="any"></div>
+      <div class="pr col"><span class="pl">Preset</span>
+        <select class="pi" id="pi-range-preset">${rangeOpts}</select></div>
+    </div>
+    <div class="ps">
+      <div class="ps-title">Appearance</div>
+      <div class="pr"><span class="pl">Color</span>
+        <input type="color" class="pi" id="pi-color" value="${w.color}"></div>
+    </div>
+    <div class="ps">
+      <div class="ps-title">Position &amp; Size</div>
+      <div class="pr"><span class="pl">X</span>
+        <input type="number" class="pi" id="pi-x" value="${w.x}" step="${S.gridSize}"></div>
+      <div class="pr"><span class="pl">Y</span>
+        <input type="number" class="pi" id="pi-y" value="${w.y}" step="${S.gridSize}"></div>
+      <div class="pr"><span class="pl">W</span>
+        <input type="number" class="pi" id="pi-w" value="${w.w}" step="${S.gridSize}" min="40"></div>
+      <div class="pr"><span class="pl">H</span>
+        <input type="number" class="pi" id="pi-h" value="${w.h}" step="${S.gridSize}" min="40"></div>
+    </div>
+    ${extra}
+    <div class="ps">
+      <button class="btn-del" id="btn-del-w">🗑  Delete Widget</button>
+    </div>
+  `;
+
+  // Bind each field
+  function bind(elId, key, coerce) {
+    const el = $(elId);
+    if (!el) return;
+    const apply = (val) => {
+      const v = coerce ? coerce(val) : val;
+      if (v === undefined || v === null || (typeof v === 'number' && isNaN(v))) return;
+      w[key] = v;
+      refreshWidget(w);
+    };
+    el.addEventListener('input', e => apply(e.target.value));
+    el.addEventListener('change', e => apply(e.target.value));
+  }
+
+  bind('pi-label', 'label');
+  bind('pi-osc', 'osc');
+  bind('pi-color', 'color');
+  bind('pi-min', 'min', parseFloat);
+  bind('pi-max', 'max', parseFloat);
+  bind('pi-x', 'x', v => snap(parseFloat(v)));
+  bind('pi-y', 'y', v => snap(parseFloat(v)));
+  bind('pi-w', 'w', v => Math.max(40, snap(parseFloat(v))));
+  bind('pi-h', 'h', v => Math.max(40, snap(parseFloat(v))));
+
+  if (w.type === 'button') {
+    bind('pi-toggle', 'toggle', v => v === '1');
+    bind('pi-onval', 'onVal', parseFloat);
+    bind('pi-offval', 'offVal', parseFloat);
+  }
+
+  $('pi-range-preset').addEventListener('change', e => {
+    if (!e.target.value) return;
+    const [mn, mx] = e.target.value.split(',').map(Number);
+    w.min = mn; w.max = mx;
+    $('pi-min').value = mn; $('pi-max').value = mx;
+    refreshWidget(w);
+  });
+
+  $('btn-del-w').addEventListener('click', () => deleteWidget(w.id));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  POINTER EVENTS (unified mouse + touch)
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('mousedown', onDown, { capture: true });
+document.addEventListener('mousemove', onMove, { passive: false });
+document.addEventListener('mouseup', onUp);
+document.addEventListener('touchstart', onDown, { passive: false, capture: true });
+document.addEventListener('touchmove', onMove, { passive: false });
+document.addEventListener('touchend', onUp, { passive: false });
+document.addEventListener('touchcancel', onUp);
+
+function onDown(e) {
+  // Ignore toolbar, props panel, modals
+  if (e.target.closest('#toolbar, #props, .modal-bg')) return;
+
+  const [cx, cy] = eXY(e);
+  const wEl = e.target.closest('.w');
+  const rhEl = e.target.closest('.rh');
+
+  if (S.mode === 'edit') {
+    if (!wEl) { select(null); return; }
+    e.preventDefault();
+    const id = wEl.dataset.id;
+    const w = gw(id);
+    if (!w) return;
+
+    if (rhEl) {
+      // Resize
+      select(id);
+      D.on=true; D.type='resize'; D.id=id; D.dir=rhEl.dataset.dir;
+      D.ox=cx; D.oy=cy;
+      D.owx=w.x; D.owy=w.y; D.oww=w.w; D.owh=w.h;
+    } else {
+      // Move
+      select(id);
+      D.on=true; D.type='move'; D.id=id;
+      D.ox=cx; D.oy=cy;
+      D.owx=w.x; D.owy=w.y;
+    }
+  } else {
+    // Perform mode
+    if (!wEl) return;
+    e.preventDefault();
+    const id = wEl.dataset.id;
+    const w = gw(id);
+    if (!w) return;
+
+    if (w.type === 'button') {
+      D.on=true; D.type='button'; D.id=id;
+      D.momentary = !w.toggle;
+      if (w.toggle) {
+        w.value = w.value >= w.onVal ? w.offVal : w.onVal;
+        sendOSC(w.osc, w.value);
+        refreshWidget(w);
+      } else {
+        w.value = w.onVal;
+        sendOSC(w.osc, w.value);
+        refreshWidget(w);
+      }
+    } else if (w.type === 'hslider') {
+      D.on=true; D.type='hslider'; D.id=id;
+      const r = wEl.getBoundingClientRect();
+      w.value = clamp(denorm(clamp((cx-r.left)/r.width,0,1), w.min, w.max), w.min, w.max);
+      sendOSC(w.osc, w.value);
+      refreshWidget(w);
+    } else if (w.type === 'vslider') {
+      D.on=true; D.type='vslider'; D.id=id;
+      const r = wEl.getBoundingClientRect();
+      w.value = clamp(denorm(clamp(1-(cy-r.top)/r.height,0,1), w.min, w.max), w.min, w.max);
+      sendOSC(w.osc, w.value);
+      refreshWidget(w);
+    } else if (w.type === 'knob') {
+      D.on=true; D.type='knob'; D.id=id;
+      D.ox=cx; D.oy=cy; D.sv=w.value;
+    }
+  }
+}
+
+function onMove(e) {
+  if (!D.on) return;
+  e.preventDefault();
+  const [cx, cy] = eXY(e);
+  const w = gw(D.id);
+  if (!w) return;
+
+  const dx = cx - D.ox, dy = cy - D.oy;
+  const MIN = 40;
+
+  if (D.type === 'move') {
+    w.x = Math.max(0, snap(D.owx + dx));
+    w.y = Math.max(0, snap(D.owy + dy));
+    refreshWidget(w);
+    if (S.sel === D.id) {
+      const xi = $('pi-x'), yi = $('pi-y');
+      if (xi) xi.value = w.x;
+      if (yi) yi.value = w.y;
+    }
+  } else if (D.type === 'resize') {
+    let nx=D.owx, ny=D.owy, nw=D.oww, nh=D.owh;
+    const d = D.dir;
+    if (d.includes('e')) nw = Math.max(MIN, snap(D.oww + dx));
+    if (d.includes('s')) nh = Math.max(MIN, snap(D.owh + dy));
+    if (d.includes('w')) {
+      const ddx = clamp(snap(dx), -(D.oww - MIN), D.oww - MIN);
+      nx = D.owx + ddx; nw = D.oww - ddx;
+    }
+    if (d.includes('n')) {
+      const ddy = clamp(snap(dy), -(D.owh - MIN), D.owh - MIN);
+      ny = D.owy + ddy; nh = D.owh - ddy;
+    }
+    w.x = Math.max(0, nx); w.y = Math.max(0, ny);
+    w.w = Math.max(MIN, nw); w.h = Math.max(MIN, nh);
+    refreshWidget(w);
+    const wi = $('pi-w'), hi = $('pi-h');
+    if (wi) wi.value = w.w;
+    if (hi) hi.value = w.h;
+  } else if (D.type === 'hslider') {
+    const r = gel(D.id).getBoundingClientRect();
+    w.value = clamp(denorm(clamp((cx-r.left)/r.width,0,1), w.min, w.max), w.min, w.max);
+    sendOSC(w.osc, w.value);
+    refreshWidget(w);
+  } else if (D.type === 'vslider') {
+    const r = gel(D.id).getBoundingClientRect();
+    w.value = clamp(denorm(clamp(1-(cy-r.top)/r.height,0,1), w.min, w.max), w.min, w.max);
+    sendOSC(w.osc, w.value);
+    refreshWidget(w);
+  } else if (D.type === 'knob') {
+    const sens = 200; // px for full sweep
+    const range = w.max - w.min;
+    w.value = clamp(D.sv + ((D.oy - cy) / sens) * range, w.min, w.max);
+    sendOSC(w.osc, w.value);
+    refreshWidget(w);
+  }
+}
+
+function onUp(e) {
+  if (!D.on) return;
+  if (D.type === 'button' && D.momentary) {
+    const w = gw(D.id);
+    if (w) {
+      w.value = w.offVal;
+      sendOSC(w.osc, w.value);
+      refreshWidget(w);
+    }
+  }
+  D.on = false; D.type = null; D.id = null; D.momentary = false;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input, select, textarea')) return;
+
+  if ((e.key === 'Delete' || e.key === 'Backspace') && S.sel && S.mode === 'edit') {
+    deleteWidget(S.sel); return;
+  }
+  if (e.key === 'Escape') { select(null); return; }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    setMode(S.mode === 'edit' ? 'perform' : 'edit');
+    return;
+  }
+
+  // Arrow nudge
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key) && S.sel && S.mode === 'edit') {
+    e.preventDefault();
+    const w = gw(S.sel);
+    if (!w) return;
+    const step = e.shiftKey ? 1 : S.gridSize;
+    if (e.key === 'ArrowLeft')  w.x = Math.max(0, w.x - step);
+    if (e.key === 'ArrowRight') w.x += step;
+    if (e.key === 'ArrowUp')    w.y = Math.max(0, w.y - step);
+    if (e.key === 'ArrowDown')  w.y += step;
+    refreshWidget(w);
+    const xi = $('pi-x'), yi = $('pi-y');
+    if (xi) xi.value = w.x;
+    if (yi) yi.value = w.y;
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  WIDGET CRUD
+// ═══════════════════════════════════════════════════════════
+function addWidget(type) {
+  const canvas = $('canvas');
+  const cx = Math.max(60, snap(canvas.clientWidth / 2 - 60));
+  const cy = Math.max(40, snap(canvas.clientHeight / 2 - 40));
+  const w = makeWidget(type, cx, cy);
+  S.widgets.push(w);
+  mountWidget(w);
+  select(w.id);
+  toast('Added ' + type, 'ok');
+}
+
+function deleteWidget(id) {
+  S.widgets = S.widgets.filter(w => w.id !== id);
+  unmountWidget(id);
+  if (S.sel === id) { S.sel = null; closeProps(); }
+  toast('Deleted', 'ok');
+}
+
+function clearAll() {
+  if (S.widgets.length && !confirm('Clear all widgets? This cannot be undone.')) return;
+  S.widgets.forEach(w => unmountWidget(w.id));
+  S.widgets = [];
+  S.sel = null;
+  closeProps();
+  toast('Cleared', 'ok');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MODE
+// ═══════════════════════════════════════════════════════════
+function setMode(mode) {
+  S.mode = mode;
+  document.body.classList.toggle('performing', mode === 'perform');
+  const btn = $('btn-mode');
+  if (mode === 'perform') {
+    btn.textContent = '▶  PERFORM';
+    btn.classList.add('performing');
+    $('tg-add').style.visibility = 'hidden';
+    $('tg-grid').style.visibility = 'hidden';
+    select(null);
+  } else {
+    btn.textContent = '✏  EDIT';
+    btn.classList.remove('performing');
+    $('tg-add').style.visibility = '';
+    $('tg-grid').style.visibility = '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GRID
+// ═══════════════════════════════════════════════════════════
+function applyGrid() {
+  const c = $('canvas');
+  c.classList.toggle('grid-on', S.showGrid);
+  c.style.setProperty('--grid-px', S.gridSize + 'px');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  OSC / WEBSOCKET
+// ═══════════════════════════════════════════════════════════
+function sendOSC(address, value) {
+  if (!S.ws || S.ws.readyState !== WebSocket.OPEN) return;
+  let msg;
+  if (S.wsFmt === 'json') {
+    msg = JSON.stringify({ address, args: [value] });
+  } else if (S.wsFmt === 'oscjson') {
+    const t = (Number.isInteger(value) ? 'i' : 'f');
+    msg = JSON.stringify({ address, args: [{ type: t, value }] });
+  } else {
+    msg = address + ' ' + value;
+  }
+  try { S.ws.send(msg); } catch(err) { /* ignore */ }
+}
+
+function connectWS(url) {
+  if (S.ws) { try { S.ws.close(); } catch(e) {} S.ws = null; }
+  setWsSt('connecting', 'Connecting…');
+  try {
+    S.ws = new WebSocket(url);
+    S.ws.onopen  = () => { setWsSt('connected', url.replace('ws://','').replace('wss://','').split('/')[0]); };
+    S.ws.onclose = () => { setWsSt('disconnected', 'Disconnected'); S.ws = null; };
+    S.ws.onerror = () => { setWsSt('error', 'Error'); };
+    S.ws.onmessage = e => {
+      // Handle incoming OSC (bidirectional feedback)
+      try {
+        const d = JSON.parse(e.data);
+        const addr = d.address;
+        let val = d.args;
+        if (Array.isArray(val)) val = val[0];
+        if (typeof val === 'object' && val !== null) val = val.value;
+        const w = S.widgets.find(x => x.osc === addr);
+        if (w && typeof val === 'number') {
+          w.value = clamp(val, w.min, w.max);
+          refreshWidget(w);
+        }
+      } catch(err) {}
+    };
+  } catch(err) {
+    setWsSt('error', 'Invalid URL');
+  }
+}
+
+function setWsSt(st, label) {
+  S.wsState = st;
+  $('dot').className = 'status-dot ' + st;
+  $('status-label').textContent = label || st;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SAVE / LOAD
+// ═══════════════════════════════════════════════════════════
+function saveJSON() {
+  const data = {
+    _version: 2,
+    gridSize: S.gridSize, showGrid: S.showGrid, snap: S.snap,
+    wsUrl: S.wsUrl, wsFmt: S.wsFmt,
+    idCtr: S.idCtr,
+    widgets: S.widgets,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'osc-layout.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Layout saved ↓', 'ok');
+}
+
+function loadJSON(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      // Clear existing
+      S.widgets.forEach(w => unmountWidget(w.id));
+      S.widgets = [];
+      S.sel = null; closeProps();
+
+      S.gridSize = data.gridSize || 20;
+      S.showGrid = data.showGrid ?? true;
+      S.snap = data.snap ?? true;
+      S.idCtr = data.idCtr || 1;
+      if (data.wsUrl) S.wsUrl = data.wsUrl;
+      if (data.wsFmt) S.wsFmt = data.wsFmt;
+
+      for (const w of (data.widgets || [])) {
+        S.widgets.push(w);
+        mountWidget(w);
+      }
+
+      // Sync UI
+      $('btn-grid').classList.toggle('active', S.showGrid);
+      $('btn-snap').classList.toggle('active', S.snap);
+      $('sel-grid-size').value = S.gridSize;
+      applyGrid();
+      toast('Layout loaded ↑', 'ok');
+    } catch(err) {
+      toast('Failed to load: ' + err.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════
+let toastTimer;
+function toast(msg, type = '') {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 2200);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TOOLBAR BINDINGS
+// ═══════════════════════════════════════════════════════════
+function initToolbar() {
+  $('btn-mode').addEventListener('click', () => setMode(S.mode === 'edit' ? 'perform' : 'edit'));
+
+  document.querySelectorAll('[data-add]').forEach(btn => {
+    btn.addEventListener('click', () => addWidget(btn.dataset.add));
+  });
+
+  $('btn-grid').addEventListener('click', e => {
+    S.showGrid = !S.showGrid;
+    e.target.classList.toggle('active', S.showGrid);
+    applyGrid();
+  });
+
+  $('btn-snap').addEventListener('click', e => {
+    S.snap = !S.snap;
+    e.target.classList.toggle('active', S.snap);
+  });
+
+  $('sel-grid-size').addEventListener('change', e => {
+    S.gridSize = parseInt(e.target.value);
+    applyGrid();
+  });
+
+  $('btn-save').addEventListener('click', saveJSON);
+
+  $('btn-load').addEventListener('click', () => $('file-inp').click());
+  $('file-inp').addEventListener('change', e => {
+    if (e.target.files[0]) loadJSON(e.target.files[0]);
+    e.target.value = '';
+  });
+
+  $('btn-clear').addEventListener('click', clearAll);
+
+  $('btn-osc-cfg').addEventListener('click', () => {
+    $('inp-ws-url').value = S.wsUrl;
+    $('inp-ws-fmt').value = S.wsFmt;
+    $('modal-osc').classList.remove('hidden');
+  });
+
+  $('btn-osc-connect').addEventListener('click', () => {
+    connectWS(S.wsUrl);
+  });
+
+  $('btn-modal-cancel').addEventListener('click', () => $('modal-osc').classList.add('hidden'));
+  $('modal-osc').addEventListener('click', e => {
+    if (e.target === $('modal-osc')) $('modal-osc').classList.add('hidden');
+  });
+
+  $('btn-modal-save').addEventListener('click', () => {
+    S.wsUrl = $('inp-ws-url').value.trim();
+    S.wsFmt = $('inp-ws-fmt').value;
+    localStorage.setItem('osc_ws_url', S.wsUrl);
+    localStorage.setItem('osc_ws_fmt', S.wsFmt);
+    $('modal-osc').classList.add('hidden');
+    connectWS(S.wsUrl);
+  });
+
+  $('btn-props-close').addEventListener('click', () => select(null));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AUTO-SAVE / RESTORE
+// ═══════════════════════════════════════════════════════════
+function autosave() {
+  try {
+    localStorage.setItem('osc_layout', JSON.stringify({
+      _version: 2, gridSize: S.gridSize, showGrid: S.showGrid,
+      snap: S.snap, idCtr: S.idCtr, widgets: S.widgets,
+      wsUrl: S.wsUrl, wsFmt: S.wsFmt,
+    }));
+  } catch(e) {}
+}
+
+function autorestore() {
+  try {
+    const raw = localStorage.getItem('osc_layout');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    S.gridSize = data.gridSize || 20;
+    S.showGrid = data.showGrid ?? true;
+    S.snap = data.snap ?? true;
+    S.idCtr = data.idCtr || 1;
+    if (data.wsUrl) S.wsUrl = data.wsUrl;
+    if (data.wsFmt) S.wsFmt = data.wsFmt;
+    for (const w of (data.widgets || [])) {
+      S.widgets.push(w);
+      mountWidget(w);
+    }
+    $('btn-grid').classList.toggle('active', S.showGrid);
+    $('btn-snap').classList.toggle('active', S.snap);
+    $('sel-grid-size').value = S.gridSize;
+    applyGrid();
+  } catch(e) {}
+}
+
+setInterval(autosave, 5000);
+window.addEventListener('beforeunload', autosave);
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  initToolbar();
+  applyGrid();
+  autorestore();
+});
+</script>
+</body>
+</html>
