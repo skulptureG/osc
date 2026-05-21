@@ -333,7 +333,6 @@ html, body {
   overflow: hidden;
   cursor: crosshair;
 }
-/* Subtle grid */
 .wt-xypad::before {
   content: '';
   position: absolute; inset: 0;
@@ -343,73 +342,89 @@ html, body {
   background-size: 25% 25%;
   pointer-events: none;
 }
-/* Centre crosshair */
-.xypad-cx, .xypad-cy {
-  position: absolute;
-  background: rgba(255,255,255,0.06);
-  pointer-events: none;
-}
-.xypad-cx { left: 0; right: 0; top: 50%; height: 1px; }
-.xypad-cy { top: 0; bottom: 0; left: 50%; width: 1px; }
-/* Dynamic crosshair lines that follow the dot */
 .xypad-hline {
   position: absolute; left: 0; right: 0; height: 1px;
-  opacity: 0.35; pointer-events: none;
-  transform: translateY(-50%);
+  opacity: 0.4; pointer-events: none;
 }
 .xypad-vline {
   position: absolute; top: 0; bottom: 0; width: 1px;
-  opacity: 0.35; pointer-events: none;
-  transform: translateX(-50%);
+  opacity: 0.4; pointer-events: none;
 }
 .xypad-dot {
   position: absolute;
-  width: 14px; height: 14px;
+  width: 16px; height: 16px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  box-shadow: 0 0 10px currentColor, 0 0 3px #000;
   z-index: 2;
+  box-shadow: 0 0 12px currentColor, 0 0 4px rgba(0,0,0,0.8);
+}
+/* inner ring on dot */
+.xypad-dot::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.5);
 }
 .xypad-info {
-  position: absolute; bottom: 4px; left: 0; right: 0;
+  position: absolute; bottom: 5px; left: 0; right: 0;
   display: flex; flex-direction: column; align-items: center;
   pointer-events: none; z-index: 3; gap: 1px;
 }
 .xypad-label {
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.07em;
-  color: rgba(255,255,255,0.8);
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: rgba(255,255,255,0.8);
   text-shadow: 0 1px 4px rgba(0,0,0,0.9);
   max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .xypad-vals {
-  font-size: 9px; color: rgba(255,255,255,0.45);
+  font-size: 9px; color: rgba(255,255,255,0.4);
   text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  font-family: var(--mono);
 }
 
-/* ---- RECEIVE-ONLY BADGE (edit mode) ---- */
+/* ---- RECEIVE-ONLY BADGE ---- */
 .rx-badge {
-  position: absolute;
-  top: 4px; right: 4px;
-  background: rgba(48,200,112,0.15);
+  position: absolute; top: 4px; right: 4px;
+  background: rgba(48,200,112,0.12);
   border: 1px solid var(--success);
   color: var(--success);
-  font-size: 8px; font-weight: 700;
-  letter-spacing: 0.1em;
-  padding: 1px 4px;
-  border-radius: 2px;
-  pointer-events: none;
-  z-index: 5;
+  font-size: 8px; font-weight: 700; letter-spacing: 0.1em;
+  padding: 1px 5px; border-radius: 2px;
+  pointer-events: none; z-index: 5;
 }
 
 /* ---- OSC RECEIVE FLASH ---- */
 @keyframes rxflash {
-  0%   { box-shadow: 0 0 0 2px var(--success); }
-  60%  { box-shadow: 0 0 0 4px rgba(48,200,112,0.25); }
-  100% { box-shadow: none; }
+  0%   { outline: 2px solid var(--success); outline-offset: 0px; }
+  70%  { outline: 2px solid rgba(48,200,112,0.2); outline-offset: 2px; }
+  100% { outline: none; }
 }
-.w.rx-flash .w-inner { animation: rxflash 0.4s ease-out forwards; }
+.w.rx-flash .w-inner { animation: rxflash 0.35s ease-out forwards; }
+
+/* ---- LABEL / TEXT WIDGET ---- */
+.wt-label {
+  width: 100%; height: 100%;
+  display: flex;
+  overflow: hidden;
+  border-radius: 5px;
+  position: relative;
+}
+.wt-label-text {
+  width: 100%;
+  overflow: hidden;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  line-height: 1.35;
+  font-family: var(--mono);
+}
+/* Dashed edit-mode indicator when background is fully transparent */
+body:not(.performing) .wt-label.label-no-bg {
+  outline: 1px dashed rgba(255,255,255,0.12);
+  outline-offset: -1px;
+  border-radius: 5px;
+}
 
 /* ============ PROPS PANEL ============ */
 #props {
@@ -588,6 +603,131 @@ body.performing #canvas-drop-hint { display: none; }
 
 /* Hidden file input */
 #file-inp { display: none; }
+/* ============ OSC MONITOR ============ */
+#mon {
+  position: fixed;
+  right: 20px; bottom: 20px;
+  width: 420px; height: 300px;
+  min-width: 280px; min-height: 120px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  display: flex; flex-direction: column;
+  z-index: 1000;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+#mon.mon-hidden { display: none; }
+#mon.mon-minimised { height: 36px; min-height: 36px; resize: none; }
+
+/* title bar — drag handle */
+#mon-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 8px;
+  height: 36px; min-height: 36px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  cursor: grab; flex-shrink: 0;
+  user-select: none;
+}
+#mon-bar:active { cursor: grabbing; }
+#mon-title {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-mid); flex: 1;
+}
+#mon-count {
+  font-size: 9px; color: var(--text-dim);
+  background: var(--surface3);
+  padding: 1px 5px; border-radius: 2px;
+  min-width: 28px; text-align: center;
+}
+
+/* filter pills */
+#mon-filters { display: flex; gap: 3px; }
+.mon-pill {
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 3px; cursor: pointer;
+  border: 1px solid var(--border2);
+  background: transparent; color: var(--text-dim);
+  font-family: var(--mono); line-height: 1.6;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.mon-pill:hover { border-color: var(--text-dim); color: var(--text); }
+.mon-pill.active { background: var(--surface3); color: var(--text); border-color: var(--border2); }
+.mon-pill.pill-out.active { color: var(--accent);   border-color: var(--accent); }
+.mon-pill.pill-in.active  { color: var(--success);  border-color: var(--success); }
+
+/* icon buttons in bar */
+.mon-icon {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 12px; padding: 2px 4px;
+  border-radius: 2px; line-height: 1;
+  font-family: var(--mono);
+  transition: color 0.1s, background 0.1s;
+}
+.mon-icon:hover { color: var(--text); background: var(--surface3); }
+.mon-icon.paused { color: var(--accent); }
+
+/* log body */
+#mon-log {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  padding: 2px 0;
+  scroll-behavior: auto;
+}
+#mon-log::-webkit-scrollbar { width: 4px; }
+#mon-log::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* each log row */
+.mon-row {
+  display: grid;
+  grid-template-columns: 68px 28px 1fr auto;
+  align-items: baseline;
+  gap: 0 6px;
+  padding: 2px 10px;
+  font-size: 10px; line-height: 1.7;
+  border-bottom: 1px solid rgba(255,255,255,0.025);
+  cursor: default;
+  transition: background 0.08s;
+}
+.mon-row:hover { background: rgba(255,255,255,0.035); }
+.mon-row.new-row { animation: monpop 0.25s ease-out; }
+@keyframes monpop {
+  0%   { background: rgba(255,255,255,0.08); }
+  100% { background: transparent; }
+}
+
+.mon-time  { color: var(--text-dim); font-size: 9px; white-space: nowrap; }
+.mon-dir   { font-weight: 700; font-size: 9px; white-space: nowrap; }
+.mon-dir.out { color: var(--accent); }
+.mon-dir.in  { color: var(--success); }
+.mon-addr  { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mon-val   { color: var(--text-mid); white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* resize grip — bottom-right corner */
+#mon-grip {
+  position: absolute; bottom: 0; right: 0;
+  width: 14px; height: 14px; cursor: se-resize;
+  opacity: 0.3; transition: opacity 0.15s;
+}
+#mon-grip:hover { opacity: 0.8; }
+#mon-grip::before, #mon-grip::after {
+  content: '';
+  position: absolute; right: 3px;
+  width: 6px; height: 1px; background: var(--text-mid);
+}
+#mon-grip::before { bottom: 7px; }
+#mon-grip::after  { bottom: 4px; width: 10px; right: 1px; }
+
+/* empty state */
+#mon-empty {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; font-size: 10px; color: var(--text-dim);
+  text-align: center; padding: 20px; line-height: 1.8;
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
@@ -605,6 +745,8 @@ body.performing #canvas-drop-hint { display: none; }
     <button class="tb-btn" data-add="vslider">▮ V-Slider</button>
     <button class="tb-btn" data-add="knob">◎ Knob</button>
     <button class="tb-btn" data-add="xypad">⊕ XY Pad</button>
+    <button class="tb-btn" data-add="label">𝐀 Label</button>
+    <button class="tb-btn" data-add="text">≡ Text</button>
   </div>
 
   <div class="tb-group" id="tg-grid">
@@ -630,6 +772,7 @@ body.performing #canvas-drop-hint { display: none; }
     <span class="tb-label">OSC</span>
     <button class="tb-btn" id="btn-osc-cfg">⚡ Bridge</button>
     <button class="tb-btn" id="btn-osc-connect">Connect</button>
+    <button class="tb-btn" id="btn-mon">⎍ Monitor</button>
   </div>
 
   <div id="ws-status-area">
@@ -695,6 +838,27 @@ body.performing #canvas-drop-hint { display: none; }
       <button class="tb-btn active" id="btn-modal-save">Save &amp; Connect</button>
     </div>
   </div>
+</div>
+
+<!-- ============ OSC MONITOR ============ -->
+<div id="mon" class="mon-hidden">
+  <div id="mon-bar">
+    <span id="mon-title">OSC Monitor</span>
+    <span id="mon-count">0</span>
+    <div id="mon-filters">
+      <button class="mon-pill active" data-filter="all">All</button>
+      <button class="mon-pill pill-out" data-filter="out">▶ Out</button>
+      <button class="mon-pill pill-in"  data-filter="in">◀ In</button>
+    </div>
+    <button class="mon-icon" id="mon-pause" title="Pause (P)">⏸</button>
+    <button class="mon-icon" id="mon-clear" title="Clear">⌫</button>
+    <button class="mon-icon" id="mon-min"   title="Minimise">─</button>
+    <button class="mon-icon" id="mon-close" title="Close">✕</button>
+  </div>
+  <div id="mon-log">
+    <div id="mon-empty">No messages yet.<br>Connect to a WebSocket bridge<br>and interact with widgets.</div>
+  </div>
+  <div id="mon-grip"></div>
 </div>
 
 <!-- Hidden file input -->
@@ -767,6 +931,14 @@ const COLORS = ['#e8a020','#e04030','#30b870','#3090e0','#a040e0','#e060a0','#30
 let colorCtr = 0;
 function nextColor() { return COLORS[colorCtr++ % COLORS.length]; }
 
+function hexToRgba(hex, opacity) {
+  const h = hex.replace('#','');
+  const r = parseInt(h.slice(0,2),16);
+  const g = parseInt(h.slice(2,4),16);
+  const b = parseInt(h.slice(4,6),16);
+  return `rgba(${r},${g},${b},${isNaN(opacity)?1:opacity})`;
+}
+
 function makeWidget(type, x, y) {
   const id = uid();
   const color = nextColor();
@@ -786,8 +958,26 @@ function makeWidget(type, x, y) {
       return { ...base, w:200, h:200,
                oscX: '/osc/1/xypad/' + id.slice(1) + '/x',
                oscY: '/osc/1/xypad/' + id.slice(1) + '/y',
-               valueX: 0, valueY: 0,
+               valueX: 0.5, valueY: 0.5,
                minX: 0, maxX: 1, minY: 0, maxY: 1 };
+    case 'label':
+      return { id, type, x, y, w:240, h:44,
+               text: 'SECTION LABEL',
+               fontSize: 15, fontWeight: 'bold',
+               textAlign: 'left', textValign: 'middle',
+               uppercase: true, letterSpacing: 0.1,
+               color: '#e8a020',
+               bgColor: '#000000', bgOpacity: 0,
+               borderStyle: 'none', borderColor: '#444444', borderWidth: 1, borderRadius: 4 };
+    case 'text':
+      return { id, type, x, y, w:240, h:80,
+               text: 'Text block. Edit in properties.',
+               fontSize: 12, fontWeight: 'normal',
+               textAlign: 'left', textValign: 'top',
+               uppercase: false, letterSpacing: 0,
+               color: '#888888',
+               bgColor: '#141414', bgOpacity: 0.6,
+               borderStyle: 'solid', borderColor: '#2a2a2a', borderWidth: 1, borderRadius: 5 };
   }
   return base;
 }
@@ -839,7 +1029,10 @@ function knobSVG(w) {
 }
 
 function wHTML(w) {
-  const rxBadge = (w.receiveOnly && S.mode === 'edit') ? '<div class="rx-badge">RX</div>' : '';
+  // RX badge shown in edit mode for receive-only widgets
+  const rxBadge = (w.receiveOnly && S.mode === 'edit')
+    ? '<div class="rx-badge">RX ONLY</div>' : '';
+
   switch(w.type) {
     case 'button': {
       const on = w.value >= w.onVal;
@@ -879,21 +1072,43 @@ function wHTML(w) {
       </div>${rxBadge}`;
     }
     case 'xypad': {
-      const tx = norm(w.valueX, w.minX, w.maxX);
-      const ty = norm(w.valueY, w.minY, w.maxY);
-      const xPct = (clamp(tx,0,1)*100).toFixed(2);
-      const yPct = ((1-clamp(ty,0,1))*100).toFixed(2); // flip Y: top=max
-      return `<div class="wt-xypad" style="border-color:${w.color}40">
-        <div class="xypad-cx"></div>
-        <div class="xypad-cy"></div>
+      const tx = clamp(norm(w.valueX, w.minX, w.maxX), 0, 1);
+      const ty = clamp(norm(w.valueY, w.minY, w.maxY), 0, 1);
+      const xPct = (tx * 100).toFixed(2);
+      const yPct = ((1 - ty) * 100).toFixed(2); // Y flipped: top = max
+      return `<div class="wt-xypad" style="border-color:${w.color}55">
         <div class="xypad-hline" style="top:${yPct}%;background:${w.color}"></div>
         <div class="xypad-vline" style="left:${xPct}%;background:${w.color}"></div>
-        <div class="xypad-dot" style="left:${xPct}%;top:${yPct}%;background:${w.color};color:${w.color}"></div>
+        <div class="xypad-dot"   style="left:${xPct}%;top:${yPct}%;background:${w.color};color:${w.color}"></div>
         <div class="xypad-info">
           <div class="xypad-label">${w.label}</div>
-          <div class="xypad-vals">x:${fmtVal(w.valueX,w.minX,w.maxX)} y:${fmtVal(w.valueY,w.minY,w.maxY)}</div>
+          <div class="xypad-vals">x:${fmtVal(w.valueX,w.minX,w.maxX)}  y:${fmtVal(w.valueY,w.minY,w.maxY)}</div>
         </div>
       </div>${rxBadge}`;
+    }
+    case 'label':
+    case 'text': {
+      const VALIGN = { top:'flex-start', middle:'center', bottom:'flex-end' };
+      const bg = hexToRgba(w.bgColor || '#000000', w.bgOpacity ?? 0);
+      const noBg = (w.bgOpacity ?? 0) < 0.02;
+      const bdr = w.borderStyle && w.borderStyle !== 'none'
+        ? `border:${w.borderWidth||1}px ${w.borderStyle} ${w.borderColor};` : '';
+      const pad = `${Math.max(3, Math.round(w.h*0.08))}px ${Math.max(6, Math.round(w.w*0.04))}px`;
+      // escape HTML in text so <>&" don't break layout
+      const safe = (w.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `<div class="wt-label ${noBg?'label-no-bg':''}"
+        style="background:${bg};${bdr}border-radius:${w.borderRadius??5}px;
+               align-items:${VALIGN[w.textValign]||'center'};
+               justify-content:${w.textAlign==='right'?'flex-end':w.textAlign==='center'?'center':'flex-start'}">
+        <div class="wt-label-text" style="
+          font-size:${w.fontSize||14}px;
+          font-weight:${w.fontWeight||'normal'};
+          color:${w.color};
+          text-align:${w.textAlign||'left'};
+          text-transform:${w.uppercase?'uppercase':'none'};
+          letter-spacing:${w.letterSpacing||0}em;
+          padding:${pad};">${safe.replace(/\n/g,'<br>')}</div>
+      </div>`;
     }
   }
   return '';
@@ -975,8 +1190,14 @@ function buildProps(id) {
   ];
   const rangeOpts = ranges.map(([l,v]) =>
     `<option value="${v}" ${(v===`${w.min},${w.max}`)?'selected':''}>${l}</option>`).join('');
+  const rangeOptsX = ranges.map(([l,v]) =>
+    `<option value="${v}" ${(v===`${w.minX},${w.maxX}`)?'selected':''}>${l}</option>`).join('');
+  const rangeOptsY = ranges.map(([l,v]) =>
+    `<option value="${v}" ${(v===`${w.minY},${w.maxY}`)?'selected':''}>${l}</option>`).join('');
 
+  // Type-specific extra sections
   let extra = '';
+
   if (w.type === 'button') {
     extra = `<div class="ps"><div class="ps-title">Button Options</div>
       <div class="pr"><span class="pl">Mode</span>
@@ -991,14 +1212,35 @@ function buildProps(id) {
     </div>`;
   }
 
-  $('props-body').innerHTML = `
-    <div class="ps">
-      <div class="ps-title">Identity</div>
-      <div class="pr col"><span class="pl">Label</span>
-        <input type="text" class="pi" id="pi-label" value="${w.label}"></div>
-      <div class="pr col"><span class="pl">OSC Address</span>
-        <input type="text" class="pi" id="pi-osc" value="${w.osc}" placeholder="/control/1"></div>
+  if (w.type === 'xypad') {
+    extra = `
+    <div class="ps"><div class="ps-title">OSC Addresses</div>
+      <div class="pr col"><span class="pl">X Address</span>
+        <input type="text" class="pi" id="pi-oscx" value="${w.oscX}" placeholder="/xy/x"></div>
+      <div class="pr col"><span class="pl">Y Address</span>
+        <input type="text" class="pi" id="pi-oscy" value="${w.oscY}" placeholder="/xy/y"></div>
     </div>
+    <div class="ps"><div class="ps-title">X Axis Range</div>
+      <div class="pr"><span class="pl">Min X</span>
+        <input type="number" class="pi" id="pi-minx" value="${w.minX}" step="any"></div>
+      <div class="pr"><span class="pl">Max X</span>
+        <input type="number" class="pi" id="pi-maxx" value="${w.maxX}" step="any"></div>
+      <div class="pr col"><span class="pl">Preset</span>
+        <select class="pi" id="pi-range-preset-x">${rangeOptsX}</select></div>
+    </div>
+    <div class="ps"><div class="ps-title">Y Axis Range</div>
+      <div class="pr"><span class="pl">Min Y</span>
+        <input type="number" class="pi" id="pi-miny" value="${w.minY}" step="any"></div>
+      <div class="pr"><span class="pl">Max Y</span>
+        <input type="number" class="pi" id="pi-maxy" value="${w.maxY}" step="any"></div>
+      <div class="pr col"><span class="pl">Preset</span>
+        <select class="pi" id="pi-range-preset-y">${rangeOptsY}</select></div>
+    </div>`;
+  }
+
+  // Range section only shown for non-xypad, non-label/text types
+  const isText = w.type === 'label' || w.type === 'text';
+  const rangeSection = (!isText && w.type !== 'xypad') ? `
     <div class="ps">
       <div class="ps-title">Value Range</div>
       <div class="pr"><span class="pl">Min</span>
@@ -1007,9 +1249,87 @@ function buildProps(id) {
         <input type="number" class="pi" id="pi-max" value="${w.max}" step="any"></div>
       <div class="pr col"><span class="pl">Preset</span>
         <select class="pi" id="pi-range-preset">${rangeOpts}</select></div>
+    </div>` : '';
+
+  // OSC address row — hidden for label/text and xypad (xypad uses extra section)
+  const oscRow = (!isText && w.type !== 'xypad') ? `
+      <div class="pr col"><span class="pl">OSC Address</span>
+        <input type="text" class="pi" id="pi-osc" value="${w.osc}" placeholder="/control/1"></div>` : '';
+
+  // Receive-only toggle — not relevant for label/text
+  const rxRow = !isText ? `
+      <div class="pr">
+        <span class="pl">Receive only</span>
+        <input type="checkbox" id="pi-rxonly" ${w.receiveOnly?'checked':''}>
+      </div>` : '';
+
+  // Label/Text typography section
+  const textSection = isText ? `
+    <div class="ps"><div class="ps-title">Text Content</div>
+      <div class="pr col">
+        <textarea class="pi" id="pi-text" rows="4"
+          style="resize:vertical;line-height:1.5">${(w.text||'').replace(/</g,'&lt;')}</textarea>
+      </div>
     </div>
+    <div class="ps"><div class="ps-title">Typography</div>
+      <div class="pr"><span class="pl">Size (px)</span>
+        <input type="number" class="pi" id="pi-fontsize" value="${w.fontSize||14}" min="6" max="120" step="1"></div>
+      <div class="pr"><span class="pl">Weight</span>
+        <select class="pi" id="pi-fontweight">
+          <option value="normal" ${(w.fontWeight||'normal')==='normal'?'selected':''}>Normal</option>
+          <option value="bold"   ${w.fontWeight==='bold'?'selected':''}>Bold</option>
+          <option value="300"    ${w.fontWeight==='300'?'selected':''}>Light</option>
+        </select></div>
+      <div class="pr"><span class="pl">Align</span>
+        <select class="pi" id="pi-textalign">
+          <option value="left"   ${(w.textAlign||'left')==='left'?'selected':''}>Left</option>
+          <option value="center" ${w.textAlign==='center'?'selected':''}>Centre</option>
+          <option value="right"  ${w.textAlign==='right'?'selected':''}>Right</option>
+        </select></div>
+      <div class="pr"><span class="pl">V-Align</span>
+        <select class="pi" id="pi-textvalign">
+          <option value="top"    ${(w.textValign||'top')==='top'?'selected':''}>Top</option>
+          <option value="middle" ${w.textValign==='middle'?'selected':''}>Middle</option>
+          <option value="bottom" ${w.textValign==='bottom'?'selected':''}>Bottom</option>
+        </select></div>
+      <div class="pr"><span class="pl">Uppercase</span>
+        <input type="checkbox" id="pi-uppercase" ${w.uppercase?'checked':''}></div>
+      <div class="pr"><span class="pl">Tracking</span>
+        <input type="number" class="pi" id="pi-tracking" value="${w.letterSpacing||0}" min="0" max="1" step="0.01"></div>
+    </div>
+    <div class="ps"><div class="ps-title">Background</div>
+      <div class="pr"><span class="pl">Fill</span>
+        <input type="color" class="pi" id="pi-bgcolor" value="${w.bgColor||'#000000'}"></div>
+      <div class="pr"><span class="pl">Opacity</span>
+        <input type="number" class="pi" id="pi-bgopacity" value="${w.bgOpacity??0}" min="0" max="1" step="0.05"></div>
+    </div>
+    <div class="ps"><div class="ps-title">Border</div>
+      <div class="pr"><span class="pl">Style</span>
+        <select class="pi" id="pi-borderstyle">
+          <option value="none"   ${(w.borderStyle||'none')==='none'?'selected':''}>None</option>
+          <option value="solid"  ${w.borderStyle==='solid'?'selected':''}>Solid</option>
+          <option value="dashed" ${w.borderStyle==='dashed'?'selected':''}>Dashed</option>
+          <option value="dotted" ${w.borderStyle==='dotted'?'selected':''}>Dotted</option>
+        </select></div>
+      <div class="pr"><span class="pl">Color</span>
+        <input type="color" class="pi" id="pi-bordercolor" value="${w.borderColor||'#444444'}"></div>
+      <div class="pr"><span class="pl">Width (px)</span>
+        <input type="number" class="pi" id="pi-borderwidth" value="${w.borderWidth||1}" min="1" max="8" step="1"></div>
+      <div class="pr"><span class="pl">Radius (px)</span>
+        <input type="number" class="pi" id="pi-borderradius" value="${w.borderRadius??5}" min="0" max="40" step="1"></div>
+    </div>` : '';
+
+  $('props-body').innerHTML = `
     <div class="ps">
-      <div class="ps-title">Appearance</div>
+      <div class="ps-title">Identity</div>
+      ${isText ? '' : `<div class="pr col"><span class="pl">Label</span>
+        <input type="text" class="pi" id="pi-label" value="${w.label}"></div>`}
+      ${oscRow}
+      ${rxRow}
+    </div>
+    ${rangeSection}
+    <div class="ps">
+      <div class="ps-title">${isText ? 'Text Colour' : 'Appearance'}</div>
       <div class="pr"><span class="pl">Color</span>
         <input type="color" class="pi" id="pi-color" value="${w.color}"></div>
     </div>
@@ -1022,8 +1342,9 @@ function buildProps(id) {
       <div class="pr"><span class="pl">W</span>
         <input type="number" class="pi" id="pi-w" value="${w.w}" step="${S.gridSize}" min="40"></div>
       <div class="pr"><span class="pl">H</span>
-        <input type="number" class="pi" id="pi-h" value="${w.h}" step="${S.gridSize}" min="40"></div>
+        <input type="number" class="pi" id="pi-h" value="${w.h}" step="${S.gridSize}" min="20"></div>
     </div>
+    ${textSection}
     ${extra}
     <div class="ps">
       <button class="btn-del" id="btn-del-w">🗑  Delete Widget</button>
@@ -1044,15 +1365,31 @@ function buildProps(id) {
     el.addEventListener('change', e => apply(e.target.value));
   }
 
-  bind('pi-label', 'label');
-  bind('pi-osc', 'osc');
   bind('pi-color', 'color');
-  bind('pi-min', 'min', parseFloat);
-  bind('pi-max', 'max', parseFloat);
   bind('pi-x', 'x', v => snap(parseFloat(v)));
   bind('pi-y', 'y', v => snap(parseFloat(v)));
   bind('pi-w', 'w', v => Math.max(40, snap(parseFloat(v))));
-  bind('pi-h', 'h', v => Math.max(40, snap(parseFloat(v))));
+  bind('pi-h', 'h', v => Math.max(isText ? 20 : 40, snap(parseFloat(v))));
+
+  if (!isText) {
+    bind('pi-label', 'label');
+    // receiveOnly checkbox
+    const rxEl = $('pi-rxonly');
+    if (rxEl) rxEl.addEventListener('change', e => { w.receiveOnly = e.target.checked; refreshWidget(w); });
+  }
+
+  if (!isText && w.type !== 'xypad') {
+    bind('pi-osc', 'osc');
+    bind('pi-min', 'min', parseFloat);
+    bind('pi-max', 'max', parseFloat);
+    $('pi-range-preset').addEventListener('change', e => {
+      if (!e.target.value) return;
+      const [mn, mx] = e.target.value.split(',').map(Number);
+      w.min = mn; w.max = mx;
+      $('pi-min').value = mn; $('pi-max').value = mx;
+      refreshWidget(w);
+    });
+  }
 
   if (w.type === 'button') {
     bind('pi-toggle', 'toggle', v => v === '1');
@@ -1060,13 +1397,45 @@ function buildProps(id) {
     bind('pi-offval', 'offVal', parseFloat);
   }
 
-  $('pi-range-preset').addEventListener('change', e => {
-    if (!e.target.value) return;
-    const [mn, mx] = e.target.value.split(',').map(Number);
-    w.min = mn; w.max = mx;
-    $('pi-min').value = mn; $('pi-max').value = mx;
-    refreshWidget(w);
-  });
+  if (w.type === 'xypad') {
+    bind('pi-oscx', 'oscX');
+    bind('pi-oscy', 'oscY');
+    bind('pi-minx', 'minX', parseFloat);
+    bind('pi-maxx', 'maxX', parseFloat);
+    bind('pi-miny', 'minY', parseFloat);
+    bind('pi-maxy', 'maxY', parseFloat);
+    $('pi-range-preset-x').addEventListener('change', e => {
+      if (!e.target.value) return;
+      const [mn, mx] = e.target.value.split(',').map(Number);
+      w.minX = mn; w.maxX = mx;
+      $('pi-minx').value = mn; $('pi-maxx').value = mx;
+      refreshWidget(w);
+    });
+    $('pi-range-preset-y').addEventListener('change', e => {
+      if (!e.target.value) return;
+      const [mn, mx] = e.target.value.split(',').map(Number);
+      w.minY = mn; w.maxY = mx;
+      $('pi-miny').value = mn; $('pi-maxy').value = mx;
+      refreshWidget(w);
+    });
+  }
+
+  if (isText) {
+    // Text content — textarea live update
+    bind('pi-text', 'text');
+    bind('pi-fontsize',     'fontSize',      parseFloat);
+    bind('pi-fontweight',   'fontWeight');
+    bind('pi-textalign',    'textAlign');
+    bind('pi-textvalign',   'textValign');
+    bind('pi-tracking',     'letterSpacing', parseFloat);
+    bind('pi-bgcolor',      'bgColor');
+    bind('pi-bgopacity',    'bgOpacity',     parseFloat);
+    bind('pi-borderstyle',  'borderStyle');
+    bind('pi-bordercolor',  'borderColor');
+    bind('pi-borderwidth',  'borderWidth',   v => Math.max(1, parseInt(v)));
+    bind('pi-borderradius', 'borderRadius',  v => Math.max(0, parseInt(v)));
+    $('pi-uppercase').addEventListener('change', e => { w.uppercase = e.target.checked; refreshWidget(w); });
+  }
 
   $('btn-del-w').addEventListener('click', () => deleteWidget(w.id));
 }
@@ -1118,6 +1487,9 @@ function onDown(e) {
     const w = gw(id);
     if (!w) return;
 
+    // Receive-only widgets and non-interactive types ignore touch entirely
+    if (w.receiveOnly || w.type === 'label' || w.type === 'text') return;
+
     if (w.type === 'button') {
       D.on=true; D.type='button'; D.id=id;
       D.momentary = !w.toggle;
@@ -1145,6 +1517,14 @@ function onDown(e) {
     } else if (w.type === 'knob') {
       D.on=true; D.type='knob'; D.id=id;
       D.ox=cx; D.oy=cy; D.sv=w.value;
+    } else if (w.type === 'xypad') {
+      D.on=true; D.type='xypad'; D.id=id;
+      const r = wEl.getBoundingClientRect();
+      w.valueX = clamp(denorm(clamp((cx-r.left)/r.width,  0,1), w.minX, w.maxX), w.minX, w.maxX);
+      w.valueY = clamp(denorm(clamp(1-(cy-r.top)/r.height,0,1), w.minY, w.maxY), w.minY, w.maxY);
+      sendOSC(w.oscX, w.valueX);
+      sendOSC(w.oscY, w.valueY);
+      refreshWidget(w);
     }
   }
 }
@@ -1202,6 +1582,13 @@ function onMove(e) {
     const range = w.max - w.min;
     w.value = clamp(D.sv + ((D.oy - cy) / sens) * range, w.min, w.max);
     sendOSC(w.osc, w.value);
+    refreshWidget(w);
+  } else if (D.type === 'xypad') {
+    const r = gel(D.id).getBoundingClientRect();
+    w.valueX = clamp(denorm(clamp((cx-r.left)/r.width,  0,1), w.minX, w.maxX), w.minX, w.maxX);
+    w.valueY = clamp(denorm(clamp(1-(cy-r.top)/r.height,0,1), w.minY, w.maxY), w.minY, w.maxY);
+    sendOSC(w.oscX, w.valueX);
+    sendOSC(w.oscY, w.valueY);
     refreshWidget(w);
   }
 }
@@ -1326,7 +1713,10 @@ function sendOSC(address, value) {
   } else {
     msg = address + ' ' + value;
   }
-  try { S.ws.send(msg); } catch(err) { /* ignore */ }
+  try {
+    S.ws.send(msg);
+    monLog('out', address, value);
+  } catch(err) { /* ignore */ }
 }
 
 function connectWS(url) {
@@ -1337,23 +1727,89 @@ function connectWS(url) {
     S.ws.onopen  = () => { setWsSt('connected', url.replace('ws://','').replace('wss://','').split('/')[0]); };
     S.ws.onclose = () => { setWsSt('disconnected', 'Disconnected'); S.ws = null; };
     S.ws.onerror = () => { setWsSt('error', 'Error'); };
-    S.ws.onmessage = e => {
-      // Handle incoming OSC (bidirectional feedback)
-      try {
-        const d = JSON.parse(e.data);
-        const addr = d.address;
-        let val = d.args;
-        if (Array.isArray(val)) val = val[0];
-        if (typeof val === 'object' && val !== null) val = val.value;
-        const w = S.widgets.find(x => x.osc === addr);
-        if (w && typeof val === 'number') {
-          w.value = clamp(val, w.min, w.max);
-          refreshWidget(w);
-        }
-      } catch(err) {}
-    };
+    S.ws.onmessage = e => { handleOSCReceive(e.data); };
   } catch(err) {
     setWsSt('error', 'Invalid URL');
+  }
+}
+
+function parseIncoming(raw) {
+  // Returns array of { address, value } objects — one message may carry one address+value
+  raw = raw.trim();
+  // --- Plain text: "/address value" ---
+  if (raw.startsWith('/') && !raw.startsWith('{')) {
+    const sp = raw.indexOf(' ');
+    if (sp === -1) return [{ address: raw, value: 1 }];
+    const address = raw.slice(0, sp);
+    const value = parseFloat(raw.slice(sp + 1));
+    return [{ address, value: isNaN(value) ? 0 : value }];
+  }
+  // --- JSON / osc.js ---
+  try {
+    const d = JSON.parse(raw);
+    // Support arrays of messages
+    const msgs = Array.isArray(d) ? d : [d];
+    return msgs.map(m => {
+      const address = m.address || m.path || '';
+      let args = m.args ?? m.arguments ?? [];
+      if (!Array.isArray(args)) args = [args];
+      // osc.js format: args are {type, value} objects
+      let val = args[0];
+      if (typeof val === 'object' && val !== null && 'value' in val) val = val.value;
+      return { address, value: typeof val === 'number' ? val : parseFloat(val) || 0 };
+    }).filter(m => m.address);
+  } catch(err) {
+    return [];
+  }
+}
+
+function rxFlash(id) {
+  const el = gel(id);
+  if (!el) return;
+  el.classList.remove('rx-flash');
+  // Force reflow so the animation restarts cleanly
+  void el.offsetWidth;
+  el.classList.add('rx-flash');
+  clearTimeout(el._rxTimer);
+  el._rxTimer = setTimeout(() => el.classList.remove('rx-flash'), 400);
+}
+
+function handleOSCReceive(raw) {
+  const msgs = parseIncoming(raw);
+  for (const { address, value } of msgs) {
+    if (!address || typeof value !== 'number' || isNaN(value)) continue;
+
+    // Log every incoming message to the monitor
+    monLog('in', address, value);
+
+    // Match against every widget — multiple widgets can share an address
+    for (const w of S.widgets) {
+      let matched = false;
+
+      if (w.type === 'xypad') {
+        if (w.oscX && w.oscX === address) {
+          w.valueX = clamp(value, w.minX, w.maxX);
+          matched = true;
+        }
+        if (w.oscY && w.oscY === address) {
+          w.valueY = clamp(value, w.minY, w.maxY);
+          matched = true;
+        }
+      } else if (w.osc === address) {
+        if (w.type === 'button') {
+          // Snap to onVal/offVal based on threshold
+          w.value = value >= w.onVal ? w.onVal : w.offVal;
+        } else {
+          w.value = clamp(value, w.min, w.max);
+        }
+        matched = true;
+      }
+
+      if (matched) {
+        refreshWidget(w);
+        rxFlash(w.id);
+      }
+    }
   }
 }
 
@@ -1429,6 +1885,246 @@ function toast(msg, type = '') {
   el.className = 'show' + (type ? ' ' + type : '');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.className = '', 2200);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  OSC MONITOR
+// ═══════════════════════════════════════════════════════════
+const MON = {
+  open: false,
+  minimised: false,
+  paused: false,
+  filter: 'all',      // 'all' | 'in' | 'out'
+  entries: [],
+  maxEntries: 500,
+  total: 0,           // ever-incrementing count shown in badge
+  autoScroll: true,
+  // drag state
+  dragging: false, ox:0, oy:0, ex:0, ey:0,
+  // resize state
+  resizing: false, rox:0, roy:0, rw:0, rh:0,
+};
+
+function monFmtTime(ts) {
+  const d = new Date(ts);
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  const ss = String(d.getSeconds()).padStart(2,'0');
+  const ms = String(d.getMilliseconds()).padStart(3,'0');
+  return `${hh}:${mm}:${ss}.${ms}`;
+}
+
+function monFmtVal(v) {
+  if (typeof v !== 'number') return String(v);
+  if (Number.isInteger(v)) return String(v);
+  // up to 4 decimal places, strip trailing zeros
+  return v.toFixed(4).replace(/\.?0+$/, '');
+}
+
+function monLog(dir, address, value) {
+  if (MON.paused) return;
+
+  const entry = { id: ++MON.total, t: Date.now(), dir, address, value };
+  MON.entries.push(entry);
+
+  // Trim oldest when over limit
+  if (MON.entries.length > MON.maxEntries) MON.entries.shift();
+
+  // Update badge count
+  const countEl = $('mon-count');
+  if (countEl) countEl.textContent = MON.total > 999 ? '999+' : MON.total;
+
+  // Only render if the monitor is open and not minimised
+  if (!MON.open || MON.minimised) return;
+
+  // Filter check
+  if (MON.filter !== 'all' && MON.filter !== dir) return;
+
+  monAppendRow(entry);
+}
+
+function monAppendRow(entry) {
+  const log = $('mon-log');
+  if (!log) return;
+
+  // Remove empty state
+  const empty = $('mon-empty');
+  if (empty) empty.remove();
+
+  const row = document.createElement('div');
+  row.className = 'mon-row new-row';
+  row.dataset.dir = entry.dir;
+  row.innerHTML = `
+    <span class="mon-time">${monFmtTime(entry.t)}</span>
+    <span class="mon-dir ${entry.dir}">${entry.dir === 'out' ? '▶ TX' : '◀ RX'}</span>
+    <span class="mon-addr" title="${entry.address}">${entry.address}</span>
+    <span class="mon-val">${monFmtVal(entry.value)}</span>
+  `;
+  log.appendChild(row);
+
+  // Trim DOM rows if too many (keep last 200 in DOM for performance)
+  const rows = log.querySelectorAll('.mon-row');
+  if (rows.length > 200) rows[0].remove();
+
+  // Auto-scroll
+  if (MON.autoScroll) log.scrollTop = log.scrollHeight;
+}
+
+function monRebuild() {
+  const log = $('mon-log');
+  if (!log) return;
+  log.innerHTML = '';
+
+  const filtered = MON.filter === 'all'
+    ? MON.entries
+    : MON.entries.filter(e => e.dir === MON.filter);
+
+  if (filtered.length === 0) {
+    log.innerHTML = '<div id="mon-empty">No messages match the current filter.</div>';
+    return;
+  }
+
+  // Render last 200 matching entries
+  const visible = filtered.slice(-200);
+  const frag = document.createDocumentFragment();
+  for (const entry of visible) {
+    const row = document.createElement('div');
+    row.className = 'mon-row';
+    row.dataset.dir = entry.dir;
+    row.innerHTML = `
+      <span class="mon-time">${monFmtTime(entry.t)}</span>
+      <span class="mon-dir ${entry.dir}">${entry.dir === 'out' ? '▶ TX' : '◀ RX'}</span>
+      <span class="mon-addr" title="${entry.address}">${entry.address}</span>
+      <span class="mon-val">${monFmtVal(entry.value)}</span>
+    `;
+    frag.appendChild(row);
+  }
+  log.appendChild(frag);
+  log.scrollTop = log.scrollHeight;
+}
+
+function monToggle() {
+  MON.open = !MON.open;
+  const el = $('mon');
+  el.classList.toggle('mon-hidden', !MON.open);
+  $('btn-mon').classList.toggle('active', MON.open);
+  if (MON.open && !MON.minimised) monRebuild();
+}
+
+function monSetFilter(f) {
+  MON.filter = f;
+  document.querySelectorAll('.mon-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.filter === f);
+  });
+  monRebuild();
+}
+
+function monClear() {
+  MON.entries = [];
+  MON.total = 0;
+  const countEl = $('mon-count');
+  if (countEl) countEl.textContent = '0';
+  const log = $('mon-log');
+  if (log) log.innerHTML = '<div id="mon-empty">Cleared.</div>';
+}
+
+function monSetPaused(p) {
+  MON.paused = p;
+  const btn = $('mon-pause');
+  if (!btn) return;
+  btn.textContent = p ? '▶' : '⏸';
+  btn.title = p ? 'Resume' : 'Pause';
+  btn.classList.toggle('paused', p);
+}
+
+function monSetMinimised(m) {
+  MON.minimised = m;
+  const el = $('mon');
+  el.classList.toggle('mon-minimised', m);
+  $('mon-min').textContent = m ? '▢' : '─';
+  $('mon-min').title = m ? 'Restore' : 'Minimise';
+  if (!m) { monRebuild(); }
+}
+
+function initMonitor() {
+  const monEl = $('mon');
+
+  // ---- Toolbar toggle ----
+  $('btn-mon').addEventListener('click', monToggle);
+
+  // ---- Filter pills ----
+  document.querySelectorAll('.mon-pill').forEach(pill => {
+    pill.addEventListener('click', () => monSetFilter(pill.dataset.filter));
+  });
+
+  // ---- Pause / clear / minimise / close ----
+  $('mon-pause').addEventListener('click', () => monSetPaused(!MON.paused));
+  $('mon-clear').addEventListener('click', monClear);
+  $('mon-min').addEventListener('click', () => monSetMinimised(!MON.minimised));
+  $('mon-close').addEventListener('click', () => {
+    MON.open = false;
+    monEl.classList.add('mon-hidden');
+    $('btn-mon').classList.remove('active');
+  });
+
+  // ---- Auto-scroll detection ----
+  $('mon-log').addEventListener('scroll', () => {
+    const log = $('mon-log');
+    MON.autoScroll = log.scrollHeight - log.scrollTop - log.clientHeight < 12;
+  });
+
+  // ---- Keyboard shortcut: M ----
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input, select, textarea')) return;
+    if (e.key === 'm' || e.key === 'M') monToggle();
+    if ((e.key === 'p' || e.key === 'P') && MON.open) monSetPaused(!MON.paused);
+  });
+
+  // ---- Drag (title bar) ----
+  const bar = $('mon-bar');
+
+  bar.addEventListener('pointerdown', e => {
+    if (e.target.closest('.mon-icon, .mon-pill, #mon-filters, #mon-count')) return;
+    MON.dragging = true;
+    bar.setPointerCapture(e.pointerId);
+    const r = monEl.getBoundingClientRect();
+    MON.ex = r.left; MON.ey = r.top;
+    MON.ox = e.clientX; MON.oy = e.clientY;
+    e.preventDefault();
+  });
+  bar.addEventListener('pointermove', e => {
+    if (!MON.dragging) return;
+    const dx = e.clientX - MON.ox, dy = e.clientY - MON.oy;
+    MON.ox = e.clientX; MON.oy = e.clientY;
+    MON.ex += dx; MON.ey += dy;
+    // Clamp to viewport
+    MON.ex = Math.max(0, Math.min(window.innerWidth  - monEl.offsetWidth,  MON.ex));
+    MON.ey = Math.max(0, Math.min(window.innerHeight - monEl.offsetHeight, MON.ey));
+    monEl.style.right = 'auto'; monEl.style.bottom = 'auto';
+    monEl.style.left = MON.ex + 'px';
+    monEl.style.top  = MON.ey + 'px';
+  });
+  bar.addEventListener('pointerup',    () => { MON.dragging = false; });
+  bar.addEventListener('pointercancel',() => { MON.dragging = false; });
+
+  // ---- Resize (grip) ----
+  const grip = $('mon-grip');
+
+  grip.addEventListener('pointerdown', e => {
+    MON.resizing = true;
+    grip.setPointerCapture(e.pointerId);
+    MON.rox = e.clientX; MON.roy = e.clientY;
+    MON.rw = monEl.offsetWidth; MON.rh = monEl.offsetHeight;
+    e.preventDefault();
+  });
+  grip.addEventListener('pointermove', e => {
+    if (!MON.resizing) return;
+    const dw = e.clientX - MON.rox, dh = e.clientY - MON.roy;
+    monEl.style.width  = Math.max(280, MON.rw + dw) + 'px';
+    monEl.style.height = Math.max(120, MON.rh + dh) + 'px';
+  });
+  grip.addEventListener('pointerup',    () => { MON.resizing = false; });
+  grip.addEventListener('pointercancel',() => { MON.resizing = false; });
 }
 
 // ═══════════════════════════════════════════════════════════
