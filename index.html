@@ -6,7 +6,13 @@
 <title>OSC Touch Editor</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
 <style>
-:root {
+/* ══════════════════════════════════════════════
+   THEME SYSTEM — all themes via CSS variables
+   Active theme is set on <html data-theme="x">
+   ══════════════════════════════════════════════ */
+
+/* ── 1. DEFAULT (amber on near-black) ── */
+:root, [data-theme="default"] {
   --bg: #0a0a0a;
   --surface: #141414;
   --surface2: #1e1e1e;
@@ -22,7 +28,163 @@
   --success: #30c870;
   --grid-line: rgba(255,255,255,0.035);
   --mono: 'JetBrains Mono', 'Courier New', monospace;
+  --canvas-bg: #0a0a0a;
+  --widget-knob-body: #0d0d0d;
+  --widget-knob-center: #181818;
+  --scrollbar-thumb: #3a3a3a;
 }
+
+/* ── 2. LIGHT (slate blue on warm white) ── */
+[data-theme="light"] {
+  --bg: #f0ede8;
+  --surface: #faf9f7;
+  --surface2: #ece9e4;
+  --surface3: #e0dcd6;
+  --border: #d4cfc8;
+  --border2: #bbb5ae;
+  --text: #1a1814;
+  --text-dim: #aaa49c;
+  --text-mid: #6b6560;
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent2: #dc2626;
+  --success: #16a34a;
+  --grid-line: rgba(0,0,0,0.06);
+  --canvas-bg: #e8e4df;
+  --widget-knob-body: #e4e0da;
+  --widget-knob-center: #f0ede8;
+  --scrollbar-thumb: #bbb5ae;
+}
+
+/* ── 3. DARK STEALTH (pure black, barely-there borders) ── */
+[data-theme="stealth"] {
+  --bg: #000000;
+  --surface: #080808;
+  --surface2: #0f0f0f;
+  --surface3: #161616;
+  --border: #181818;
+  --border2: #222222;
+  --text: #a0a0a0;
+  --text-dim: #333333;
+  --text-mid: #555555;
+  --accent: #ffffff;
+  --accent-dark: #cccccc;
+  --accent2: #666666;
+  --success: #448844;
+  --grid-line: rgba(255,255,255,0.012);
+  --canvas-bg: #000000;
+  --widget-knob-body: #060606;
+  --widget-knob-center: #0e0e0e;
+  --scrollbar-thumb: #222222;
+}
+
+/* ── 4. MATRIX (phosphor green on black) ── */
+[data-theme="matrix"] {
+  --bg: #000800;
+  --surface: #000d00;
+  --surface2: #001400;
+  --surface3: #001a00;
+  --border: #003300;
+  --border2: #004400;
+  --text: #00cc44;
+  --text-dim: #004d15;
+  --text-mid: #009933;
+  --accent: #00ff44;
+  --accent-dark: #00cc33;
+  --accent2: #ff4400;
+  --success: #00ff88;
+  --grid-line: rgba(0,255,68,0.06);
+  --canvas-bg: #000800;
+  --widget-knob-body: #000a00;
+  --widget-knob-center: #001200;
+  --scrollbar-thumb: #004400;
+}
+
+/* ── 5. RETRO (amber phosphor CRT) ── */
+[data-theme="retro"] {
+  --bg: #0c0800;
+  --surface: #140f00;
+  --surface2: #1c1500;
+  --surface3: #241c00;
+  --border: #3d2e00;
+  --border2: #5a4400;
+  --text: #ffb800;
+  --text-dim: #5a3f00;
+  --text-mid: #a07800;
+  --accent: #ffdd00;
+  --accent-dark: #cc9900;
+  --accent2: #ff4400;
+  --success: #88dd00;
+  --grid-line: rgba(255,184,0,0.07);
+  --canvas-bg: #080500;
+  --widget-knob-body: #0a0700;
+  --widget-knob-center: #150f00;
+  --scrollbar-thumb: #5a4400;
+}
+
+/* ── Per-theme body/canvas tweaks ── */
+html body { background: var(--bg); }
+
+/* Light theme — invert a few hard-coded dark values */
+[data-theme="light"] .wt-button::after {
+  background: linear-gradient(rgba(0,0,0,0.04), transparent);
+}
+[data-theme="light"] .wt-slider {
+  background: rgba(0,0,0,0.06);
+  border-color: rgba(0,0,0,0.1);
+}
+[data-theme="light"] .slider-name { color: rgba(0,0,0,0.75); text-shadow: 0 1px 2px rgba(255,255,255,0.6); }
+[data-theme="light"] .slider-val  { color: rgba(0,0,0,0.45); text-shadow: none; }
+[data-theme="light"] .wt-xypad    { background: rgba(0,0,0,0.05); }
+[data-theme="light"] .xypad-label { color: rgba(0,0,0,0.7); text-shadow: 0 1px 2px rgba(255,255,255,0.5); }
+[data-theme="light"] .xypad-vals  { color: rgba(0,0,0,0.4); text-shadow: none; }
+[data-theme="light"] .modal-note  { background: rgba(0,0,0,0.04); }
+[data-theme="light"] .modal-bg    { background: rgba(0,0,0,0.4); }
+[data-theme="light"] #canvas      { background-color: var(--canvas-bg); }
+[data-theme="light"] .wt-button.btn-off { background: rgba(0,0,0,0.07); }
+
+/* Matrix — scanline overlay for ambience */
+[data-theme="matrix"] #canvas::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,10,0,0.18) 2px, rgba(0,10,0,0.18) 4px
+  );
+  pointer-events: none; z-index: 0;
+}
+[data-theme="matrix"] .wt-button::after { background: linear-gradient(rgba(0,255,68,0.06), transparent); }
+[data-theme="matrix"] .wt-slider { background: rgba(0,40,0,0.5); border-color: rgba(0,255,68,0.06); }
+[data-theme="matrix"] .slider-name { color: var(--text); }
+[data-theme="matrix"] .slider-val  { color: var(--text-mid); }
+[data-theme="matrix"] .wt-xypad { background: rgba(0,20,0,0.6); }
+[data-theme="matrix"] .xypad-label { color: var(--text); }
+[data-theme="matrix"] .xypad-vals  { color: var(--text-mid); }
+
+/* Retro — scanlines + slight warm vignette */
+[data-theme="retro"] #canvas::after {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    repeating-linear-gradient(
+      0deg, transparent, transparent 3px,
+      rgba(0,0,0,0.12) 3px, rgba(0,0,0,0.12) 4px
+    ),
+    radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.35) 100%);
+  pointer-events: none; z-index: 0;
+}
+[data-theme="retro"] .wt-button::after { background: linear-gradient(rgba(255,184,0,0.07), transparent); }
+[data-theme="retro"] .wt-slider { background: rgba(20,10,0,0.6); border-color: rgba(255,184,0,0.08); }
+[data-theme="retro"] .slider-name { color: var(--text); }
+[data-theme="retro"] .slider-val  { color: var(--text-mid); }
+[data-theme="retro"] .wt-xypad { background: rgba(15,8,0,0.7); }
+[data-theme="retro"] .xypad-label { color: var(--text); }
+[data-theme="retro"] .xypad-vals  { color: var(--text-mid); }
+
+/* Stealth — even quieter widget fills */
+[data-theme="stealth"] .wt-slider { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.03); }
+[data-theme="stealth"] .wt-xypad  { background: rgba(255,255,255,0.015); }
+[data-theme="stealth"] .wt-button::after { background: linear-gradient(rgba(255,255,255,0.03), transparent); }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -158,6 +320,7 @@ html, body {
 #canvas {
   position: absolute;
   inset: 0;
+  background-color: var(--canvas-bg);
 }
 
 #canvas.grid-on {
@@ -463,7 +626,7 @@ body:not(.performing) .wt-label.label-no-bg {
   overflow-x: hidden;
 }
 #props-body::-webkit-scrollbar { width: 4px; }
-#props-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+#props-body::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
 
 .ps { /* prop section */
   padding: 8px 14px;
@@ -598,8 +761,14 @@ input[type="checkbox"] { accent-color: var(--accent); width:14px; height:14px; c
 /* ============ PERFORM MODE ============ */
 body.performing .w { cursor: default; }
 body.performing .w:active { cursor: default; }
-body.performing .w-inner { pointer-events: auto; } /* allow touch on inner in perform */
+/* In perform mode the .w itself receives pointer events via capture */
 body.performing #canvas-drop-hint { display: none; }
+
+/* Multi-touch active indicator — subtle glow on the widget being touched */
+.w.pt-active .w-inner {
+  box-shadow: 0 0 0 2px var(--accent), 0 0 16px rgba(0,0,0,0.4);
+  border-radius: 5px;
+}
 
 /* Hidden file input */
 #file-inp { display: none; }
@@ -678,7 +847,7 @@ body.performing #canvas-drop-hint { display: none; }
   scroll-behavior: auto;
 }
 #mon-log::-webkit-scrollbar { width: 4px; }
-#mon-log::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+#mon-log::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
 
 /* each log row */
 .mon-row {
@@ -776,6 +945,16 @@ body.performing #canvas-drop-hint { display: none; }
   </div>
 
   <div id="ws-status-area">
+    <div class="tb-group" style="border-right:none;border-left:1px solid var(--border)">
+      <span class="tb-label">Theme</span>
+      <select class="tb-select" id="sel-theme">
+        <option value="default">Default</option>
+        <option value="light">Light</option>
+        <option value="stealth">Stealth</option>
+        <option value="matrix">Matrix</option>
+        <option value="retro">Retro</option>
+      </select>
+    </div>
     <div class="status-dot" id="dot"></div>
     <span id="status-label">Disconnected</span>
   </div>
@@ -883,18 +1062,222 @@ const S = {
   idCtr: 1,
 };
 
-// Drag/interaction state
-const D = {
-  on: false,
-  type: null,   // 'move'|'resize'|'hslider'|'vslider'|'knob'|'button'
-  id: null,
-  dir: null,    // resize direction
-  ox: 0, oy: 0,          // pointer start
-  owx: 0, owy: 0,        // widget start pos
-  oww: 0, owh: 0,        // widget start size
-  sv: 0,                  // start value (knob/slider)
-  momentary: false,
-};
+// ═══════════════════════════════════════════════════════════
+//  POINTER EVENTS — multi-touch via Pointer Events API
+// ═══════════════════════════════════════════════════════════
+//
+//  Each active pointer (finger, stylus, mouse) gets its own
+//  slot in TOUCHES keyed by pointerId.
+//
+//  Edit mode  : single pointer only (move / resize one widget).
+//  Perform mode: unlimited simultaneous pointers on separate
+//                widgets. Multiple fingers on the SAME widget:
+//                - sliders / knobs : first finger owns it
+//                - xypad           : every finger updates it
+//                - buttons         : first finger owns it
+//
+const TOUCHES = new Map();
+
+document.addEventListener('pointerdown',   onDown, { capture: true, passive: false });
+document.addEventListener('pointermove',   onMove, { passive: false });
+document.addEventListener('pointerup',     onUp,   { passive: false });
+document.addEventListener('pointercancel', onUp,   { passive: false });
+
+function onDown(e) {
+  // Let toolbar, props, modals and the monitor handle their own events
+  if (e.target.closest('#toolbar, #props, .modal-bg, #mon')) return;
+
+  const pid = e.pointerId;
+  const cx  = e.clientX;
+  const cy  = e.clientY;
+  const wEl = e.target.closest('.w');
+  const rhEl = e.target.closest('.rh');
+
+  // ── EDIT MODE ────────────────────────────────────────────
+  if (S.mode === 'edit') {
+    // Only one pointer active in edit mode — ignore extras
+    if (TOUCHES.size > 0) return;
+    if (!wEl) { select(null); return; }
+    e.preventDefault();
+
+    const id = wEl.dataset.id;
+    const w  = gw(id);
+    if (!w) return;
+
+    if (rhEl) {
+      select(id);
+      TOUCHES.set(pid, {
+        type:'resize', id,
+        dir: rhEl.dataset.dir,
+        ox:cx, oy:cy,
+        owx:w.x, owy:w.y, oww:w.w, owh:w.h
+      });
+    } else {
+      select(id);
+      TOUCHES.set(pid, {
+        type:'move', id,
+        ox:cx, oy:cy,
+        owx:w.x, owy:w.y
+      });
+    }
+    // Capture keeps move/up delivery even if pointer drifts off the element
+    try { e.target.setPointerCapture(pid); } catch(_) {}
+    return;
+  }
+
+  // ── PERFORM MODE ─────────────────────────────────────────
+  if (!wEl) return;
+  e.preventDefault();
+
+  const id = wEl.dataset.id;
+  const w  = gw(id);
+  if (!w) return;
+  if (w.receiveOnly || w.type === 'label' || w.type === 'text') return;
+
+  // For non-xypad widgets: first finger owns the widget, extras are ignored
+  if (w.type !== 'xypad') {
+    for (const t of TOUCHES.values()) {
+      if (t.id === id) return;
+    }
+  }
+
+  const t = { type: w.type, id };
+
+  if (w.type === 'button') {
+    t.momentary = !w.toggle;
+    if (w.toggle) {
+      w.value = w.value >= w.onVal ? w.offVal : w.onVal;
+    } else {
+      w.value = w.onVal;
+    }
+    sendOSC(w.osc, w.value);
+    refreshWidget(w);
+
+  } else if (w.type === 'hslider') {
+    const r = wEl.getBoundingClientRect();
+    w.value = clamp(denorm(clamp((cx - r.left) / r.width, 0, 1), w.min, w.max), w.min, w.max);
+    sendOSC(w.osc, w.value);
+    refreshWidget(w);
+
+  } else if (w.type === 'vslider') {
+    const r = wEl.getBoundingClientRect();
+    w.value = clamp(denorm(clamp(1 - (cy - r.top) / r.height, 0, 1), w.min, w.max), w.min, w.max);
+    sendOSC(w.osc, w.value);
+    refreshWidget(w);
+
+  } else if (w.type === 'knob') {
+    t.ox = cx; t.oy = cy; t.sv = w.value;
+
+  } else if (w.type === 'xypad') {
+    const r = wEl.getBoundingClientRect();
+    w.valueX = clamp(denorm(clamp((cx - r.left) / r.width,       0, 1), w.minX, w.maxX), w.minX, w.maxX);
+    w.valueY = clamp(denorm(clamp(1 - (cy - r.top) / r.height,   0, 1), w.minY, w.maxY), w.minY, w.maxY);
+    sendOSC(w.oscX, w.valueX);
+    sendOSC(w.oscY, w.valueY);
+    refreshWidget(w);
+  }
+
+  TOUCHES.set(pid, t);
+  try { e.target.setPointerCapture(pid); } catch(_) {}
+  // Visual active indicator
+  if (S.mode === 'perform') gel(id)?.classList.add('pt-active');
+}
+
+function onMove(e) {
+  const t = TOUCHES.get(e.pointerId);
+  if (!t) return;
+  e.preventDefault();
+
+  const cx = e.clientX;
+  const cy = e.clientY;
+  const w  = gw(t.id);
+  if (!w) return;
+
+  const MIN = 40;
+
+  if (t.type === 'move') {
+    const dx = cx - t.ox, dy = cy - t.oy;
+    w.x = Math.max(0, snap(t.owx + dx));
+    w.y = Math.max(0, snap(t.owy + dy));
+    refreshWidget(w);
+    if (S.sel === t.id) {
+      const xi = $('pi-x'), yi = $('pi-y');
+      if (xi) xi.value = w.x;
+      if (yi) yi.value = w.y;
+    }
+
+  } else if (t.type === 'resize') {
+    const dx = cx - t.ox, dy = cy - t.oy;
+    let nx = t.owx, ny = t.owy, nw = t.oww, nh = t.owh;
+    const d = t.dir;
+    if (d.includes('e')) nw = Math.max(MIN, snap(t.oww + dx));
+    if (d.includes('s')) nh = Math.max(MIN, snap(t.owh + dy));
+    if (d.includes('w')) {
+      const ddx = clamp(snap(dx), -(t.oww - MIN), t.oww - MIN);
+      nx = t.owx + ddx; nw = t.oww - ddx;
+    }
+    if (d.includes('n')) {
+      const ddy = clamp(snap(dy), -(t.owh - MIN), t.owh - MIN);
+      ny = t.owy + ddy; nh = t.owh - ddy;
+    }
+    w.x = Math.max(0, nx); w.y = Math.max(0, ny);
+    w.w = Math.max(MIN, nw); w.h = Math.max(MIN, nh);
+    refreshWidget(w);
+    const wi = $('pi-w'), hi = $('pi-h');
+    if (wi) wi.value = w.w;
+    if (hi) hi.value = w.h;
+
+  } else if (t.type === 'hslider') {
+    const r = gel(t.id).getBoundingClientRect();
+    w.value = clamp(denorm(clamp((cx - r.left) / r.width, 0, 1), w.min, w.max), w.min, w.max);
+    sendOSC(w.osc, w.value);
+    refreshWidget(w);
+
+  } else if (t.type === 'vslider') {
+    const r = gel(t.id).getBoundingClientRect();
+    w.value = clamp(denorm(clamp(1 - (cy - r.top) / r.height, 0, 1), w.min, w.max), w.min, w.max);
+    sendOSC(w.osc, w.value);
+    refreshWidget(w);
+
+  } else if (t.type === 'knob') {
+    const sens  = 200; // px = full range sweep
+    const range = w.max - w.min;
+    w.value = clamp(t.sv + ((t.oy - cy) / sens) * range, w.min, w.max);
+    sendOSC(w.osc, w.value);
+    refreshWidget(w);
+
+  } else if (t.type === 'xypad') {
+    const r = gel(t.id).getBoundingClientRect();
+    w.valueX = clamp(denorm(clamp((cx - r.left) / r.width,       0, 1), w.minX, w.maxX), w.minX, w.maxX);
+    w.valueY = clamp(denorm(clamp(1 - (cy - r.top) / r.height,   0, 1), w.minY, w.maxY), w.minY, w.maxY);
+    sendOSC(w.oscX, w.valueX);
+    sendOSC(w.oscY, w.valueY);
+    refreshWidget(w);
+  }
+}
+
+function onUp(e) {
+  const t = TOUCHES.get(e.pointerId);
+  if (!t) return;
+
+  // Release momentary button
+  if (t.type === 'button' && t.momentary) {
+    const w = gw(t.id);
+    if (w) {
+      w.value = w.offVal;
+      sendOSC(w.osc, w.value);
+      refreshWidget(w);
+    }
+  }
+
+  // Remove active glow — but only if no other pointer is still on this widget
+  const stillActive = [...TOUCHES.entries()]
+    .some(([otherId, ot]) => otherId !== e.pointerId && ot.id === t.id);
+  if (!stillActive) gel(t.id)?.classList.remove('pt-active');
+
+  TOUCHES.delete(e.pointerId);
+}
+
 
 // ═══════════════════════════════════════════════════════════
 //  UTILS
@@ -1017,14 +1400,14 @@ function knobSVG(w) {
   const sw = Math.max(2.5, Math.min(5, svgSize * 0.065));
 
   return `<svg viewBox="0 0 ${svgSize} ${svgSize}" width="${svgSize}" height="${svgSize}" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="${cx}" cy="${cy}" r="${R + sw + 3}" fill="#0d0d0d" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-    <path d="${bgPath}" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="${sw}" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="${R + sw + 3}" fill="var(--widget-knob-body)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+    <path d="${bgPath}" fill="none" stroke="rgba(128,128,128,0.15)" stroke-width="${sw}" stroke-linecap="round"/>
     ${valPath ? `<path d="${valPath}" fill="none" stroke="${w.color}" stroke-width="${sw}" stroke-linecap="round"/>` : ''}
-    <circle cx="${cx}" cy="${cy}" r="${R*0.42}" fill="#181818" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${R*0.42}" fill="var(--widget-knob-center)" stroke="rgba(128,128,128,0.08)" stroke-width="1"/>
     <line x1="${lix}" y1="${liy}" x2="${lox}" y2="${loy}" stroke="${w.color}" stroke-width="2" stroke-linecap="round" opacity="0.95"/>
     <text x="${cx}" y="${(cy+fs*0.35).toFixed(1)}" text-anchor="middle"
       font-family="JetBrains Mono,monospace" font-size="${fs}" font-weight="500"
-      fill="rgba(255,255,255,0.55)">${fmtVal(w.value, w.min, w.max)}</text>
+      fill="var(--text-mid)">${fmtVal(w.value, w.min, w.max)}</text>
   </svg>`;
 }
 
@@ -1441,172 +1824,6 @@ function buildProps(id) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  POINTER EVENTS (unified mouse + touch)
-// ═══════════════════════════════════════════════════════════
-document.addEventListener('mousedown', onDown, { capture: true });
-document.addEventListener('mousemove', onMove, { passive: false });
-document.addEventListener('mouseup', onUp);
-document.addEventListener('touchstart', onDown, { passive: false, capture: true });
-document.addEventListener('touchmove', onMove, { passive: false });
-document.addEventListener('touchend', onUp, { passive: false });
-document.addEventListener('touchcancel', onUp);
-
-function onDown(e) {
-  // Ignore toolbar, props panel, modals
-  if (e.target.closest('#toolbar, #props, .modal-bg')) return;
-
-  const [cx, cy] = eXY(e);
-  const wEl = e.target.closest('.w');
-  const rhEl = e.target.closest('.rh');
-
-  if (S.mode === 'edit') {
-    if (!wEl) { select(null); return; }
-    e.preventDefault();
-    const id = wEl.dataset.id;
-    const w = gw(id);
-    if (!w) return;
-
-    if (rhEl) {
-      // Resize
-      select(id);
-      D.on=true; D.type='resize'; D.id=id; D.dir=rhEl.dataset.dir;
-      D.ox=cx; D.oy=cy;
-      D.owx=w.x; D.owy=w.y; D.oww=w.w; D.owh=w.h;
-    } else {
-      // Move
-      select(id);
-      D.on=true; D.type='move'; D.id=id;
-      D.ox=cx; D.oy=cy;
-      D.owx=w.x; D.owy=w.y;
-    }
-  } else {
-    // Perform mode
-    if (!wEl) return;
-    e.preventDefault();
-    const id = wEl.dataset.id;
-    const w = gw(id);
-    if (!w) return;
-
-    // Receive-only widgets and non-interactive types ignore touch entirely
-    if (w.receiveOnly || w.type === 'label' || w.type === 'text') return;
-
-    if (w.type === 'button') {
-      D.on=true; D.type='button'; D.id=id;
-      D.momentary = !w.toggle;
-      if (w.toggle) {
-        w.value = w.value >= w.onVal ? w.offVal : w.onVal;
-        sendOSC(w.osc, w.value);
-        refreshWidget(w);
-      } else {
-        w.value = w.onVal;
-        sendOSC(w.osc, w.value);
-        refreshWidget(w);
-      }
-    } else if (w.type === 'hslider') {
-      D.on=true; D.type='hslider'; D.id=id;
-      const r = wEl.getBoundingClientRect();
-      w.value = clamp(denorm(clamp((cx-r.left)/r.width,0,1), w.min, w.max), w.min, w.max);
-      sendOSC(w.osc, w.value);
-      refreshWidget(w);
-    } else if (w.type === 'vslider') {
-      D.on=true; D.type='vslider'; D.id=id;
-      const r = wEl.getBoundingClientRect();
-      w.value = clamp(denorm(clamp(1-(cy-r.top)/r.height,0,1), w.min, w.max), w.min, w.max);
-      sendOSC(w.osc, w.value);
-      refreshWidget(w);
-    } else if (w.type === 'knob') {
-      D.on=true; D.type='knob'; D.id=id;
-      D.ox=cx; D.oy=cy; D.sv=w.value;
-    } else if (w.type === 'xypad') {
-      D.on=true; D.type='xypad'; D.id=id;
-      const r = wEl.getBoundingClientRect();
-      w.valueX = clamp(denorm(clamp((cx-r.left)/r.width,  0,1), w.minX, w.maxX), w.minX, w.maxX);
-      w.valueY = clamp(denorm(clamp(1-(cy-r.top)/r.height,0,1), w.minY, w.maxY), w.minY, w.maxY);
-      sendOSC(w.oscX, w.valueX);
-      sendOSC(w.oscY, w.valueY);
-      refreshWidget(w);
-    }
-  }
-}
-
-function onMove(e) {
-  if (!D.on) return;
-  e.preventDefault();
-  const [cx, cy] = eXY(e);
-  const w = gw(D.id);
-  if (!w) return;
-
-  const dx = cx - D.ox, dy = cy - D.oy;
-  const MIN = 40;
-
-  if (D.type === 'move') {
-    w.x = Math.max(0, snap(D.owx + dx));
-    w.y = Math.max(0, snap(D.owy + dy));
-    refreshWidget(w);
-    if (S.sel === D.id) {
-      const xi = $('pi-x'), yi = $('pi-y');
-      if (xi) xi.value = w.x;
-      if (yi) yi.value = w.y;
-    }
-  } else if (D.type === 'resize') {
-    let nx=D.owx, ny=D.owy, nw=D.oww, nh=D.owh;
-    const d = D.dir;
-    if (d.includes('e')) nw = Math.max(MIN, snap(D.oww + dx));
-    if (d.includes('s')) nh = Math.max(MIN, snap(D.owh + dy));
-    if (d.includes('w')) {
-      const ddx = clamp(snap(dx), -(D.oww - MIN), D.oww - MIN);
-      nx = D.owx + ddx; nw = D.oww - ddx;
-    }
-    if (d.includes('n')) {
-      const ddy = clamp(snap(dy), -(D.owh - MIN), D.owh - MIN);
-      ny = D.owy + ddy; nh = D.owh - ddy;
-    }
-    w.x = Math.max(0, nx); w.y = Math.max(0, ny);
-    w.w = Math.max(MIN, nw); w.h = Math.max(MIN, nh);
-    refreshWidget(w);
-    const wi = $('pi-w'), hi = $('pi-h');
-    if (wi) wi.value = w.w;
-    if (hi) hi.value = w.h;
-  } else if (D.type === 'hslider') {
-    const r = gel(D.id).getBoundingClientRect();
-    w.value = clamp(denorm(clamp((cx-r.left)/r.width,0,1), w.min, w.max), w.min, w.max);
-    sendOSC(w.osc, w.value);
-    refreshWidget(w);
-  } else if (D.type === 'vslider') {
-    const r = gel(D.id).getBoundingClientRect();
-    w.value = clamp(denorm(clamp(1-(cy-r.top)/r.height,0,1), w.min, w.max), w.min, w.max);
-    sendOSC(w.osc, w.value);
-    refreshWidget(w);
-  } else if (D.type === 'knob') {
-    const sens = 200; // px for full sweep
-    const range = w.max - w.min;
-    w.value = clamp(D.sv + ((D.oy - cy) / sens) * range, w.min, w.max);
-    sendOSC(w.osc, w.value);
-    refreshWidget(w);
-  } else if (D.type === 'xypad') {
-    const r = gel(D.id).getBoundingClientRect();
-    w.valueX = clamp(denorm(clamp((cx-r.left)/r.width,  0,1), w.minX, w.maxX), w.minX, w.maxX);
-    w.valueY = clamp(denorm(clamp(1-(cy-r.top)/r.height,0,1), w.minY, w.maxY), w.minY, w.maxY);
-    sendOSC(w.oscX, w.valueX);
-    sendOSC(w.oscY, w.valueY);
-    refreshWidget(w);
-  }
-}
-
-function onUp(e) {
-  if (!D.on) return;
-  if (D.type === 'button' && D.momentary) {
-    const w = gw(D.id);
-    if (w) {
-      w.value = w.offVal;
-      sendOSC(w.osc, w.value);
-      refreshWidget(w);
-    }
-  }
-  D.on = false; D.type = null; D.id = null; D.momentary = false;
-}
-
-// ═══════════════════════════════════════════════════════════
 //  KEYBOARD SHORTCUTS
 // ═══════════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
@@ -1674,6 +1891,11 @@ function clearAll() {
 // ═══════════════════════════════════════════════════════════
 function setMode(mode) {
   S.mode = mode;
+
+  // Clean up any in-flight touches and active-glow classes on mode switch
+  TOUCHES.clear();
+  document.querySelectorAll('.pt-active').forEach(el => el.classList.remove('pt-active'));
+
   document.body.classList.toggle('performing', mode === 'perform');
   const btn = $('btn-mode');
   if (mode === 'perform') {
@@ -2128,6 +2350,29 @@ function initMonitor() {
 }
 
 // ═══════════════════════════════════════════════════════════
+//  THEME
+// ═══════════════════════════════════════════════════════════
+const THEMES = ['default','light','stealth','matrix','retro'];
+
+function applyTheme(name) {
+  if (!THEMES.includes(name)) name = 'default';
+  document.documentElement.setAttribute('data-theme', name);
+  const sel = $('sel-theme');
+  if (sel) sel.value = name;
+  localStorage.setItem('osc_theme', name);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('osc_theme') || 'default';
+  applyTheme(saved);
+  $('sel-theme').addEventListener('change', e => {
+    applyTheme(e.target.value);
+    // Re-render all widgets so knob SVG picks up new CSS vars
+    S.widgets.forEach(w => refreshWidget(w));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
 //  TOOLBAR BINDINGS
 // ═══════════════════════════════════════════════════════════
 function initToolbar() {
@@ -2232,7 +2477,9 @@ window.addEventListener('beforeunload', autosave);
 //  INIT
 // ═══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   initToolbar();
+  initMonitor();
   applyGrid();
   autorestore();
 });
