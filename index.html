@@ -323,13 +323,6 @@ html, body {
   background-color: var(--canvas-bg);
 }
 
-#canvas.grid-on {
-  background-image:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: var(--grid-px, 20px) var(--grid-px, 20px);
-}
-
 #canvas-drop-hint {
   position: absolute;
   inset: 0;
@@ -587,6 +580,115 @@ body:not(.performing) .wt-label.label-no-bg {
   outline: 1px dashed rgba(255,255,255,0.12);
   outline-offset: -1px;
   border-radius: 5px;
+}
+
+/* ---- VIDEO WIDGET ---- */
+.wt-video {
+  width: 100%; height: 100%;
+  position: relative;
+  background: #000;
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.wt-video video {
+  width: 100%; height: 100%;
+  display: block;
+}
+/* Edit-mode dashed border when no source is set */
+body:not(.performing) .wt-video.vid-empty {
+  outline: 1px dashed rgba(255,255,255,0.15);
+  outline-offset: -1px;
+  background: rgba(0,0,0,0.4);
+}
+.wt-video .vid-placeholder {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 6px; width: 100%; height: 100%;
+  color: var(--text-dim);
+}
+.wt-video .vid-placeholder .vid-icon { font-size: 24px; opacity: 0.4; }
+.wt-video .vid-placeholder .vid-hint { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.4; }
+
+/* ── Canvas background image layer ── */
+#canvas-bg-img {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 0;
+  display: none;
+}
+/* Grid pseudo-layer — canvas itself has z-index auto, bg-img is z:0, widgets z:1 */
+#canvas.grid-on {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-px, 20px) var(--grid-px, 20px);
+}
+
+/* ── Widget background image ── */
+.w-bg-img {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+/* ── Widget background video ── */
+.w-bg-vid {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  display: block;
+}
+/* Widget inner content sits above its bg media */
+.wt-button, .wt-slider, .wt-knob, .wt-xypad, .wt-label { position: relative; z-index: 1; }
+
+/* ── Canvas background video ── */
+#canvas-bg-vid {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  display: none;
+}
+
+/* ── Media props shared UI ── */
+.img-preview {
+  width: 100%; height: 52px;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  background: var(--surface2) center/contain no-repeat;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--text-dim);
+  margin-bottom: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.img-preview.has-img { background-color: #000; }
+.img-preview.has-img span { display: none; }
+.img-preview video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+}
+/* local-only warning badge */
+.local-warn {
+  font-size: 9px;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 2px 5px;
+  border-radius: 2px;
+  display: inline-block;
+  margin-top: 3px;
+  line-height: 1.4;
 }
 
 /* ============ PROPS PANEL ============ */
@@ -916,6 +1018,7 @@ body.performing #canvas-drop-hint { display: none; }
     <button class="tb-btn" data-add="xypad">⊕ XY Pad</button>
     <button class="tb-btn" data-add="label">𝐀 Label</button>
     <button class="tb-btn" data-add="text">≡ Text</button>
+    <button class="tb-btn" data-add="video">▶ Video</button>
   </div>
 
   <div class="tb-group" id="tg-grid">
@@ -935,6 +1038,8 @@ body.performing #canvas-drop-hint { display: none; }
     <button class="tb-btn" id="btn-save">↓ Save</button>
     <button class="tb-btn" id="btn-load">↑ Load</button>
     <button class="tb-btn danger" id="btn-clear">✕ Clear</button>
+    <button class="tb-btn" id="btn-kiosk-url">⊞ Kiosk URL</button>
+    <button class="tb-btn" id="btn-canvas-bg">🖼 Canvas BG</button>
   </div>
 
   <div class="tb-group">
@@ -965,6 +1070,8 @@ body.performing #canvas-drop-hint { display: none; }
   <!-- Canvas -->
   <div id="canvas-wrap">
     <div id="canvas" class="grid-on">
+      <div id="canvas-bg-img"></div>
+      <video id="canvas-bg-vid" autoplay loop muted playsinline></video>
       <div id="canvas-drop-hint">
         <div class="hint-box">
           <div class="hint-title">OSC Touch Editor</div>
@@ -985,6 +1092,59 @@ body.performing #canvas-drop-hint { display: none; }
       <button id="btn-props-close">✕</button>
     </div>
     <div id="props-body"></div>
+  </div>
+</div>
+
+<!-- ============ KIOSK URL MODAL ============ -->
+<div class="modal-bg hidden" id="modal-kiosk">
+  <div class="modal">
+    <div class="modal-title">⊞ Kiosk URL</div>
+
+    <div class="modal-note" style="margin-top:0">
+      This URL opens the layout in <strong style="color:var(--text)">locked perform mode</strong> with no
+      toolbar or editor UI. Share it with a touch screen, tablet, or kiosk display.
+      The current layout is stored in <code>localStorage</code> on this browser —
+      the receiving device must load the same URL on the same origin to share it,
+      or <strong style="color:var(--text)">use the JSON export</strong> embedded below.
+    </div>
+
+    <div class="modal-row" style="margin-top:14px">
+      <label>Kiosk URL</label>
+      <div style="display:flex;gap:6px;align-items:stretch">
+        <input type="text" class="pi" id="kiosk-url-display" readonly
+               style="flex:1;cursor:text;color:var(--accent)">
+        <button class="tb-btn" id="btn-kiosk-copy" title="Copy to clipboard"
+                style="flex-shrink:0;padding:3px 10px">Copy</button>
+        <a id="btn-kiosk-open" href="#" target="_blank" rel="noopener"
+           class="tb-btn" style="flex-shrink:0;padding:3px 10px;text-decoration:none">Open ↗</a>
+      </div>
+    </div>
+
+    <div class="modal-row" style="margin-top:4px">
+      <label>Theme override (optional)</label>
+      <select class="pi" id="kiosk-theme-sel">
+        <option value="">Same as current</option>
+        <option value="default">Default</option>
+        <option value="light">Light</option>
+        <option value="stealth">Stealth</option>
+        <option value="matrix">Matrix</option>
+        <option value="retro">Retro</option>
+      </select>
+    </div>
+
+    <div style="border-top:1px solid var(--border);margin:14px 0 10px"></div>
+
+    <div class="modal-row">
+      <label>Embed layout JSON in URL (self-contained, no localStorage needed)</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="checkbox" id="kiosk-embed" style="flex-shrink:0">
+        <span style="font-size:10px;color:var(--text-dim)" id="kiosk-size-note"></span>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="tb-btn" id="btn-kiosk-close">Close</button>
+    </div>
   </div>
 </div>
 
@@ -1050,8 +1210,8 @@ body.performing #canvas-drop-hint { display: none; }
 // ═══════════════════════════════════════════════════════════
 const S = {
   mode: 'edit',           // 'edit' | 'perform'
-  widgets: [],            // array of widget data objects
-  sel: null,              // selected widget id
+  widgets: [],
+  sel: null,
   gridSize: 20,
   showGrid: true,
   snap: true,
@@ -1060,6 +1220,14 @@ const S = {
   ws: null,
   wsState: 'disconnected',
   idCtr: 1,
+  canvasBg: {
+    image: '',          // URL or base64 (images) / URL or blob (video)
+    mediaType: 'image', // 'image' | 'video'
+    size: 'cover',
+    position: 'center',
+    opacity: 1,
+    repeat: 'no-repeat',
+  },
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -1132,7 +1300,7 @@ function onDown(e) {
   const id = wEl.dataset.id;
   const w  = gw(id);
   if (!w) return;
-  if (w.receiveOnly || w.type === 'label' || w.type === 'text') return;
+  if (w.receiveOnly || w.type === 'label' || w.type === 'text' || w.type === 'video') return;
 
   // For non-xypad widgets: first finger owns the widget, extras are ignored
   if (w.type !== 'xypad') {
@@ -1327,7 +1495,10 @@ function makeWidget(type, x, y) {
   const color = nextColor();
   const base = { id, type, x, y, w: 120, h: 80, label: type, color,
                   osc: '/osc/1/' + type + '/' + id.slice(1),
-                  min: 0, max: 1, value: 0, receiveOnly: false };
+                  min: 0, max: 1, value: 0, receiveOnly: false,
+                  bgImage: '', bgImageSize: 'cover',
+                  bgImagePosition: 'center', bgImageOpacity: 1,
+                  bgMediaType: 'image' }; // 'image' | 'video'
   switch(type) {
     case 'button':
       return { ...base, w:140, h:70, toggle:true, onVal:1, offVal:0 };
@@ -1361,6 +1532,18 @@ function makeWidget(type, x, y) {
                color: '#888888',
                bgColor: '#141414', bgOpacity: 0.6,
                borderStyle: 'solid', borderColor: '#2a2a2a', borderWidth: 1, borderRadius: 5 };
+    case 'video':
+      return { id, type, x, y, w: 320, h: 200,
+               src: '',           // URL or blob
+               srcType: 'url',    // 'url' | 'local'
+               autoplay: true,
+               loop: true,
+               muted: true,
+               controls: false,
+               objectFit: 'cover',
+               borderRadius: 5,
+               borderStyle: 'none', borderColor: '#444', borderWidth: 1,
+               opacity: 1 };
   }
   return base;
 }
@@ -1411,10 +1594,38 @@ function knobSVG(w) {
   </svg>`;
 }
 
+// Maps background-size tokens → CSS object-fit for <video>
+function fitForSize(s) {
+  if (!s || s === 'cover')     return 'cover';
+  if (s === 'contain')         return 'contain';
+  if (s === '100% 100%')       return 'fill';
+  if (s === 'auto')            return 'none';
+  return 'cover';
+}
+
 function wHTML(w) {
   // RX badge shown in edit mode for receive-only widgets
   const rxBadge = (w.receiveOnly && S.mode === 'edit')
     ? '<div class="rx-badge">RX ONLY</div>' : '';
+
+  // Background media layer (image or video)
+  let bgLayer = '';
+  if (w.bgImage) {
+    if (w.bgMediaType === 'video') {
+      bgLayer = `<video class="w-bg-vid"
+        autoplay loop muted playsinline
+        style="object-fit:${fitForSize(w.bgImageSize)};object-position:${w.bgImagePosition||'center'};opacity:${w.bgImageOpacity??1}">
+        <source src="${w.bgImage}" type="video/mp4">
+      </video>`;
+    } else {
+      bgLayer = `<div class="w-bg-img" style="
+        background-image:url('${w.bgImage}');
+        background-size:${w.bgImageSize||'cover'};
+        background-position:${w.bgImagePosition||'center'};
+        background-repeat:no-repeat;
+        opacity:${w.bgImageOpacity??1};"></div>`;
+    }
+  }
 
   switch(w.type) {
     case 'button': {
@@ -1424,12 +1635,13 @@ function wHTML(w) {
                border-color:${w.color};
                color:${on ? '#000' : w.color};
                font-size:${Math.max(9, Math.min(16, w.h * 0.22))}px">
-        <span>${w.label}</span>
+        ${bgLayer}<span style="position:relative;z-index:1">${w.label}</span>
       </div>${rxBadge}`;
     }
     case 'hslider': {
       const t = norm(w.value, w.min, w.max);
       return `<div class="wt-slider">
+        ${bgLayer}
         <div class="slider-fill" style="left:0;top:0;bottom:0;width:${(t*100).toFixed(2)}%;background:${w.color};opacity:0.8"></div>
         <div class="slider-fill" style="right:0;top:0;bottom:0;width:${((1-t)*100).toFixed(2)}%;background:rgba(0,0,0,0)"></div>
         <div class="slider-labels">
@@ -1441,6 +1653,7 @@ function wHTML(w) {
     case 'vslider': {
       const t = norm(w.value, w.min, w.max);
       return `<div class="wt-slider">
+        ${bgLayer}
         <div class="slider-fill" style="left:0;right:0;bottom:0;height:${(t*100).toFixed(2)}%;background:${w.color};opacity:0.8"></div>
         <div class="slider-labels">
           <div class="slider-name" style="font-size:${Math.max(8,Math.min(11,w.w*0.18))}px;writing-mode:vertical-lr;transform:rotate(180deg)">${w.label}</div>
@@ -1449,17 +1662,19 @@ function wHTML(w) {
       </div>${rxBadge}`;
     }
     case 'knob': {
-      return `<div class="wt-knob">
-        <div class="knob-svg-wrap">${knobSVG(w)}</div>
-        <div class="knob-name">${w.label}</div>
+      return `<div class="wt-knob" style="position:relative">
+        ${bgLayer}
+        <div class="knob-svg-wrap" style="position:relative;z-index:1">${knobSVG(w)}</div>
+        <div class="knob-name" style="position:relative;z-index:1">${w.label}</div>
       </div>${rxBadge}`;
     }
     case 'xypad': {
       const tx = clamp(norm(w.valueX, w.minX, w.maxX), 0, 1);
       const ty = clamp(norm(w.valueY, w.minY, w.maxY), 0, 1);
       const xPct = (tx * 100).toFixed(2);
-      const yPct = ((1 - ty) * 100).toFixed(2); // Y flipped: top = max
+      const yPct = ((1 - ty) * 100).toFixed(2);
       return `<div class="wt-xypad" style="border-color:${w.color}55">
+        ${bgLayer}
         <div class="xypad-hline" style="top:${yPct}%;background:${w.color}"></div>
         <div class="xypad-vline" style="left:${xPct}%;background:${w.color}"></div>
         <div class="xypad-dot"   style="left:${xPct}%;top:${yPct}%;background:${w.color};color:${w.color}"></div>
@@ -1469,6 +1684,30 @@ function wHTML(w) {
         </div>
       </div>${rxBadge}`;
     }
+    case 'video': {
+      const bdr = w.borderStyle && w.borderStyle !== 'none'
+        ? `border:${w.borderWidth||1}px ${w.borderStyle} ${w.borderColor};` : '';
+      if (!w.src) {
+        return `<div class="wt-video vid-empty" style="${bdr}border-radius:${w.borderRadius??5}px;opacity:${w.opacity??1}">
+          <div class="vid-placeholder">
+            <div class="vid-icon">▶</div>
+            <div class="vid-hint">Add video in properties</div>
+          </div>
+        </div>`;
+      }
+      return `<div class="wt-video" style="${bdr}border-radius:${w.borderRadius??5}px;opacity:${w.opacity??1}">
+        <video
+          style="object-fit:${w.objectFit||'cover'};border-radius:inherit"
+          ${w.autoplay ? 'autoplay' : ''}
+          ${w.loop     ? 'loop'     : ''}
+          ${w.muted    ? 'muted'    : ''}
+          ${w.controls ? 'controls' : ''}
+          playsinline
+          preload="auto">
+          <source src="${w.src}" type="video/mp4">
+        </video>
+      </div>`;
+    }
     case 'label':
     case 'text': {
       const VALIGN = { top:'flex-start', middle:'center', bottom:'flex-end' };
@@ -1477,12 +1716,12 @@ function wHTML(w) {
       const bdr = w.borderStyle && w.borderStyle !== 'none'
         ? `border:${w.borderWidth||1}px ${w.borderStyle} ${w.borderColor};` : '';
       const pad = `${Math.max(3, Math.round(w.h*0.08))}px ${Math.max(6, Math.round(w.w*0.04))}px`;
-      // escape HTML in text so <>&" don't break layout
       const safe = (w.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       return `<div class="wt-label ${noBg?'label-no-bg':''}"
         style="background:${bg};${bdr}border-radius:${w.borderRadius??5}px;
                align-items:${VALIGN[w.textValign]||'center'};
                justify-content:${w.textAlign==='right'?'flex-end':w.textAlign==='center'?'center':'flex-start'}">
+        ${bgLayer}
         <div class="wt-label-text" style="
           font-size:${w.fontSize||14}px;
           font-weight:${w.fontWeight||'normal'};
@@ -1490,6 +1729,7 @@ function wHTML(w) {
           text-align:${w.textAlign||'left'};
           text-transform:${w.uppercase?'uppercase':'none'};
           letter-spacing:${w.letterSpacing||0}em;
+          position:relative;z-index:1;
           padding:${pad};">${safe.replace(/\n/g,'<br>')}</div>
       </div>`;
     }
@@ -1622,8 +1862,9 @@ function buildProps(id) {
   }
 
   // Range section only shown for non-xypad, non-label/text types
-  const isText = w.type === 'label' || w.type === 'text';
-  const rangeSection = (!isText && w.type !== 'xypad') ? `
+  const isText  = w.type === 'label' || w.type === 'text';
+  const isVideo = w.type === 'video';
+  const rangeSection = (!isText && !isVideo && w.type !== 'xypad') ? `
     <div class="ps">
       <div class="ps-title">Value Range</div>
       <div class="pr"><span class="pl">Min</span>
@@ -1634,13 +1875,11 @@ function buildProps(id) {
         <select class="pi" id="pi-range-preset">${rangeOpts}</select></div>
     </div>` : '';
 
-  // OSC address row — hidden for label/text and xypad (xypad uses extra section)
-  const oscRow = (!isText && w.type !== 'xypad') ? `
+  const oscRow = (!isText && !isVideo && w.type !== 'xypad') ? `
       <div class="pr col"><span class="pl">OSC Address</span>
         <input type="text" class="pi" id="pi-osc" value="${w.osc}" placeholder="/control/1"></div>` : '';
 
-  // Receive-only toggle — not relevant for label/text
-  const rxRow = !isText ? `
+  const rxRow = (!isText && !isVideo) ? `
       <div class="pr">
         <span class="pl">Receive only</span>
         <input type="checkbox" id="pi-rxonly" ${w.receiveOnly?'checked':''}>
@@ -1716,6 +1955,53 @@ function buildProps(id) {
       <div class="pr"><span class="pl">Color</span>
         <input type="color" class="pi" id="pi-color" value="${w.color}"></div>
     </div>
+    ${!isText ? `<div class="ps">
+      <div class="ps-title">Background Media</div>
+      <div class="pr">
+        <span class="pl">Type</span>
+        <select class="pi" id="pi-bgmediatype" style="width:100px">
+          <option value="image" ${(w.bgMediaType||'image')==='image'?'selected':''}>Image</option>
+          <option value="video" ${w.bgMediaType==='video'?'selected':''}>Video (MP4)</option>
+        </select>
+      </div>
+      <div class="img-preview ${w.bgImage?'has-img':''}" id="pi-bg-preview">
+        ${w.bgImage && w.bgMediaType==='video'
+          ? `<video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"><source src="${w.bgImage}" type="video/mp4"></video>`
+          : ''}
+        <span>${(w.bgMediaType||'image')==='video'?'No video':'No image'}</span>
+      </div>
+      <div class="pr col" style="margin-bottom:4px"><span class="pl">URL</span>
+        <input type="text" class="pi" id="pi-bgimg-url"
+               value="${w.bgImage&&!w.bgImage.startsWith('data:')&&!w.bgImage.startsWith('blob:')?w.bgImage:''}"
+               placeholder="${(w.bgMediaType||'image')==='video'?'https://…/video.mp4':'https://… or leave blank'}"></div>
+      <div class="pr" style="margin-bottom:4px">
+        <button class="tb-btn" id="pi-bgimg-pick" style="font-size:10px;padding:3px 8px">📁 Local file</button>
+        <button class="tb-btn danger" id="pi-bgimg-clear" style="font-size:10px;padding:3px 8px">✕ Clear</button>
+      </div>
+      ${w.bgImage && w.bgImage.startsWith('blob:') ? '<div class="local-warn">⚠ Local file — reselect after reload</div>' : ''}
+      <div class="pr"><span class="pl">Size</span>
+        <select class="pi" id="pi-bgimg-size" style="width:100px">
+          <option value="cover"     ${(w.bgImageSize||'cover')==='cover'?'selected':''}>Cover</option>
+          <option value="contain"   ${w.bgImageSize==='contain'?'selected':''}>Contain</option>
+          <option value="100% 100%" ${w.bgImageSize==='100% 100%'?'selected':''}>Stretch</option>
+          <option value="auto"      ${w.bgImageSize==='auto'?'selected':''}>Actual size</option>
+        </select></div>
+      <div class="pr"><span class="pl">Position</span>
+        <select class="pi" id="pi-bgimg-pos" style="width:100px">
+          <option value="center"       ${(w.bgImagePosition||'center')==='center'?'selected':''}>Centre</option>
+          <option value="top left"     ${w.bgImagePosition==='top left'?'selected':''}>Top left</option>
+          <option value="top center"   ${w.bgImagePosition==='top center'?'selected':''}>Top centre</option>
+          <option value="top right"    ${w.bgImagePosition==='top right'?'selected':''}>Top right</option>
+          <option value="center left"  ${w.bgImagePosition==='center left'?'selected':''}>Mid left</option>
+          <option value="center right" ${w.bgImagePosition==='center right'?'selected':''}>Mid right</option>
+          <option value="bottom left"  ${w.bgImagePosition==='bottom left'?'selected':''}>Bot left</option>
+          <option value="bottom center"${w.bgImagePosition==='bottom center'?'selected':''}>Bot centre</option>
+          <option value="bottom right" ${w.bgImagePosition==='bottom right'?'selected':''}>Bot right</option>
+        </select></div>
+      <div class="pr"><span class="pl">Opacity</span>
+        <input type="number" class="pi" id="pi-bgimg-opacity"
+               value="${w.bgImageOpacity??1}" min="0" max="1" step="0.05"></div>
+    </div>` : ''}
     <div class="ps">
       <div class="ps-title">Position &amp; Size</div>
       <div class="pr"><span class="pl">X</span>
@@ -1820,6 +2106,106 @@ function buildProps(id) {
     $('pi-uppercase').addEventListener('change', e => { w.uppercase = e.target.checked; refreshWidget(w); });
   }
 
+  // ── Background media bindings (all non-text widget types) ──
+  if (!isText) {
+    const urlInp  = $('pi-bgimg-url');
+    const preview = $('pi-bg-preview');
+
+    function setWidgetPreview(src, type) {
+      if (!preview) return;
+      preview.classList.toggle('has-img', !!src);
+      preview.style.backgroundImage = '';
+      preview.style.backgroundColor = '';
+      const existVid = preview.querySelector('video');
+      if (existVid) existVid.remove();
+      const existSpan = preview.querySelector('span');
+      if (existSpan) existSpan.style.display = src ? 'none' : '';
+      if (src && type === 'video') {
+        const v = document.createElement('video');
+        v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+        v.style.cssText = 'width:100%;height:100%;object-fit:contain';
+        const s = document.createElement('source'); s.src = src; s.type = 'video/mp4';
+        v.appendChild(s); preview.appendChild(v);
+        v.load(); v.play().catch(()=>{});
+      } else if (src) {
+        preview.style.backgroundImage = `url('${src}')`;
+        preview.style.backgroundSize  = 'contain';
+        preview.style.backgroundColor = '#000';
+      }
+    }
+
+    function applyBgMedia(src, type) {
+      w.bgImage     = src;
+      w.bgMediaType = type || w.bgMediaType || 'image';
+      if (urlInp && src && !src.startsWith('data:') && !src.startsWith('blob:')) urlInp.value = src;
+      setWidgetPreview(src, w.bgMediaType);
+      refreshWidget(w);
+    }
+
+    // Init preview for existing media
+    if (w.bgImage) setWidgetPreview(w.bgImage, w.bgMediaType || 'image');
+
+    // Media type toggle
+    const typeEl = $('pi-bgmediatype');
+    if (typeEl) typeEl.addEventListener('change', e => {
+      w.bgMediaType = e.target.value;
+      applyBgMedia('', w.bgMediaType);
+      if (urlInp) { urlInp.value = ''; urlInp.placeholder = w.bgMediaType === 'video' ? 'https://…/video.mp4' : 'https://…'; }
+    });
+
+    // URL input
+    if (urlInp) {
+      const commit = () => { const v = urlInp.value.trim(); if (v) applyBgMedia(v, w.bgMediaType); };
+      urlInp.addEventListener('change', commit);
+      urlInp.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
+    }
+
+    // Local file picker
+    const pickBtn = $('pi-bgimg-pick');
+    if (pickBtn) {
+      pickBtn.addEventListener('click', () => {
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        const isVid = (w.bgMediaType || 'image') === 'video';
+        inp.accept = isVid ? 'video/mp4,video/*' : 'image/*';
+        inp.onchange = () => {
+          const file = inp.files[0];
+          if (!file) return;
+          if (isVid) {
+            const blobUrl = URL.createObjectURL(file);
+            w.bgImage = blobUrl; w.bgMediaType = 'video';
+            setWidgetPreview(blobUrl, 'video');
+            refreshWidget(w);
+            let warn = $('pi-blob-warn');
+            if (!warn) {
+              warn = document.createElement('div');
+              warn.id = 'pi-blob-warn'; warn.className = 'local-warn';
+              pickBtn.parentNode.after(warn);
+            }
+            warn.textContent = `⚠ "${file.name}" — local only, reselect after reload`;
+          } else {
+            const reader = new FileReader();
+            reader.onload = ev => applyBgMedia(ev.target.result, 'image');
+            reader.readAsDataURL(file);
+          }
+        };
+        inp.click();
+      });
+    }
+
+    // Clear
+    const clearBtn = $('pi-bgimg-clear');
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+      applyBgMedia('', w.bgMediaType);
+      const warn = $('pi-blob-warn');
+      if (warn) warn.remove();
+    });
+
+    bind('pi-bgimg-size',    'bgImageSize');
+    bind('pi-bgimg-pos',     'bgImagePosition');
+    bind('pi-bgimg-opacity', 'bgImageOpacity', parseFloat);
+  }
+
   $('btn-del-w').addEventListener('click', () => deleteWidget(w.id));
 }
 
@@ -1902,13 +2288,16 @@ function setMode(mode) {
     btn.textContent = '▶  PERFORM';
     btn.classList.add('performing');
     $('tg-add').style.visibility = 'hidden';
-    $('tg-grid').style.visibility = 'hidden';
+    // Grid toggle stays visible in perform; snap & size are edit-only
+    $('btn-snap').style.display      = 'none';
+    $('sel-grid-size').style.display = 'none';
     select(null);
   } else {
     btn.textContent = '✏  EDIT';
     btn.classList.remove('performing');
-    $('tg-add').style.visibility = '';
-    $('tg-grid').style.visibility = '';
+    $('tg-add').style.visibility     = '';
+    $('btn-snap').style.display      = '';
+    $('sel-grid-size').style.display = '';
   }
 }
 
@@ -2363,12 +2752,93 @@ function applyTheme(name) {
 }
 
 function initTheme() {
-  const saved = localStorage.getItem('osc_theme') || 'default';
+  // URL param overrides localStorage (useful in kiosk URLs)
+  const urlTheme = new URLSearchParams(window.location.search).get('theme');
+  const saved    = urlTheme || localStorage.getItem('osc_theme') || 'default';
   applyTheme(saved);
   $('sel-theme').addEventListener('change', e => {
     applyTheme(e.target.value);
-    // Re-render all widgets so knob SVG picks up new CSS vars
     S.widgets.forEach(w => refreshWidget(w));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  KIOSK URL GENERATOR
+// ═══════════════════════════════════════════════════════════
+function buildKioskURL(embed) {
+  const base   = window.location.href.split('?')[0].split('#')[0];
+  const theme  = $('kiosk-theme-sel')?.value || '';
+  const params = new URLSearchParams();
+  params.set('kiosk', '');
+  if (theme) params.set('theme', theme);
+
+  if (embed) {
+    // Bake the entire layout into the URL as a compressed JSON fragment.
+    // We use base64url so it survives copy-paste and most URL length limits.
+    const payload = JSON.stringify({
+      _version: 2,
+      gridSize: S.gridSize, showGrid: S.showGrid, snap: S.snap,
+      idCtr: S.idCtr, widgets: S.widgets,
+      wsUrl: S.wsUrl, wsFmt: S.wsFmt,
+    });
+    // btoa needs latin-1; encodeURIComponent + escape handles unicode safely
+    const b64 = btoa(unescape(encodeURIComponent(payload)))
+                  .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    params.set('layout', b64);
+  }
+
+  // Render ?kiosk cleanly (no =) then append others
+  let url = base + '?kiosk';
+  if (theme)  url += '&theme=' + encodeURIComponent(theme);
+  if (embed)  url += '&layout=' + params.get('layout');
+  return url;
+}
+
+function updateKioskModal() {
+  const embed  = $('kiosk-embed')?.checked || false;
+  const url    = buildKioskURL(embed);
+  const urlEl  = $('kiosk-url-display');
+  const noteEl = $('kiosk-size-note');
+  const openEl = $('btn-kiosk-open');
+  if (urlEl)  urlEl.value = url;
+  if (openEl) openEl.href = url;
+  if (noteEl) {
+    const kb = (new TextEncoder().encode(url).length / 1024).toFixed(1);
+    noteEl.textContent = embed
+      ? `URL is ${kb} KB — works across devices without sharing a file`
+      : 'Layout must already be in localStorage on the target device';
+  }
+}
+
+function initKioskModal() {
+  $('btn-kiosk-url').addEventListener('click', () => {
+    $('kiosk-theme-sel').value = '';
+    $('kiosk-embed').checked   = false;
+    updateKioskModal();
+    $('modal-kiosk').classList.remove('hidden');
+  });
+
+  $('kiosk-theme-sel').addEventListener('change', updateKioskModal);
+  $('kiosk-embed').addEventListener('change', updateKioskModal);
+
+  $('btn-kiosk-copy').addEventListener('click', () => {
+    const url = $('kiosk-url-display').value;
+    navigator.clipboard.writeText(url).then(() => {
+      $('btn-kiosk-copy').textContent = '✓ Copied';
+      setTimeout(() => { $('btn-kiosk-copy').textContent = 'Copy'; }, 2000);
+    }).catch(() => {
+      // Fallback for http / older browsers
+      $('kiosk-url-display').select();
+      document.execCommand('copy');
+      $('btn-kiosk-copy').textContent = '✓ Copied';
+      setTimeout(() => { $('btn-kiosk-copy').textContent = 'Copy'; }, 2000);
+    });
+  });
+
+  $('btn-kiosk-close').addEventListener('click', () =>
+    $('modal-kiosk').classList.add('hidden'));
+  $('modal-kiosk').addEventListener('click', e => {
+    if (e.target === $('modal-kiosk')) $('modal-kiosk').classList.add('hidden');
   });
 }
 
@@ -2409,80 +2879,3 @@ function initToolbar() {
   $('btn-clear').addEventListener('click', clearAll);
 
   $('btn-osc-cfg').addEventListener('click', () => {
-    $('inp-ws-url').value = S.wsUrl;
-    $('inp-ws-fmt').value = S.wsFmt;
-    $('modal-osc').classList.remove('hidden');
-  });
-
-  $('btn-osc-connect').addEventListener('click', () => {
-    connectWS(S.wsUrl);
-  });
-
-  $('btn-modal-cancel').addEventListener('click', () => $('modal-osc').classList.add('hidden'));
-  $('modal-osc').addEventListener('click', e => {
-    if (e.target === $('modal-osc')) $('modal-osc').classList.add('hidden');
-  });
-
-  $('btn-modal-save').addEventListener('click', () => {
-    S.wsUrl = $('inp-ws-url').value.trim();
-    S.wsFmt = $('inp-ws-fmt').value;
-    localStorage.setItem('osc_ws_url', S.wsUrl);
-    localStorage.setItem('osc_ws_fmt', S.wsFmt);
-    $('modal-osc').classList.add('hidden');
-    connectWS(S.wsUrl);
-  });
-
-  $('btn-props-close').addEventListener('click', () => select(null));
-}
-
-// ═══════════════════════════════════════════════════════════
-//  AUTO-SAVE / RESTORE
-// ═══════════════════════════════════════════════════════════
-function autosave() {
-  try {
-    localStorage.setItem('osc_layout', JSON.stringify({
-      _version: 2, gridSize: S.gridSize, showGrid: S.showGrid,
-      snap: S.snap, idCtr: S.idCtr, widgets: S.widgets,
-      wsUrl: S.wsUrl, wsFmt: S.wsFmt,
-    }));
-  } catch(e) {}
-}
-
-function autorestore() {
-  try {
-    const raw = localStorage.getItem('osc_layout');
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    S.gridSize = data.gridSize || 20;
-    S.showGrid = data.showGrid ?? true;
-    S.snap = data.snap ?? true;
-    S.idCtr = data.idCtr || 1;
-    if (data.wsUrl) S.wsUrl = data.wsUrl;
-    if (data.wsFmt) S.wsFmt = data.wsFmt;
-    for (const w of (data.widgets || [])) {
-      S.widgets.push(w);
-      mountWidget(w);
-    }
-    $('btn-grid').classList.toggle('active', S.showGrid);
-    $('btn-snap').classList.toggle('active', S.snap);
-    $('sel-grid-size').value = S.gridSize;
-    applyGrid();
-  } catch(e) {}
-}
-
-setInterval(autosave, 5000);
-window.addEventListener('beforeunload', autosave);
-
-// ═══════════════════════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  initTheme();
-  initToolbar();
-  initMonitor();
-  applyGrid();
-  autorestore();
-});
-</script>
-</body>
-</html>
