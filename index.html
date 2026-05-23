@@ -691,6 +691,177 @@ body:not(.performing) .wt-video.vid-empty {
   line-height: 1.4;
 }
 
+/* ============ PAGE TAB BAR ============ */
+#page-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 34px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  z-index: 400;
+  overflow-x: auto;
+  overflow-y: hidden;
+  user-select: none;
+}
+#page-bar::-webkit-scrollbar { height: 3px; }
+#page-bar::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.page-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  min-width: 80px;
+  max-width: 180px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-mid);
+  position: relative;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+.page-tab:hover { background: var(--surface2); color: var(--text); }
+.page-tab.active {
+  background: var(--surface2);
+  color: var(--accent);
+  border-top: 2px solid var(--accent);
+}
+.page-tab.drag-over { background: rgba(232,160,32,0.12); }
+
+/* Inline rename input */
+.page-tab input.tab-rename {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 11px;
+  outline: none;
+  width: 90px;
+  padding: 0;
+}
+
+/* Tab close button */
+.tab-close {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1;
+  padding: 2px 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  visibility: hidden;
+}
+.page-tab:hover .tab-close,
+.page-tab.active .tab-close { visibility: visible; }
+.tab-close:hover { background: var(--accent2); color: #fff; }
+
+/* OSC address badge on tab */
+.tab-osc {
+  font-size: 8px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+  flex-shrink: 1;
+}
+
+/* Add page button */
+#btn-page-add {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.1s;
+}
+#btn-page-add:hover { color: var(--accent); }
+
+/* Page settings popover */
+#page-settings {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  padding: 10px 12px;
+  z-index: 600;
+  min-width: 240px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  display: none;
+}
+#page-settings.open { display: block; }
+#page-settings .ps-title { margin-bottom: 8px; }
+
+/* Adjust canvas-wrap and layout to leave room for tab bar */
+#layout { bottom: 34px; }
+
+/* Kiosk hides tab bar unless there are multiple pages */
+body.kiosk.single-page #page-bar { display: none; }
+body.kiosk.single-page #layout   { bottom: 0; }
+
+/* ── Rubber-band selection rect ── */
+#sel-rect {
+  position: absolute;
+  border: 1px solid var(--accent);
+  background: rgba(232,160,32,0.08);
+  pointer-events: none;
+  z-index: 50;
+  display: none;
+  border-radius: 2px;
+}
+
+/* ── Multi-selection ring (shown alongside .sel) ── */
+.w.msel .w-inner {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  border-radius: 5px;
+  opacity: 0.92;
+}
+
+/* ── Multi-select action bar ── */
+#msel-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  display: none;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 8px;
+  z-index: 600;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+#msel-bar.visible { display: flex; }
+#msel-bar .msel-count {
+  font-size: 10px; color: var(--accent); font-weight: 700;
+  letter-spacing: 0.08em; padding: 0 6px; border-right: 1px solid var(--border2);
+  margin-right: 3px;
+}
+#msel-bar .msel-sep {
+  width: 1px; height: 20px; background: var(--border2); margin: 0 3px;
+}
+#msel-bar .tb-btn {
+  padding: 3px 8px; font-size: 10px;
+}
+#msel-color {
+  width: 28px; height: 26px; padding: 1px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 3px; cursor: pointer;
+}
+
 /* ============ PROPS PANEL ============ */
 #props {
   width: 248px;
@@ -1095,6 +1266,38 @@ body.performing #canvas-drop-hint { display: none; }
   </div>
 </div>
 
+<!-- ============ PAGE TAB BAR ============ -->
+<div id="page-bar">
+  <!-- tabs injected by JS -->
+  <div id="btn-page-add" title="Add page">＋</div>
+</div>
+
+<!-- Page settings popover (right-click or long-press tab) -->
+<div id="page-settings">
+  <div class="ps-title">PAGE SETTINGS</div>
+  <div class="pr col" style="margin-bottom:6px">
+    <span class="pl">Name</span>
+    <input type="text" class="pi" id="ps-name" placeholder="Page name">
+  </div>
+  <div class="pr col" style="margin-bottom:6px">
+    <span class="pl">OSC Address (to trigger this page)</span>
+    <input type="text" class="pi" id="ps-osc" placeholder="/page/1">
+  </div>
+  <div class="pr" style="margin-bottom:6px">
+    <span class="pl">Send on switch</span>
+    <input type="checkbox" id="ps-send">
+  </div>
+  <div class="pr" style="gap:6px;margin-top:8px">
+    <button class="tb-btn" id="ps-duplicate" style="flex:1">⧉ Duplicate</button>
+    <button class="tb-btn danger" id="ps-delete" style="flex:1">🗑 Delete</button>
+  </div>
+  <div style="border-top:1px solid var(--border);margin:8px 0 4px"></div>
+  <div style="display:flex;gap:4px">
+    <button class="tb-btn" id="ps-move-left"  title="Move page left" style="flex:1">← Move</button>
+    <button class="tb-btn" id="ps-move-right" title="Move page right" style="flex:1">Move →</button>
+  </div>
+</div>
+
 <!-- ============ KIOSK URL MODAL ============ -->
 <div class="modal-bg hidden" id="modal-kiosk">
   <div class="modal">
@@ -1208,27 +1411,50 @@ body.performing #canvas-drop-hint { display: none; }
 // ═══════════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════════
+// ── Page id counter ──
+let pageCtr = 1;
+function pageUid() { return 'p' + (pageCtr++); }
+
+function makeBlankPage(name) {
+  const id = pageUid();
+  return {
+    id,
+    name:       name || 'Page ' + (pageCtr - 1),
+    oscAddress: '/page/' + (pageCtr - 1),
+    sendOnSwitch: true,
+    canvasBg: {
+      image: '', mediaType: 'image', size: 'cover',
+      position: 'center', opacity: 1, repeat: 'no-repeat',
+    },
+    widgets: [],
+  };
+}
+
 const S = {
-  mode: 'edit',           // 'edit' | 'perform'
-  widgets: [],
-  sel: null,
+  mode:     'edit',
+  pages:    [],            // array of page objects
+  pageId:   null,          // id of the active page
+  sel:      null,
   gridSize: 20,
   showGrid: true,
-  snap: true,
-  wsUrl: localStorage.getItem('osc_ws_url') || 'ws://localhost:8080',
-  wsFmt: localStorage.getItem('osc_ws_fmt') || 'json',
-  ws: null,
-  wsState: 'disconnected',
-  idCtr: 1,
-  canvasBg: {
-    image: '',          // URL or base64 (images) / URL or blob (video)
-    mediaType: 'image', // 'image' | 'video'
-    size: 'cover',
-    position: 'center',
-    opacity: 1,
-    repeat: 'no-repeat',
-  },
+  snap:     true,
+  wsUrl:    localStorage.getItem('osc_ws_url') || 'ws://localhost:8080',
+  wsFmt:    localStorage.getItem('osc_ws_fmt') || 'json',
+  ws:       null,
+  wsState:  'disconnected',
+  idCtr:    1,
 };
+
+// Convenience: active page object
+function activePage() {
+  return S.pages.find(p => p.id === S.pageId) || S.pages[0];
+}
+
+// S.widgets now refers to the active page's widget array
+Object.defineProperty(S, 'widgets', {
+  get() { const p = activePage(); return p ? p.widgets : []; },
+  set(v) { const p = activePage(); if (p) p.widgets = v; },
+});
 
 // ═══════════════════════════════════════════════════════════
 //  POINTER EVENTS — multi-touch via Pointer Events API
@@ -1941,21 +2167,77 @@ function buildProps(id) {
         <input type="number" class="pi" id="pi-borderradius" value="${w.borderRadius??5}" min="0" max="40" step="1"></div>
     </div>` : '';
 
+  // Video source & playback section
+  const videoSection = isVideo ? `
+    <div class="ps"><div class="ps-title">Video Source</div>
+      <div class="img-preview ${w.src?'has-img':''}" id="pi-vid-preview">
+        ${w.src ? `<video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"><source src="${w.src}" type="video/mp4"></video>` : ''}
+        <span>No video</span>
+      </div>
+      <div class="pr col" style="margin-bottom:4px">
+        <span class="pl">URL</span>
+        <input type="text" class="pi" id="pi-vid-url"
+          value="${w.src && !w.src.startsWith('blob:') ? w.src : ''}"
+          placeholder="https://…/video.mp4">
+      </div>
+      <div class="pr" style="margin-bottom:4px">
+        <button class="tb-btn" id="pi-vid-pick" style="font-size:10px;padding:3px 8px">📁 Local file</button>
+        <button class="tb-btn danger" id="pi-vid-clear" style="font-size:10px;padding:3px 8px">✕ Clear</button>
+      </div>
+      ${w.src && w.src.startsWith('blob:') ? '<div class="local-warn">⚠ Local file — reselect after reload</div>' : ''}
+    </div>
+    <div class="ps"><div class="ps-title">Playback</div>
+      <div class="pr"><span class="pl">Autoplay</span>
+        <input type="checkbox" id="pi-vid-autoplay" ${w.autoplay?'checked':''}></div>
+      <div class="pr"><span class="pl">Loop</span>
+        <input type="checkbox" id="pi-vid-loop" ${w.loop?'checked':''}></div>
+      <div class="pr"><span class="pl">Muted</span>
+        <input type="checkbox" id="pi-vid-muted" ${w.muted!==false?'checked':''}></div>
+      <div class="pr"><span class="pl">Controls</span>
+        <input type="checkbox" id="pi-vid-controls" ${w.controls?'checked':''}></div>
+      <div class="pr"><span class="pl">Fit</span>
+        <select class="pi" id="pi-vid-fit" style="width:100px">
+          <option value="cover"   ${(w.objectFit||'cover')==='cover'?'selected':''}>Cover</option>
+          <option value="contain" ${w.objectFit==='contain'?'selected':''}>Contain</option>
+          <option value="fill"    ${w.objectFit==='fill'?'selected':''}>Stretch</option>
+          <option value="none"    ${w.objectFit==='none'?'selected':''}>Actual size</option>
+        </select></div>
+      <div class="pr"><span class="pl">Opacity</span>
+        <input type="number" class="pi" id="pi-vid-opacity"
+          value="${w.opacity??1}" min="0" max="1" step="0.05"></div>
+    </div>
+    <div class="ps"><div class="ps-title">Border</div>
+      <div class="pr"><span class="pl">Style</span>
+        <select class="pi" id="pi-vid-borderstyle">
+          <option value="none"   ${(w.borderStyle||'none')==='none'?'selected':''}>None</option>
+          <option value="solid"  ${w.borderStyle==='solid'?'selected':''}>Solid</option>
+          <option value="dashed" ${w.borderStyle==='dashed'?'selected':''}>Dashed</option>
+        </select></div>
+      <div class="pr"><span class="pl">Color</span>
+        <input type="color" class="pi" id="pi-vid-bordercolor" value="${w.borderColor||'#444444'}"></div>
+      <div class="pr"><span class="pl">Width (px)</span>
+        <input type="number" class="pi" id="pi-vid-borderwidth"
+          value="${w.borderWidth||1}" min="1" max="12" step="1"></div>
+      <div class="pr"><span class="pl">Radius (px)</span>
+        <input type="number" class="pi" id="pi-vid-borderradius"
+          value="${w.borderRadius??5}" min="0" max="100" step="1"></div>
+    </div>` : '';
+
   $('props-body').innerHTML = `
     <div class="ps">
       <div class="ps-title">Identity</div>
-      ${isText ? '' : `<div class="pr col"><span class="pl">Label</span>
+      ${(isText || isVideo) ? '' : `<div class="pr col"><span class="pl">Label</span>
         <input type="text" class="pi" id="pi-label" value="${w.label}"></div>`}
       ${oscRow}
       ${rxRow}
     </div>
     ${rangeSection}
     <div class="ps">
-      <div class="ps-title">${isText ? 'Text Colour' : 'Appearance'}</div>
-      <div class="pr"><span class="pl">Color</span>
-        <input type="color" class="pi" id="pi-color" value="${w.color}"></div>
+      <div class="ps-title">${isText ? 'Text Colour' : (isVideo ? 'Appearance' : 'Appearance')}</div>
+      ${!isVideo ? `<div class="pr"><span class="pl">Color</span>
+        <input type="color" class="pi" id="pi-color" value="${w.color}"></div>` : ''}
     </div>
-    ${!isText ? `<div class="ps">
+    ${(!isText && !isVideo) ? `<div class="ps">
       <div class="ps-title">Background Media</div>
       <div class="pr">
         <span class="pl">Type</span>
@@ -2014,6 +2296,7 @@ function buildProps(id) {
         <input type="number" class="pi" id="pi-h" value="${w.h}" step="${S.gridSize}" min="20"></div>
     </div>
     ${textSection}
+    ${videoSection}
     ${extra}
     <div class="ps">
       <button class="btn-del" id="btn-del-w">🗑  Delete Widget</button>
@@ -2040,14 +2323,13 @@ function buildProps(id) {
   bind('pi-w', 'w', v => Math.max(40, snap(parseFloat(v))));
   bind('pi-h', 'h', v => Math.max(isText ? 20 : 40, snap(parseFloat(v))));
 
-  if (!isText) {
+  if (!isText && !isVideo) {
     bind('pi-label', 'label');
-    // receiveOnly checkbox
     const rxEl = $('pi-rxonly');
     if (rxEl) rxEl.addEventListener('change', e => { w.receiveOnly = e.target.checked; refreshWidget(w); });
   }
 
-  if (!isText && w.type !== 'xypad') {
+  if (!isText && !isVideo && w.type !== 'xypad') {
     bind('pi-osc', 'osc');
     bind('pi-min', 'min', parseFloat);
     bind('pi-max', 'max', parseFloat);
@@ -2090,7 +2372,6 @@ function buildProps(id) {
   }
 
   if (isText) {
-    // Text content — textarea live update
     bind('pi-text', 'text');
     bind('pi-fontsize',     'fontSize',      parseFloat);
     bind('pi-fontweight',   'fontWeight');
@@ -2104,6 +2385,99 @@ function buildProps(id) {
     bind('pi-borderwidth',  'borderWidth',   v => Math.max(1, parseInt(v)));
     bind('pi-borderradius', 'borderRadius',  v => Math.max(0, parseInt(v)));
     $('pi-uppercase').addEventListener('change', e => { w.uppercase = e.target.checked; refreshWidget(w); });
+  }
+
+  if (isVideo) {
+    // ── Helper: update the live <video> element inside the widget without full re-render
+    function applyVidSrc(src) {
+      w.src = src;
+      const preview = $('pi-vid-preview');
+      if (preview) {
+        preview.classList.toggle('has-img', !!src);
+        const old = preview.querySelector('video');
+        if (old) old.remove();
+        const span = preview.querySelector('span');
+        if (span) span.style.display = src ? 'none' : '';
+        if (src) {
+          const v = document.createElement('video');
+          v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+          v.style.cssText = 'width:100%;height:100%;object-fit:contain';
+          const s = document.createElement('source'); s.src = src; s.type = 'video/mp4';
+          v.appendChild(s); preview.appendChild(v);
+          v.load(); v.play().catch(()=>{});
+        }
+      }
+      refreshWidget(w);
+      // After refresh the widget DOM has a new <video> — play it
+      const wEl = gel(w.id);
+      if (wEl) {
+        const vid = wEl.querySelector('video');
+        if (vid) { vid.load(); vid.play().catch(()=>{}); }
+      }
+    }
+
+    // URL input
+    const urlEl = $('pi-vid-url');
+    if (urlEl) {
+      const commit = () => { const v = urlEl.value.trim(); applyVidSrc(v); };
+      urlEl.addEventListener('change', commit);
+      urlEl.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
+    }
+
+    // Local file picker — blob URL
+    $('pi-vid-pick').addEventListener('click', () => {
+      const inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'video/mp4,video/*';
+      inp.onchange = () => {
+        const file = inp.files[0];
+        if (!file) return;
+        const blobUrl = URL.createObjectURL(file);
+        applyVidSrc(blobUrl);
+        let warn = $('pi-vid-blob-warn');
+        if (!warn) {
+          warn = document.createElement('div');
+          warn.id = 'pi-vid-blob-warn'; warn.className = 'local-warn';
+          $('pi-vid-pick').parentNode.after(warn);
+        }
+        warn.textContent = `⚠ "${file.name}" — local only, reselect after reload`;
+      };
+      inp.click();
+    });
+
+    $('pi-vid-clear').addEventListener('click', () => {
+      applyVidSrc('');
+      const warn = $('pi-vid-blob-warn');
+      if (warn) warn.remove();
+    });
+
+    // Playback checkboxes
+    function bindCheck(elId, key) {
+      const el = $(elId);
+      if (!el) return;
+      el.addEventListener('change', e => {
+        w[key] = e.target.checked;
+        const wEl = gel(w.id);
+        const vid = wEl?.querySelector('video');
+        if (vid) {
+          if (key === 'autoplay') { if (e.target.checked) vid.play().catch(()=>{}); else vid.pause(); }
+          if (key === 'loop')     vid.loop     = e.target.checked;
+          if (key === 'muted')    vid.muted    = e.target.checked;
+          if (key === 'controls') vid.controls = e.target.checked;
+        }
+        refreshWidget(w);
+      });
+    }
+    bindCheck('pi-vid-autoplay', 'autoplay');
+    bindCheck('pi-vid-loop',     'loop');
+    bindCheck('pi-vid-muted',    'muted');
+    bindCheck('pi-vid-controls', 'controls');
+
+    bind('pi-vid-fit',         'objectFit');
+    bind('pi-vid-opacity',     'opacity',      parseFloat);
+    bind('pi-vid-borderstyle', 'borderStyle');
+    bind('pi-vid-bordercolor', 'borderColor');
+    bind('pi-vid-borderwidth', 'borderWidth',  v => Math.max(1, parseInt(v)));
+    bind('pi-vid-borderradius','borderRadius', v => Math.max(0, parseInt(v)));
   }
 
   // ── Background media bindings (all non-text widget types) ──
@@ -2390,6 +2764,9 @@ function handleOSCReceive(raw) {
   for (const { address, value } of msgs) {
     if (!address || typeof value !== 'number' || isNaN(value)) continue;
 
+    // Check if this message switches a page first
+    if (handlePageOSC(address, value)) continue;
+
     // Log every incoming message to the monitor
     monLog('in', address, value);
 
@@ -2480,402 +2857,3 @@ function loadJSON(file) {
       applyGrid();
       toast('Layout loaded ↑', 'ok');
     } catch(err) {
-      toast('Failed to load: ' + err.message, 'err');
-    }
-  };
-  reader.readAsText(file);
-}
-
-// ═══════════════════════════════════════════════════════════
-//  TOAST
-// ═══════════════════════════════════════════════════════════
-let toastTimer;
-function toast(msg, type = '') {
-  const el = $('toast');
-  el.textContent = msg;
-  el.className = 'show' + (type ? ' ' + type : '');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.className = '', 2200);
-}
-
-// ═══════════════════════════════════════════════════════════
-//  OSC MONITOR
-// ═══════════════════════════════════════════════════════════
-const MON = {
-  open: false,
-  minimised: false,
-  paused: false,
-  filter: 'all',      // 'all' | 'in' | 'out'
-  entries: [],
-  maxEntries: 500,
-  total: 0,           // ever-incrementing count shown in badge
-  autoScroll: true,
-  // drag state
-  dragging: false, ox:0, oy:0, ex:0, ey:0,
-  // resize state
-  resizing: false, rox:0, roy:0, rw:0, rh:0,
-};
-
-function monFmtTime(ts) {
-  const d = new Date(ts);
-  const hh = String(d.getHours()).padStart(2,'0');
-  const mm = String(d.getMinutes()).padStart(2,'0');
-  const ss = String(d.getSeconds()).padStart(2,'0');
-  const ms = String(d.getMilliseconds()).padStart(3,'0');
-  return `${hh}:${mm}:${ss}.${ms}`;
-}
-
-function monFmtVal(v) {
-  if (typeof v !== 'number') return String(v);
-  if (Number.isInteger(v)) return String(v);
-  // up to 4 decimal places, strip trailing zeros
-  return v.toFixed(4).replace(/\.?0+$/, '');
-}
-
-function monLog(dir, address, value) {
-  if (MON.paused) return;
-
-  const entry = { id: ++MON.total, t: Date.now(), dir, address, value };
-  MON.entries.push(entry);
-
-  // Trim oldest when over limit
-  if (MON.entries.length > MON.maxEntries) MON.entries.shift();
-
-  // Update badge count
-  const countEl = $('mon-count');
-  if (countEl) countEl.textContent = MON.total > 999 ? '999+' : MON.total;
-
-  // Only render if the monitor is open and not minimised
-  if (!MON.open || MON.minimised) return;
-
-  // Filter check
-  if (MON.filter !== 'all' && MON.filter !== dir) return;
-
-  monAppendRow(entry);
-}
-
-function monAppendRow(entry) {
-  const log = $('mon-log');
-  if (!log) return;
-
-  // Remove empty state
-  const empty = $('mon-empty');
-  if (empty) empty.remove();
-
-  const row = document.createElement('div');
-  row.className = 'mon-row new-row';
-  row.dataset.dir = entry.dir;
-  row.innerHTML = `
-    <span class="mon-time">${monFmtTime(entry.t)}</span>
-    <span class="mon-dir ${entry.dir}">${entry.dir === 'out' ? '▶ TX' : '◀ RX'}</span>
-    <span class="mon-addr" title="${entry.address}">${entry.address}</span>
-    <span class="mon-val">${monFmtVal(entry.value)}</span>
-  `;
-  log.appendChild(row);
-
-  // Trim DOM rows if too many (keep last 200 in DOM for performance)
-  const rows = log.querySelectorAll('.mon-row');
-  if (rows.length > 200) rows[0].remove();
-
-  // Auto-scroll
-  if (MON.autoScroll) log.scrollTop = log.scrollHeight;
-}
-
-function monRebuild() {
-  const log = $('mon-log');
-  if (!log) return;
-  log.innerHTML = '';
-
-  const filtered = MON.filter === 'all'
-    ? MON.entries
-    : MON.entries.filter(e => e.dir === MON.filter);
-
-  if (filtered.length === 0) {
-    log.innerHTML = '<div id="mon-empty">No messages match the current filter.</div>';
-    return;
-  }
-
-  // Render last 200 matching entries
-  const visible = filtered.slice(-200);
-  const frag = document.createDocumentFragment();
-  for (const entry of visible) {
-    const row = document.createElement('div');
-    row.className = 'mon-row';
-    row.dataset.dir = entry.dir;
-    row.innerHTML = `
-      <span class="mon-time">${monFmtTime(entry.t)}</span>
-      <span class="mon-dir ${entry.dir}">${entry.dir === 'out' ? '▶ TX' : '◀ RX'}</span>
-      <span class="mon-addr" title="${entry.address}">${entry.address}</span>
-      <span class="mon-val">${monFmtVal(entry.value)}</span>
-    `;
-    frag.appendChild(row);
-  }
-  log.appendChild(frag);
-  log.scrollTop = log.scrollHeight;
-}
-
-function monToggle() {
-  MON.open = !MON.open;
-  const el = $('mon');
-  el.classList.toggle('mon-hidden', !MON.open);
-  $('btn-mon').classList.toggle('active', MON.open);
-  if (MON.open && !MON.minimised) monRebuild();
-}
-
-function monSetFilter(f) {
-  MON.filter = f;
-  document.querySelectorAll('.mon-pill').forEach(p => {
-    p.classList.toggle('active', p.dataset.filter === f);
-  });
-  monRebuild();
-}
-
-function monClear() {
-  MON.entries = [];
-  MON.total = 0;
-  const countEl = $('mon-count');
-  if (countEl) countEl.textContent = '0';
-  const log = $('mon-log');
-  if (log) log.innerHTML = '<div id="mon-empty">Cleared.</div>';
-}
-
-function monSetPaused(p) {
-  MON.paused = p;
-  const btn = $('mon-pause');
-  if (!btn) return;
-  btn.textContent = p ? '▶' : '⏸';
-  btn.title = p ? 'Resume' : 'Pause';
-  btn.classList.toggle('paused', p);
-}
-
-function monSetMinimised(m) {
-  MON.minimised = m;
-  const el = $('mon');
-  el.classList.toggle('mon-minimised', m);
-  $('mon-min').textContent = m ? '▢' : '─';
-  $('mon-min').title = m ? 'Restore' : 'Minimise';
-  if (!m) { monRebuild(); }
-}
-
-function initMonitor() {
-  const monEl = $('mon');
-
-  // ---- Toolbar toggle ----
-  $('btn-mon').addEventListener('click', monToggle);
-
-  // ---- Filter pills ----
-  document.querySelectorAll('.mon-pill').forEach(pill => {
-    pill.addEventListener('click', () => monSetFilter(pill.dataset.filter));
-  });
-
-  // ---- Pause / clear / minimise / close ----
-  $('mon-pause').addEventListener('click', () => monSetPaused(!MON.paused));
-  $('mon-clear').addEventListener('click', monClear);
-  $('mon-min').addEventListener('click', () => monSetMinimised(!MON.minimised));
-  $('mon-close').addEventListener('click', () => {
-    MON.open = false;
-    monEl.classList.add('mon-hidden');
-    $('btn-mon').classList.remove('active');
-  });
-
-  // ---- Auto-scroll detection ----
-  $('mon-log').addEventListener('scroll', () => {
-    const log = $('mon-log');
-    MON.autoScroll = log.scrollHeight - log.scrollTop - log.clientHeight < 12;
-  });
-
-  // ---- Keyboard shortcut: M ----
-  document.addEventListener('keydown', e => {
-    if (e.target.closest('input, select, textarea')) return;
-    if (e.key === 'm' || e.key === 'M') monToggle();
-    if ((e.key === 'p' || e.key === 'P') && MON.open) monSetPaused(!MON.paused);
-  });
-
-  // ---- Drag (title bar) ----
-  const bar = $('mon-bar');
-
-  bar.addEventListener('pointerdown', e => {
-    if (e.target.closest('.mon-icon, .mon-pill, #mon-filters, #mon-count')) return;
-    MON.dragging = true;
-    bar.setPointerCapture(e.pointerId);
-    const r = monEl.getBoundingClientRect();
-    MON.ex = r.left; MON.ey = r.top;
-    MON.ox = e.clientX; MON.oy = e.clientY;
-    e.preventDefault();
-  });
-  bar.addEventListener('pointermove', e => {
-    if (!MON.dragging) return;
-    const dx = e.clientX - MON.ox, dy = e.clientY - MON.oy;
-    MON.ox = e.clientX; MON.oy = e.clientY;
-    MON.ex += dx; MON.ey += dy;
-    // Clamp to viewport
-    MON.ex = Math.max(0, Math.min(window.innerWidth  - monEl.offsetWidth,  MON.ex));
-    MON.ey = Math.max(0, Math.min(window.innerHeight - monEl.offsetHeight, MON.ey));
-    monEl.style.right = 'auto'; monEl.style.bottom = 'auto';
-    monEl.style.left = MON.ex + 'px';
-    monEl.style.top  = MON.ey + 'px';
-  });
-  bar.addEventListener('pointerup',    () => { MON.dragging = false; });
-  bar.addEventListener('pointercancel',() => { MON.dragging = false; });
-
-  // ---- Resize (grip) ----
-  const grip = $('mon-grip');
-
-  grip.addEventListener('pointerdown', e => {
-    MON.resizing = true;
-    grip.setPointerCapture(e.pointerId);
-    MON.rox = e.clientX; MON.roy = e.clientY;
-    MON.rw = monEl.offsetWidth; MON.rh = monEl.offsetHeight;
-    e.preventDefault();
-  });
-  grip.addEventListener('pointermove', e => {
-    if (!MON.resizing) return;
-    const dw = e.clientX - MON.rox, dh = e.clientY - MON.roy;
-    monEl.style.width  = Math.max(280, MON.rw + dw) + 'px';
-    monEl.style.height = Math.max(120, MON.rh + dh) + 'px';
-  });
-  grip.addEventListener('pointerup',    () => { MON.resizing = false; });
-  grip.addEventListener('pointercancel',() => { MON.resizing = false; });
-}
-
-// ═══════════════════════════════════════════════════════════
-//  THEME
-// ═══════════════════════════════════════════════════════════
-const THEMES = ['default','light','stealth','matrix','retro'];
-
-function applyTheme(name) {
-  if (!THEMES.includes(name)) name = 'default';
-  document.documentElement.setAttribute('data-theme', name);
-  const sel = $('sel-theme');
-  if (sel) sel.value = name;
-  localStorage.setItem('osc_theme', name);
-}
-
-function initTheme() {
-  // URL param overrides localStorage (useful in kiosk URLs)
-  const urlTheme = new URLSearchParams(window.location.search).get('theme');
-  const saved    = urlTheme || localStorage.getItem('osc_theme') || 'default';
-  applyTheme(saved);
-  $('sel-theme').addEventListener('change', e => {
-    applyTheme(e.target.value);
-    S.widgets.forEach(w => refreshWidget(w));
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-//  KIOSK URL GENERATOR
-// ═══════════════════════════════════════════════════════════
-function buildKioskURL(embed) {
-  const base   = window.location.href.split('?')[0].split('#')[0];
-  const theme  = $('kiosk-theme-sel')?.value || '';
-  const params = new URLSearchParams();
-  params.set('kiosk', '');
-  if (theme) params.set('theme', theme);
-
-  if (embed) {
-    // Bake the entire layout into the URL as a compressed JSON fragment.
-    // We use base64url so it survives copy-paste and most URL length limits.
-    const payload = JSON.stringify({
-      _version: 2,
-      gridSize: S.gridSize, showGrid: S.showGrid, snap: S.snap,
-      idCtr: S.idCtr, widgets: S.widgets,
-      wsUrl: S.wsUrl, wsFmt: S.wsFmt,
-    });
-    // btoa needs latin-1; encodeURIComponent + escape handles unicode safely
-    const b64 = btoa(unescape(encodeURIComponent(payload)))
-                  .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-    params.set('layout', b64);
-  }
-
-  // Render ?kiosk cleanly (no =) then append others
-  let url = base + '?kiosk';
-  if (theme)  url += '&theme=' + encodeURIComponent(theme);
-  if (embed)  url += '&layout=' + params.get('layout');
-  return url;
-}
-
-function updateKioskModal() {
-  const embed  = $('kiosk-embed')?.checked || false;
-  const url    = buildKioskURL(embed);
-  const urlEl  = $('kiosk-url-display');
-  const noteEl = $('kiosk-size-note');
-  const openEl = $('btn-kiosk-open');
-  if (urlEl)  urlEl.value = url;
-  if (openEl) openEl.href = url;
-  if (noteEl) {
-    const kb = (new TextEncoder().encode(url).length / 1024).toFixed(1);
-    noteEl.textContent = embed
-      ? `URL is ${kb} KB — works across devices without sharing a file`
-      : 'Layout must already be in localStorage on the target device';
-  }
-}
-
-function initKioskModal() {
-  $('btn-kiosk-url').addEventListener('click', () => {
-    $('kiosk-theme-sel').value = '';
-    $('kiosk-embed').checked   = false;
-    updateKioskModal();
-    $('modal-kiosk').classList.remove('hidden');
-  });
-
-  $('kiosk-theme-sel').addEventListener('change', updateKioskModal);
-  $('kiosk-embed').addEventListener('change', updateKioskModal);
-
-  $('btn-kiosk-copy').addEventListener('click', () => {
-    const url = $('kiosk-url-display').value;
-    navigator.clipboard.writeText(url).then(() => {
-      $('btn-kiosk-copy').textContent = '✓ Copied';
-      setTimeout(() => { $('btn-kiosk-copy').textContent = 'Copy'; }, 2000);
-    }).catch(() => {
-      // Fallback for http / older browsers
-      $('kiosk-url-display').select();
-      document.execCommand('copy');
-      $('btn-kiosk-copy').textContent = '✓ Copied';
-      setTimeout(() => { $('btn-kiosk-copy').textContent = 'Copy'; }, 2000);
-    });
-  });
-
-  $('btn-kiosk-close').addEventListener('click', () =>
-    $('modal-kiosk').classList.add('hidden'));
-  $('modal-kiosk').addEventListener('click', e => {
-    if (e.target === $('modal-kiosk')) $('modal-kiosk').classList.add('hidden');
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-//  TOOLBAR BINDINGS
-// ═══════════════════════════════════════════════════════════
-function initToolbar() {
-  $('btn-mode').addEventListener('click', () => setMode(S.mode === 'edit' ? 'perform' : 'edit'));
-
-  document.querySelectorAll('[data-add]').forEach(btn => {
-    btn.addEventListener('click', () => addWidget(btn.dataset.add));
-  });
-
-  $('btn-grid').addEventListener('click', e => {
-    S.showGrid = !S.showGrid;
-    e.target.classList.toggle('active', S.showGrid);
-    applyGrid();
-  });
-
-  $('btn-snap').addEventListener('click', e => {
-    S.snap = !S.snap;
-    e.target.classList.toggle('active', S.snap);
-  });
-
-  $('sel-grid-size').addEventListener('change', e => {
-    S.gridSize = parseInt(e.target.value);
-    applyGrid();
-  });
-
-  $('btn-save').addEventListener('click', saveJSON);
-
-  $('btn-load').addEventListener('click', () => $('file-inp').click());
-  $('file-inp').addEventListener('change', e => {
-    if (e.target.files[0]) loadJSON(e.target.files[0]);
-    e.target.value = '';
-  });
-
-  $('btn-clear').addEventListener('click', clearAll);
-
-  $('btn-osc-cfg').addEventListener('click', () => {
