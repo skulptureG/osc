@@ -26,6 +26,7 @@
   --accent-dark: #b07810;
   --accent2: #e04030;
   --success: #30c870;
+  --blue: #3090e0;
   --grid-line: rgba(255,255,255,0.035);
   --mono: 'JetBrains Mono', 'Courier New', monospace;
   --canvas-bg: #0a0a0a;
@@ -255,6 +256,7 @@ html, body {
 .tb-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
 .tb-btn.danger { border-color: var(--accent2); color: var(--accent2); }
 .tb-btn.danger:hover { background: var(--accent2); color: #fff; }
+.tb-btn.tb-btn-dim { opacity: 0.35; pointer-events: none; }
 
 #btn-mode {
   font-size: 11px;
@@ -315,6 +317,9 @@ html, body {
   position: relative;
   overflow: hidden;
   background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #canvas {
@@ -322,6 +327,43 @@ html, body {
   inset: 0;
   background-color: var(--canvas-bg);
 }
+
+/* ── Resolution-locked canvas ── */
+#canvas.res-locked {
+  position: relative;   /* taken out of inset flow */
+  inset: unset;
+  flex-shrink: 0;
+  transform-origin: center center;
+  /* width/height set by JS */
+}
+
+/* Letterbox background when locked */
+#canvas-wrap.res-locked-wrap {
+  background: #000;
+}
+/* Edit-mode overlay showing the locked boundary */
+body:not(.performing) #canvas.res-locked {
+  box-shadow: 0 0 0 1px var(--accent), 0 0 40px rgba(0,0,0,0.8);
+}
+
+/* Resolution badge shown in edit mode */
+#res-badge {
+  position: fixed;
+  bottom: 38px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(232,160,32,0.12);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 600;
+  display: none;
+}
+body:not(.performing) #res-badge { display: block; }
 
 #canvas-drop-hint {
   position: absolute;
@@ -1031,6 +1073,59 @@ input[type="checkbox"] { accent-color: var(--accent); width:14px; height:14px; c
 #toast.ok { border-color: var(--success); color: var(--success); }
 #toast.err { border-color: var(--accent2); color: var(--accent2); }
 
+/* ── Multi-select ring ── */
+.w.msel .w-inner {
+  outline: 2px solid var(--blue);
+  outline-offset: 0px;
+  border-radius: 5px;
+}
+.w.msel.sel .w-inner {
+  outline: 2px solid var(--accent);
+}
+
+/* ── Rubber-band selection rect ── */
+#rband {
+  position: absolute;
+  border: 1px solid var(--blue);
+  background: rgba(48,144,224,0.08);
+  pointer-events: none;
+  display: none;
+  z-index: 900;
+  border-radius: 2px;
+}
+
+/* ── Multi-select props panel ── */
+.ms-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+.ms-action-grid button {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text-mid);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 5px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: border-color 0.1s, color 0.1s;
+  white-space: nowrap;
+  text-align: center;
+}
+.ms-action-grid button:hover { border-color: var(--accent); color: var(--accent); }
+.ms-action-grid button.danger:hover { border-color: var(--accent2); color: var(--accent2); }
+.ms-badge {
+  display: inline-block;
+  background: var(--blue);
+  color: #fff;
+  font-size: 9px; font-weight: 700;
+  padding: 1px 6px; border-radius: 10px;
+  margin-left: 6px;
+  font-family: var(--mono);
+}
+
 /* ============ PERFORM MODE ============ */
 body.performing .w { cursor: default; }
 body.performing .w:active { cursor: default; }
@@ -1206,11 +1301,14 @@ body.performing #canvas-drop-hint { display: none; }
 
   <div class="tb-group" id="tg-file">
     <span class="tb-label">File</span>
+    <button class="tb-btn tb-btn-dim" id="btn-undo" title="Undo (Ctrl+Z)">↩ Undo</button>
+    <button class="tb-btn tb-btn-dim" id="btn-redo" title="Redo (Ctrl+Y)">↪ Redo</button>
     <button class="tb-btn" id="btn-save">↓ Save</button>
     <button class="tb-btn" id="btn-load">↑ Load</button>
     <button class="tb-btn danger" id="btn-clear">✕ Clear</button>
     <button class="tb-btn" id="btn-kiosk-url">⊞ Kiosk URL</button>
     <button class="tb-btn" id="btn-canvas-bg">🖼 Canvas BG</button>
+    <button class="tb-btn" id="btn-res-lock" title="Set canvas resolution">⬛ Resolution</button>
   </div>
 
   <div class="tb-group">
@@ -1218,6 +1316,7 @@ body.performing #canvas-drop-hint { display: none; }
     <button class="tb-btn" id="btn-osc-cfg">⚡ Bridge</button>
     <button class="tb-btn" id="btn-osc-connect">Connect</button>
     <button class="tb-btn" id="btn-mon">⎍ Monitor</button>
+    <a class="tb-btn" href="help.html" target="_blank" rel="noopener" style="text-decoration:none">? Help</a>
   </div>
 
   <div id="ws-status-area">
@@ -1243,6 +1342,7 @@ body.performing #canvas-drop-hint { display: none; }
     <div id="canvas" class="grid-on">
       <div id="canvas-bg-img"></div>
       <video id="canvas-bg-vid" autoplay loop muted playsinline></video>
+      <div id="rband"></div>
       <div id="canvas-drop-hint">
         <div class="hint-box">
           <div class="hint-title">OSC Touch Editor</div>
@@ -1295,6 +1395,58 @@ body.performing #canvas-drop-hint { display: none; }
   <div style="display:flex;gap:4px">
     <button class="tb-btn" id="ps-move-left"  title="Move page left" style="flex:1">← Move</button>
     <button class="tb-btn" id="ps-move-right" title="Move page right" style="flex:1">Move →</button>
+  </div>
+</div>
+
+<!-- Resolution badge (edit mode only) -->
+<div id="res-badge"></div>
+
+<!-- ============ CANVAS RESOLUTION MODAL ============ -->
+<div class="modal-bg hidden" id="modal-res">
+  <div class="modal">
+    <div class="modal-title">⬛ Canvas Resolution</div>
+
+    <div class="modal-row">
+      <label>Preset</label>
+      <select class="pi" id="res-preset">
+        <option value="">— Custom —</option>
+        <option value="1920,1080">1920 × 1080 (Full HD landscape)</option>
+        <option value="1080,1920">1080 × 1920 (Full HD portrait)</option>
+        <option value="2560,1440">2560 × 1440 (2K landscape)</option>
+        <option value="3840,2160">3840 × 2160 (4K landscape)</option>
+        <option value="1024,768">1024 × 768 (iPad landscape)</option>
+        <option value="768,1024">768 × 1024 (iPad portrait)</option>
+        <option value="1280,800">1280 × 800 (Surface Pro)</option>
+        <option value="1920,540">1920 × 540 (Widescreen strip)</option>
+      </select>
+    </div>
+    <div class="modal-row" style="display:flex;gap:10px">
+      <div style="flex:1">
+        <label>Width (px)</label>
+        <input type="number" class="pi" id="res-w" value="1920" min="320" max="7680" step="1" style="width:100%">
+      </div>
+      <div style="flex:1">
+        <label>Height (px)</label>
+        <input type="number" class="pi" id="res-h" value="1080" min="180" max="4320" step="1" style="width:100%">
+      </div>
+    </div>
+
+    <div class="modal-note" id="res-scale-note"></div>
+
+    <div class="modal-row">
+      <label>Scale mode</label>
+      <select class="pi" id="res-fit">
+        <option value="fit">Fit (letterbox — preserves aspect ratio)</option>
+        <option value="fill">Fill (crop — no letterbox)</option>
+        <option value="stretch">Stretch (ignore aspect ratio)</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="tb-btn danger" id="res-unlock">Unlock (free canvas)</button>
+      <button class="tb-btn" id="res-cancel">Cancel</button>
+      <button class="tb-btn active" id="res-apply">Lock Resolution</button>
+    </div>
   </div>
 </div>
 
@@ -1358,8 +1510,7 @@ body.performing #canvas-drop-hint { display: none; }
     <div class="modal-row">
       <label>WebSocket URL</label>
       <input type="text" class="pi" id="inp-ws-url" placeholder="ws://localhost:8080">
-    </div>
-    <div class="modal-row">
+    </div>    <div class="modal-row">
       <label>Message Format</label>
       <select class="pi" id="inp-ws-fmt">
         <option value="json">JSON — {address, args:[value]}</option>
@@ -1367,13 +1518,18 @@ body.performing #canvas-drop-hint { display: none; }
         <option value="plain">Plain text — /address value</option>
       </select>
     </div>
-    <div class="modal-note">
+    <div class="modal-note" id="osc-bridge-note">
       <strong>Browsers can't send UDP OSC directly.</strong> You need a local WebSocket→OSC bridge.<br><br>
       Quick start with Node.js:<br>
       <code>npm i -g osc-bridge && osc-bridge --ws 8080 --udp 57120</code><br><br>
       Or run <strong>Open Stage Control</strong> as a relay (it includes a WS server).<br>
       With Max/MSP: use <strong>Node4Max</strong> or <strong>CNMAT odot</strong> externals.<br>
-      With Python: <code>pip install python-osc websockets</code> + custom bridge script.
+      With Python: <code>pip install python-osc websockets</code> + custom bridge script.<br><br>
+      <strong id="https-ws-warn" style="display:none;color:var(--accent2)">
+        ⚠ This page is served over HTTPS. Browsers block <code>ws://</code> connections from
+        HTTPS pages (mixed content). Use <code>wss://</code> with a TLS-enabled bridge,
+        or open this file directly from your filesystem (<code>file://</code>).
+      </strong>
     </div>
     <div class="modal-actions">
       <button class="tb-btn" id="btn-modal-cancel">Cancel</button>
@@ -1432,9 +1588,10 @@ function makeBlankPage(name) {
 
 const S = {
   mode:     'edit',
-  pages:    [],            // array of page objects
-  pageId:   null,          // id of the active page
+  pages:    [],
+  pageId:   null,
   sel:      null,
+  selIds:   new Set(),  // multi-select widget id set
   gridSize: 20,
   showGrid: true,
   snap:     true,
@@ -1443,6 +1600,14 @@ const S = {
   ws:       null,
   wsState:  'disconnected',
   idCtr:    1,
+  dirty:    false,  // true whenever unsaved changes exist
+  res: {
+    locked: false,
+    w:      1920,
+    h:      1080,
+    fit:    'fit',  // 'fit' | 'fill' | 'stretch'
+    scale:  1,      // computed (read-only, set by applyResolution)
+  },
 };
 
 // Convenience: active page object
@@ -1482,39 +1647,92 @@ function onDown(e) {
   if (e.target.closest('#toolbar, #props, .modal-bg, #mon')) return;
 
   const pid = e.pointerId;
-  const cx  = e.clientX;
-  const cy  = e.clientY;
+  const [cx, cy] = clientToCanvas(e.clientX, e.clientY);
+  const rawCx = e.clientX, rawCy = e.clientY; // raw for rband origin
   const wEl = e.target.closest('.w');
   const rhEl = e.target.closest('.rh');
 
   // ── EDIT MODE ────────────────────────────────────────────
   if (S.mode === 'edit') {
-    // Only one pointer active in edit mode — ignore extras
     if (TOUCHES.size > 0) return;
-    if (!wEl) { select(null); return; }
     e.preventDefault();
 
-    const id = wEl.dataset.id;
-    const w  = gw(id);
+    const id   = wEl?.dataset.id;
+    const w    = id ? gw(id) : null;
+    const isRH = !!rhEl;
+
+    // ── Shift-click: toggle widget in/out of multi-selection ──
+    if (e.shiftKey && wEl && w && !isRH) {
+      if (S.selIds.has(id)) {
+        S.selIds.delete(id);
+        gel(id)?.classList.remove('msel');
+      } else {
+        // If there was a single-sel, add it to multi first
+        if (S.sel && !S.selIds.has(S.sel)) S.selIds.add(S.sel);
+        S.sel = null;
+        S.selIds.add(id);
+        gel(id)?.classList.add('msel');
+      }
+      if (S.selIds.size === 1) {
+        const [sid] = S.selIds; S.selIds.clear();
+        select(sid);
+      } else if (S.selIds.size > 1) {
+        buildMultiProps();
+      } else {
+        closeProps();
+      }
+      try { e.target.setPointerCapture(pid); } catch(_) {}
+      return;
+    }
+
+    // ── Click on canvas empty area: rubber-band or deselect ──
+    if (!wEl) {
+      clearMultiSel();
+      select(null);
+      // Start rubber-band — store raw client coords for visual drawing
+      const wrapRect = $('canvas-wrap').getBoundingClientRect();
+      TOUCHES.set(pid, {
+        type: 'rband',
+        ox: rawCx, oy: rawCy,   // raw client for CSS positioning
+        cr: wrapRect,
+      });
+      try { e.target.setPointerCapture(pid); } catch(_) {}
+      return;
+    }
+
     if (!w) return;
 
-    if (rhEl) {
+    // ── Resize handle ──
+    if (isRH) {
+      clearMultiSel();
       select(id);
       TOUCHES.set(pid, {
         type:'resize', id,
         dir: rhEl.dataset.dir,
-        ox:cx, oy:cy,
+        ox:cx, oy:cy,   // canvas-space
         owx:w.x, owy:w.y, oww:w.w, owh:w.h
       });
-    } else {
-      select(id);
-      TOUCHES.set(pid, {
-        type:'move', id,
-        ox:cx, oy:cy,
-        owx:w.x, owy:w.y
-      });
+      try { e.target.setPointerCapture(pid); } catch(_) {}
+      return;
     }
-    // Capture keeps move/up delivery even if pointer drifts off the element
+
+    // ── Click on a widget that's part of the multi-selection: group move ──
+    if (S.selIds.has(id) && S.selIds.size > 1) {
+      const origins = {};
+      S.selIds.forEach(wid => { const pw = gw(wid); if (pw) origins[wid] = { x: pw.x, y: pw.y }; });
+      TOUCHES.set(pid, { type: 'gmove', id, ox: cx, oy: cy, origins });  // canvas-space
+      try { e.target.setPointerCapture(pid); } catch(_) {}
+      return;
+    }
+
+    // ── Normal single-widget move ──
+    clearMultiSel();
+    select(id);
+    TOUCHES.set(pid, {
+      type:'move', id,
+      ox:cx, oy:cy,   // canvas-space
+      owx:w.x, owy:w.y
+    });
     try { e.target.setPointerCapture(pid); } catch(_) {}
     return;
   }
@@ -1548,14 +1766,13 @@ function onDown(e) {
     refreshWidget(w);
 
   } else if (w.type === 'hslider') {
-    const r = wEl.getBoundingClientRect();
-    w.value = clamp(denorm(clamp((cx - r.left) / r.width, 0, 1), w.min, w.max), w.min, w.max);
+    // Use canvas-space relative to widget position
+    w.value = clamp(denorm(clamp((cx - w.x) / w.w, 0, 1), w.min, w.max), w.min, w.max);
     sendOSC(w.osc, w.value);
     refreshWidget(w);
 
   } else if (w.type === 'vslider') {
-    const r = wEl.getBoundingClientRect();
-    w.value = clamp(denorm(clamp(1 - (cy - r.top) / r.height, 0, 1), w.min, w.max), w.min, w.max);
+    w.value = clamp(denorm(clamp(1 - (cy - w.y) / w.h, 0, 1), w.min, w.max), w.min, w.max);
     sendOSC(w.osc, w.value);
     refreshWidget(w);
 
@@ -1563,9 +1780,8 @@ function onDown(e) {
     t.ox = cx; t.oy = cy; t.sv = w.value;
 
   } else if (w.type === 'xypad') {
-    const r = wEl.getBoundingClientRect();
-    w.valueX = clamp(denorm(clamp((cx - r.left) / r.width,       0, 1), w.minX, w.maxX), w.minX, w.maxX);
-    w.valueY = clamp(denorm(clamp(1 - (cy - r.top) / r.height,   0, 1), w.minY, w.maxY), w.minY, w.maxY);
+    w.valueX = clamp(denorm(clamp((cx - w.x) / w.w, 0, 1), w.minX, w.maxX), w.minX, w.maxX);
+    w.valueY = clamp(denorm(clamp(1 - (cy - w.y) / w.h, 0, 1), w.minY, w.maxY), w.minY, w.maxY);
     sendOSC(w.oscX, w.valueX);
     sendOSC(w.oscY, w.valueY);
     refreshWidget(w);
@@ -1582,10 +1798,13 @@ function onMove(e) {
   if (!t) return;
   e.preventDefault();
 
-  const cx = e.clientX;
-  const cy = e.clientY;
-  const w  = gw(t.id);
-  if (!w) return;
+  // Remap to canvas-space (or raw for rband visual)
+  const [cx, cy] = t.type === 'rband'
+    ? [e.clientX, e.clientY]           // rband drawn in screen-space
+    : clientToCanvas(e.clientX, e.clientY); // all others in canvas-space
+
+  const w = gw(t.id);
+  if (!w && t.type !== 'rband' && t.type !== 'gmove') return;
 
   const MIN = 40;
 
@@ -1599,6 +1818,29 @@ function onMove(e) {
       if (xi) xi.value = w.x;
       if (yi) yi.value = w.y;
     }
+
+  } else if (t.type === 'gmove') {
+    // Move all selected widgets together
+    const dx = snap(cx - t.ox), dy = snap(cy - t.oy);
+    S.selIds.forEach(wid => {
+      const pw = gw(wid);
+      if (!pw || !t.origins[wid]) return;
+      pw.x = Math.max(0, t.origins[wid].x + dx);
+      pw.y = Math.max(0, t.origins[wid].y + dy);
+      refreshWidget(pw);
+    });
+
+  } else if (t.type === 'rband') {
+    // Update rubber-band visual
+    const rbEl = $('rband');
+    if (!rbEl) return;
+    const x1 = t.ox - t.cr.left, y1 = t.oy - t.cr.top;
+    const x2 = cx  - t.cr.left, y2 = cy  - t.cr.top;
+    rbEl.style.display = 'block';
+    rbEl.style.left   = Math.min(x1, x2) + 'px';
+    rbEl.style.top    = Math.min(y1, y2) + 'px';
+    rbEl.style.width  = Math.abs(x2 - x1) + 'px';
+    rbEl.style.height = Math.abs(y2 - y1) + 'px';
 
   } else if (t.type === 'resize') {
     const dx = cx - t.ox, dy = cy - t.oy;
@@ -1664,10 +1906,38 @@ function onUp(e) {
     }
   }
 
+  // Snapshot after move or resize completes
+  if (t.type === 'move' || t.type === 'resize' || t.type === 'gmove') {
+    histPush();
+  }
+
+  // Finalise rubber-band selection
+  if (t.type === 'rband') {
+    const rbEl = $('rband');
+    if (rbEl) rbEl.style.display = 'none';
+    // Hit-test all widgets against the rubber-band rect
+    const x1 = Math.min(t.ox, e.clientX) - t.cr.left;
+    const y1 = Math.min(t.oy, e.clientY) - t.cr.top;
+    const x2 = Math.max(t.ox, e.clientX) - t.cr.left;
+    const y2 = Math.max(t.oy, e.clientY) - t.cr.top;
+    // Only activate if dragged meaningfully
+    if (x2 - x1 > 6 || y2 - y1 > 6) {
+      const hit = S.widgets.filter(w =>
+        w.x < x2 && w.x + w.w > x1 &&
+        w.y < y2 && w.y + w.h > y1
+      ).map(w => w.id);
+      if (hit.length > 0) {
+        selectGroup(hit);
+      }
+    }
+  }
+
   // Remove active glow — but only if no other pointer is still on this widget
-  const stillActive = [...TOUCHES.entries()]
-    .some(([otherId, ot]) => otherId !== e.pointerId && ot.id === t.id);
-  if (!stillActive) gel(t.id)?.classList.remove('pt-active');
+  if (t.id) {
+    const stillActive = [...TOUCHES.entries()]
+      .some(([otherId, ot]) => otherId !== e.pointerId && ot.id === t.id);
+    if (!stillActive) gel(t.id)?.classList.remove('pt-active');
+  }
 
   TOUCHES.delete(e.pointerId);
 }
@@ -1689,17 +1959,95 @@ function fmtVal(v, mn, mx) {
   return v.toFixed(decimals);
 }
 function uid() { return 'w' + (S.idCtr++); }
-function eXY(e) {
-  if (e.touches?.length) return [e.touches[0].clientX, e.touches[0].clientY];
-  if (e.changedTouches?.length) return [e.changedTouches[0].clientX, e.changedTouches[0].clientY];
-  return [e.clientX, e.clientY];
-}
-function canvasXY(cx, cy) {
-  const r = $('canvas').getBoundingClientRect();
-  return [cx - r.left, cy - r.top];
-}
 function gw(id) { return S.widgets.find(w => w.id === id); }
 function gel(id) { return document.getElementById('w-' + id); }
+
+// Sanitise user-supplied strings before inserting into innerHTML
+// Prevents XSS from crafted ?layout= URLs or shared layout files
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Mark layout as modified — autosave will serialise on next tick
+function markDirty() { S.dirty = true; }
+
+// ═══════════════════════════════════════════════════════════
+//  UNDO / REDO
+// ═══════════════════════════════════════════════════════════
+const HIST      = [];   // array of snapshots
+let   HIST_POS  = -1;   // current position in HIST
+const HIST_MAX  = 60;   // max undo steps
+let   HIST_LOCK = false; // prevent push during undo/redo
+
+// Snapshot the active page's widget array (deep clone, no media blobs)
+function histSnapshot() {
+  return {
+    pageId:  S.pageId,
+    widgets: JSON.parse(JSON.stringify(S.widgets)),
+  };
+}
+
+// Push current state onto history
+function histPush() {
+  if (HIST_LOCK) return;
+  // Discard any redo tail
+  HIST.splice(HIST_POS + 1);
+  HIST.push(histSnapshot());
+  if (HIST.length > HIST_MAX) HIST.shift();
+  HIST_POS = HIST.length - 1;
+  markDirty();
+  histUpdateButtons();
+}
+
+// Restore a snapshot
+function histApply(snap) {
+  HIST_LOCK = true;
+  // Unmount all current widgets
+  S.widgets.forEach(w => unmountWidget(w.id));
+  select(null);
+  // If snapshot is for a different page, switch first
+  if (snap.pageId !== S.pageId) {
+    const p = S.pages.find(pg => pg.id === snap.pageId);
+    if (p) { S.pageId = snap.pageId; renderPageBar(); applyCanvasBg(); }
+  }
+  // Restore widget array
+  S.widgets = snap.widgets;
+  S.widgets.forEach(w => mountWidget(w));
+  updateHint();
+  HIST_LOCK = false;
+  histUpdateButtons();
+}
+
+function histUndo() {
+  if (HIST_POS <= 0) return;
+  // Push current state if at tip
+  if (HIST_POS === HIST.length - 1) {
+    HIST.push(histSnapshot());
+    if (HIST.length > HIST_MAX + 1) HIST.shift();
+    HIST_POS = HIST.length - 1;
+  }
+  HIST_POS--;
+  histApply(HIST[HIST_POS]);
+  toast('Undo', 'ok');
+}
+
+function histRedo() {
+  if (HIST_POS >= HIST.length - 1) return;
+  HIST_POS++;
+  histApply(HIST[HIST_POS]);
+  toast('Redo', 'ok');
+}
+
+function histUpdateButtons() {
+  const u = $('btn-undo'), r = $('btn-redo');
+  if (u) u.classList.toggle('tb-btn-dim', HIST_POS <= 0);
+  if (r) r.classList.toggle('tb-btn-dim', HIST_POS >= HIST.length - 1);
+}
 
 // ═══════════════════════════════════════════════════════════
 //  DEFAULT WIDGET DATA
@@ -1861,7 +2209,7 @@ function wHTML(w) {
                border-color:${w.color};
                color:${on ? '#000' : w.color};
                font-size:${Math.max(9, Math.min(16, w.h * 0.22))}px">
-        ${bgLayer}<span style="position:relative;z-index:1">${w.label}</span>
+        ${bgLayer}<span style="position:relative;z-index:1">${esc(w.label)}</span>
       </div>${rxBadge}`;
     }
     case 'hslider': {
@@ -1871,7 +2219,7 @@ function wHTML(w) {
         <div class="slider-fill" style="left:0;top:0;bottom:0;width:${(t*100).toFixed(2)}%;background:${w.color};opacity:0.8"></div>
         <div class="slider-fill" style="right:0;top:0;bottom:0;width:${((1-t)*100).toFixed(2)}%;background:rgba(0,0,0,0)"></div>
         <div class="slider-labels">
-          <div class="slider-name" style="font-size:${Math.max(9,Math.min(13,w.h*0.2))}px">${w.label}</div>
+          <div class="slider-name" style="font-size:${Math.max(9,Math.min(13,w.h*0.2))}px">${esc(w.label)}</div>
           <div class="slider-val">${fmtVal(w.value, w.min, w.max)}</div>
         </div>
       </div>${rxBadge}`;
@@ -1882,7 +2230,7 @@ function wHTML(w) {
         ${bgLayer}
         <div class="slider-fill" style="left:0;right:0;bottom:0;height:${(t*100).toFixed(2)}%;background:${w.color};opacity:0.8"></div>
         <div class="slider-labels">
-          <div class="slider-name" style="font-size:${Math.max(8,Math.min(11,w.w*0.18))}px;writing-mode:vertical-lr;transform:rotate(180deg)">${w.label}</div>
+          <div class="slider-name" style="font-size:${Math.max(8,Math.min(11,w.w*0.18))}px;writing-mode:vertical-lr;transform:rotate(180deg)">${esc(w.label)}</div>
           <div class="slider-val">${fmtVal(w.value, w.min, w.max)}</div>
         </div>
       </div>${rxBadge}`;
@@ -1891,7 +2239,7 @@ function wHTML(w) {
       return `<div class="wt-knob" style="position:relative">
         ${bgLayer}
         <div class="knob-svg-wrap" style="position:relative;z-index:1">${knobSVG(w)}</div>
-        <div class="knob-name" style="position:relative;z-index:1">${w.label}</div>
+        <div class="knob-name" style="position:relative;z-index:1">${esc(w.label)}</div>
       </div>${rxBadge}`;
     }
     case 'xypad': {
@@ -1905,7 +2253,7 @@ function wHTML(w) {
         <div class="xypad-vline" style="left:${xPct}%;background:${w.color}"></div>
         <div class="xypad-dot"   style="left:${xPct}%;top:${yPct}%;background:${w.color};color:${w.color}"></div>
         <div class="xypad-info">
-          <div class="xypad-label">${w.label}</div>
+          <div class="xypad-label">${esc(w.label)}</div>
           <div class="xypad-vals">x:${fmtVal(w.valueX,w.minX,w.maxX)}  y:${fmtVal(w.valueY,w.minY,w.maxY)}</div>
         </div>
       </div>${rxBadge}`;
@@ -1997,7 +2345,8 @@ function refreshWidget(w) {
   el.style.top = w.y + 'px';
   el.style.width = w.w + 'px';
   el.style.height = w.h + 'px';
-  el.classList.toggle('sel', S.sel === w.id);
+  el.classList.toggle('sel',  S.sel === w.id);
+  el.classList.toggle('msel', S.selIds.has(w.id));
   el.querySelector('.w-inner').innerHTML = wHTML(w);
 }
 
@@ -2013,17 +2362,229 @@ function updateHint() {
 // ═══════════════════════════════════════════════════════════
 //  SELECTION & PROPS
 // ═══════════════════════════════════════════════════════════
+
+// ── Helpers ──────────────────────────────────────────────
+function clearMultiSel() {
+  S.selIds.forEach(id => gel(id)?.classList.remove('msel'));
+  S.selIds.clear();
+}
+
+function applyMultiSelVisuals() {
+  // Ensure msel class is correct on every widget
+  S.widgets.forEach(w => {
+    const el = gel(w.id);
+    if (!el) return;
+    el.classList.toggle('msel', S.selIds.has(w.id));
+  });
+}
+
+function selectedWidgets() {
+  return [...S.selIds].map(id => gw(id)).filter(Boolean);
+}
+
+// ── Single select (clears multi-sel) ─────────────────────
 function select(id) {
+  clearMultiSel();
   const prev = S.sel;
   S.sel = id;
-  if (prev) { const pw = gw(prev); if (pw) refreshWidget(pw); }
-  if (id)   { const w  = gw(id);  if (w) refreshWidget(w); buildProps(id); }
-  else       { closeProps(); }
+  if (prev && prev !== id) { const pw = gw(prev); if (pw) refreshWidget(pw); }
+  if (id) { const w = gw(id); if (w) { refreshWidget(w); buildProps(id); } }
+  else    { closeProps(); }
 }
 
 function closeProps() {
   $('props').classList.add('hidden');
   S.sel = null;
+}
+
+// ── Multi-select: set selIds and show group panel ─────────
+function selectGroup(ids) {
+  clearMultiSel();
+  S.sel = null;
+  ids.forEach(id => S.selIds.add(id));
+  applyMultiSelVisuals();
+  if (S.selIds.size === 1) {
+    // Degenerate case — just single-select it
+    const [id] = S.selIds;
+    S.selIds.clear();
+    select(id);
+  } else if (S.selIds.size > 1) {
+    buildMultiProps();
+  } else {
+    closeProps();
+  }
+}
+
+// ── Multi-select props panel ──────────────────────────────
+function buildMultiProps() {
+  const ws = selectedWidgets();
+  if (!ws.length) { closeProps(); return; }
+  const panel = $('props');
+  panel.classList.remove('hidden');
+  $('props-type').textContent = 'MULTI-SELECT';
+
+  $('props-body').innerHTML = `
+    <div class="ps">
+      <div class="ps-title">
+        Selection
+        <span class="ms-badge">${ws.length} widgets</span>
+      </div>
+      <div class="ms-action-grid">
+        <button id="ms-dup">⧉ Duplicate</button>
+        <button id="ms-del" class="danger">🗑 Delete</button>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="ps-title">Align</div>
+      <div class="ms-action-grid">
+        <button id="ms-al">⬝ Left</button>
+        <button id="ms-ar">⬝ Right</button>
+        <button id="ms-at">⬝ Top</button>
+        <button id="ms-ab">⬝ Bottom</button>
+        <button id="ms-acx">↔ Centre H</button>
+        <button id="ms-acy">↕ Centre V</button>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="ps-title">Distribute</div>
+      <div class="ms-action-grid">
+        <button id="ms-dh">↔ Horiz.</button>
+        <button id="ms-dv">↕ Vert.</button>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="ps-title">Colour (all selected)</div>
+      <div class="pr">
+        <span class="pl">Color</span>
+        <input type="color" class="pi" id="ms-color" value="${ws[0].color}">
+      </div>
+    </div>
+    <div class="ps">
+      <div class="ps-title">Nudge (all selected)</div>
+      <div class="pr" style="gap:4px">
+        <span class="pl">X</span>
+        <input type="number" class="pi" id="ms-nx" value="" placeholder="±px" style="width:60px">
+        <span class="pl" style="margin-left:8px">Y</span>
+        <input type="number" class="pi" id="ms-ny" value="" placeholder="±px" style="width:60px">
+        <button class="tb-btn" id="ms-nudge" style="font-size:10px;padding:3px 8px;flex-shrink:0">Apply</button>
+      </div>
+    </div>
+    <div class="ps">
+      <button class="tb-btn" id="ms-desel" style="width:100%;font-size:10px">Deselect All</button>
+    </div>
+  `;
+
+  // ── Align helpers ──
+  const L  = () => Math.min(...ws.map(w => w.x));
+  const T  = () => Math.min(...ws.map(w => w.y));
+  const R  = () => Math.max(...ws.map(w => w.x + w.w));
+  const B  = () => Math.max(...ws.map(w => w.y + w.h));
+
+  function alignApply(fn) {
+    histPush();
+    ws.forEach(fn);
+    ws.forEach(w => refreshWidget(w));
+    histPush();
+  }
+
+  $('ms-al').onclick  = () => alignApply(w => { w.x = L(); });
+  $('ms-ar').onclick  = () => alignApply(w => { w.x = R() - w.w; });
+  $('ms-at').onclick  = () => alignApply(w => { w.y = T(); });
+  $('ms-ab').onclick  = () => alignApply(w => { w.y = B() - w.h; });
+  $('ms-acx').onclick = () => {
+    const cx = (L() + R()) / 2;
+    alignApply(w => { w.x = Math.round(cx - w.w / 2); });
+  };
+  $('ms-acy').onclick = () => {
+    const cy = (T() + B()) / 2;
+    alignApply(w => { w.y = Math.round(cy - w.h / 2); });
+  };
+
+  // ── Distribute ──
+  $('ms-dh').onclick = () => {
+    if (ws.length < 3) return;
+    const sorted = [...ws].sort((a, b) => a.x - b.x);
+    const totalW = sorted.reduce((s, w) => s + w.w, 0);
+    const gap    = (R() - L() - totalW) / (ws.length - 1);
+    histPush();
+    let cursor = sorted[0].x + sorted[0].w + gap;
+    for (let i = 1; i < sorted.length - 1; i++) {
+      sorted[i].x = Math.round(cursor);
+      cursor += sorted[i].w + gap;
+    }
+    ws.forEach(w => refreshWidget(w));
+    histPush();
+  };
+  $('ms-dv').onclick = () => {
+    if (ws.length < 3) return;
+    const sorted = [...ws].sort((a, b) => a.y - b.y);
+    const totalH = sorted.reduce((s, w) => s + w.h, 0);
+    const gap    = (B() - T() - totalH) / (ws.length - 1);
+    histPush();
+    let cursor = sorted[0].y + sorted[0].h + gap;
+    for (let i = 1; i < sorted.length - 1; i++) {
+      sorted[i].y = Math.round(cursor);
+      cursor += sorted[i].h + gap;
+    }
+    ws.forEach(w => refreshWidget(w));
+    histPush();
+  };
+
+  // ── Colour ──
+  $('ms-color').addEventListener('input', e => {
+    ws.forEach(w => { w.color = e.target.value; refreshWidget(w); });
+  });
+  $('ms-color').addEventListener('change', () => histPush());
+
+  // ── Nudge ──
+  $('ms-nudge').onclick = () => {
+    const dx = parseFloat($('ms-nx').value) || 0;
+    const dy = parseFloat($('ms-ny').value) || 0;
+    if (!dx && !dy) return;
+    histPush();
+    ws.forEach(w => {
+      w.x = Math.max(0, w.x + dx);
+      w.y = Math.max(0, w.y + dy);
+      refreshWidget(w);
+    });
+    histPush();
+    $('ms-nx').value = '';
+    $('ms-ny').value = '';
+  };
+
+  // ── Duplicate ──
+  $('ms-dup').onclick = () => {
+    histPush();
+    const newIds = [];
+    ws.forEach(w => {
+      const copy = JSON.parse(JSON.stringify(w));
+      copy.id = uid();
+      copy.x += S.gridSize; copy.y += S.gridSize;
+      S.widgets.push(copy);
+      mountWidget(copy);
+      newIds.push(copy.id);
+    });
+    selectGroup(newIds);
+    histPush();
+    toast(`Duplicated ${newIds.length} widgets`, 'ok');
+  };
+
+  // ── Delete ──
+  $('ms-del').onclick = () => {
+    histPush();
+    const ids = [...S.selIds];
+    clearMultiSel();
+    ids.forEach(id => {
+      S.widgets = S.widgets.filter(w => w.id !== id);
+      unmountWidget(id);
+    });
+    closeProps();
+    histPush();
+    toast(`Deleted ${ids.length} widgets`, 'ok');
+  };
+
+  // ── Deselect ──
+  $('ms-desel').onclick = () => { clearMultiSel(); closeProps(); };
 }
 
 function buildProps(id) {
@@ -2065,9 +2626,9 @@ function buildProps(id) {
     extra = `
     <div class="ps"><div class="ps-title">OSC Addresses</div>
       <div class="pr col"><span class="pl">X Address</span>
-        <input type="text" class="pi" id="pi-oscx" value="${w.oscX}" placeholder="/xy/x"></div>
+        <input type="text" class="pi" id="pi-oscx" value="${esc(w.oscX)}" placeholder="/xy/x"></div>
       <div class="pr col"><span class="pl">Y Address</span>
-        <input type="text" class="pi" id="pi-oscy" value="${w.oscY}" placeholder="/xy/y"></div>
+        <input type="text" class="pi" id="pi-oscy" value="${esc(w.oscY)}" placeholder="/xy/y"></div>
     </div>
     <div class="ps"><div class="ps-title">X Axis Range</div>
       <div class="pr"><span class="pl">Min X</span>
@@ -2103,7 +2664,7 @@ function buildProps(id) {
 
   const oscRow = (!isText && !isVideo && w.type !== 'xypad') ? `
       <div class="pr col"><span class="pl">OSC Address</span>
-        <input type="text" class="pi" id="pi-osc" value="${w.osc}" placeholder="/control/1"></div>` : '';
+        <input type="text" class="pi" id="pi-osc" value="${esc(w.osc)}" placeholder="/control/1"></div>` : '';
 
   const rxRow = (!isText && !isVideo) ? `
       <div class="pr">
@@ -2116,7 +2677,7 @@ function buildProps(id) {
     <div class="ps"><div class="ps-title">Text Content</div>
       <div class="pr col">
         <textarea class="pi" id="pi-text" rows="4"
-          style="resize:vertical;line-height:1.5">${(w.text||'').replace(/</g,'&lt;')}</textarea>
+          style="resize:vertical;line-height:1.5">${esc(w.text||'')}</textarea>
       </div>
     </div>
     <div class="ps"><div class="ps-title">Typography</div>
@@ -2227,7 +2788,7 @@ function buildProps(id) {
     <div class="ps">
       <div class="ps-title">Identity</div>
       ${(isText || isVideo) ? '' : `<div class="pr col"><span class="pl">Label</span>
-        <input type="text" class="pi" id="pi-label" value="${w.label}"></div>`}
+        <input type="text" class="pi" id="pi-label" value="${esc(w.label)}"></div>`}
       ${oscRow}
       ${rxRow}
     </div>
@@ -2304,6 +2865,7 @@ function buildProps(id) {
   `;
 
   // Bind each field
+  let _propHistTimer = null;
   function bind(elId, key, coerce) {
     const el = $(elId);
     if (!el) return;
@@ -2312,6 +2874,9 @@ function buildProps(id) {
       if (v === undefined || v === null || (typeof v === 'number' && isNaN(v))) return;
       w[key] = v;
       refreshWidget(w);
+      // Debounced snapshot — pushes 600ms after last change
+      clearTimeout(_propHistTimer);
+      _propHistTimer = setTimeout(histPush, 600);
     };
     el.addEventListener('input', e => apply(e.target.value));
     el.addEventListener('change', e => apply(e.target.value));
@@ -2589,10 +3154,26 @@ function buildProps(id) {
 document.addEventListener('keydown', e => {
   if (e.target.closest('input, select, textarea')) return;
 
-  if ((e.key === 'Delete' || e.key === 'Backspace') && S.sel && S.mode === 'edit') {
-    deleteWidget(S.sel); return;
+  // Undo / Redo
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); histUndo(); return; }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+    e.preventDefault(); histRedo(); return;
   }
-  if (e.key === 'Escape') { select(null); return; }
+
+  if ((e.key === 'Delete' || e.key === 'Backspace') && S.mode === 'edit') {
+    if (S.selIds.size > 1) {
+      // Delete all multi-selected
+      $('ms-del')?.click();
+    } else if (S.sel) {
+      deleteWidget(S.sel);
+    }
+    return;
+  }
+  if (e.key === 'Escape') {
+    if (S.selIds.size > 0) { clearMultiSel(); closeProps(); }
+    else select(null);
+    return;
+  }
   if (e.key === 'Tab') {
     e.preventDefault();
     setMode(S.mode === 'edit' ? 'perform' : 'edit');
@@ -2613,6 +3194,7 @@ document.addEventListener('keydown', e => {
     const xi = $('pi-x'), yi = $('pi-y');
     if (xi) xi.value = w.x;
     if (yi) yi.value = w.y;
+    histPush();
   }
 });
 
@@ -2624,13 +3206,16 @@ function addWidget(type) {
   const cx = Math.max(60, snap(canvas.clientWidth / 2 - 60));
   const cy = Math.max(40, snap(canvas.clientHeight / 2 - 40));
   const w = makeWidget(type, cx, cy);
+  histPush(); // snapshot before add
   S.widgets.push(w);
   mountWidget(w);
   select(w.id);
+  histPush(); // snapshot after add
   toast('Added ' + type, 'ok');
 }
 
 function deleteWidget(id) {
+  histPush();
   S.widgets = S.widgets.filter(w => w.id !== id);
   unmountWidget(id);
   if (S.sel === id) { S.sel = null; closeProps(); }
@@ -2639,6 +3224,7 @@ function deleteWidget(id) {
 
 function clearAll() {
   if (S.widgets.length && !confirm('Clear all widgets? This cannot be undone.')) return;
+  histPush();
   S.widgets.forEach(w => unmountWidget(w.id));
   S.widgets = [];
   S.sel = null;
@@ -2654,6 +3240,7 @@ function setMode(mode) {
 
   // Clean up any in-flight touches and active-glow classes on mode switch
   TOUCHES.clear();
+  clearMultiSel();
   document.querySelectorAll('.pt-active').forEach(el => el.classList.remove('pt-active'));
 
   document.body.classList.toggle('performing', mode === 'perform');
@@ -2706,6 +3293,14 @@ function sendOSC(address, value) {
 
 function connectWS(url) {
   if (S.ws) { try { S.ws.close(); } catch(e) {} S.ws = null; }
+
+  // Warn clearly when ws:// is used from an HTTPS page — it will be blocked
+  if (location.protocol === 'https:' && url.startsWith('ws://')) {
+    setWsSt('error', 'ws:// blocked on HTTPS');
+    toast('⚠ ws:// is blocked on HTTPS — use wss:// or open the file locally', 'err');
+    return;
+  }
+
   setWsSt('connecting', 'Connecting…');
   try {
     S.ws = new WebSocket(url);
@@ -2857,3 +3452,1246 @@ function loadJSON(file) {
       applyGrid();
       toast('Layout loaded ↑', 'ok');
     } catch(err) {
+      toast('Failed to load: ' + err.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════
+let toastTimer;
+function toast(msg, type = '') {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 2200);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  OSC MONITOR
+// ═══════════════════════════════════════════════════════════
+const MON = {
+  open: false,
+  minimised: false,
+  paused: false,
+  filter: 'all',      // 'all' | 'in' | 'out'
+  entries: [],
+  maxEntries: 500,
+  total: 0,           // ever-incrementing count shown in badge
+  autoScroll: true,
+  // drag state
+  dragging: false, ox:0, oy:0, ex:0, ey:0,
+  // resize state
+  resizing: false, rox:0, roy:0, rw:0, rh:0,
+};
+
+function monFmtTime(ts) {
+  const d = new Date(ts);
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  const ss = String(d.getSeconds()).padStart(2,'0');
+  const ms = String(d.getMilliseconds()).padStart(3,'0');
+  return `${hh}:${mm}:${ss}.${ms}`;
+}
+
+function monFmtVal(v) {
+  if (typeof v !== 'number') return String(v);
+  if (Number.isInteger(v)) return String(v);
+  // up to 4 decimal places, strip trailing zeros
+  return v.toFixed(4).replace(/\.?0+$/, '');
+}
+
+function monLog(dir, address, value) {
+  if (MON.paused) return;
+
+  const entry = { id: ++MON.total, t: Date.now(), dir, address, value };
+  MON.entries.push(entry);
+
+  // Trim oldest when over limit
+  if (MON.entries.length > MON.maxEntries) MON.entries.shift();
+
+  // Update badge count
+  const countEl = $('mon-count');
+  if (countEl) countEl.textContent = MON.total > 999 ? '999+' : MON.total;
+
+  // Only render if the monitor is open and not minimised
+  if (!MON.open || MON.minimised) return;
+
+  // Filter check
+  if (MON.filter !== 'all' && MON.filter !== dir) return;
+
+  monAppendRow(entry);
+}
+
+function monAppendRow(entry) {
+  const log = $('mon-log');
+  if (!log) return;
+
+  // Remove empty state
+  const empty = $('mon-empty');
+  if (empty) empty.remove();
+
+  const row = document.createElement('div');
+  row.className = 'mon-row new-row';
+  row.dataset.dir = entry.dir;
+  row.innerHTML = `
+    <span class="mon-time">${monFmtTime(entry.t)}</span>
+    <span class="mon-dir ${entry.dir}">${entry.dir === 'out' ? '▶ TX' : '◀ RX'}</span>
+    <span class="mon-addr" title="${entry.address}">${entry.address}</span>
+    <span class="mon-val">${monFmtVal(entry.value)}</span>
+  `;
+  log.appendChild(row);
+
+  // Trim DOM rows if too many (keep last 200 in DOM for performance)
+  const rows = log.querySelectorAll('.mon-row');
+  if (rows.length > 200) rows[0].remove();
+
+  // Auto-scroll
+  if (MON.autoScroll) log.scrollTop = log.scrollHeight;
+}
+
+function monRebuild() {
+  const log = $('mon-log');
+  if (!log) return;
+  log.innerHTML = '';
+
+  const filtered = MON.filter === 'all'
+    ? MON.entries
+    : MON.entries.filter(e => e.dir === MON.filter);
+
+  if (filtered.length === 0) {
+    log.innerHTML = '<div id="mon-empty">No messages match the current filter.</div>';
+    return;
+  }
+
+  // Render last 200 matching entries
+  const visible = filtered.slice(-200);
+  const frag = document.createDocumentFragment();
+  for (const entry of visible) {
+    const row = document.createElement('div');
+    row.className = 'mon-row';
+    row.dataset.dir = entry.dir;
+    row.innerHTML = `
+      <span class="mon-time">${monFmtTime(entry.t)}</span>
+      <span class="mon-dir ${entry.dir}">${entry.dir === 'out' ? '▶ TX' : '◀ RX'}</span>
+      <span class="mon-addr" title="${entry.address}">${entry.address}</span>
+      <span class="mon-val">${monFmtVal(entry.value)}</span>
+    `;
+    frag.appendChild(row);
+  }
+  log.appendChild(frag);
+  log.scrollTop = log.scrollHeight;
+}
+
+function monToggle() {
+  MON.open = !MON.open;
+  const el = $('mon');
+  el.classList.toggle('mon-hidden', !MON.open);
+  $('btn-mon').classList.toggle('active', MON.open);
+  if (MON.open && !MON.minimised) monRebuild();
+}
+
+function monSetFilter(f) {
+  MON.filter = f;
+  document.querySelectorAll('.mon-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.filter === f);
+  });
+  monRebuild();
+}
+
+function monClear() {
+  MON.entries = [];
+  MON.total = 0;
+  const countEl = $('mon-count');
+  if (countEl) countEl.textContent = '0';
+  const log = $('mon-log');
+  if (log) log.innerHTML = '<div id="mon-empty">Cleared.</div>';
+}
+
+function monSetPaused(p) {
+  MON.paused = p;
+  const btn = $('mon-pause');
+  if (!btn) return;
+  btn.textContent = p ? '▶' : '⏸';
+  btn.title = p ? 'Resume' : 'Pause';
+  btn.classList.toggle('paused', p);
+}
+
+function monSetMinimised(m) {
+  MON.minimised = m;
+  const el = $('mon');
+  el.classList.toggle('mon-minimised', m);
+  $('mon-min').textContent = m ? '▢' : '─';
+  $('mon-min').title = m ? 'Restore' : 'Minimise';
+  if (!m) { monRebuild(); }
+}
+
+function initMonitor() {
+  const monEl = $('mon');
+
+  // ---- Toolbar toggle ----
+  $('btn-mon').addEventListener('click', monToggle);
+
+  // ---- Filter pills ----
+  document.querySelectorAll('.mon-pill').forEach(pill => {
+    pill.addEventListener('click', () => monSetFilter(pill.dataset.filter));
+  });
+
+  // ---- Pause / clear / minimise / close ----
+  $('mon-pause').addEventListener('click', () => monSetPaused(!MON.paused));
+  $('mon-clear').addEventListener('click', monClear);
+  $('mon-min').addEventListener('click', () => monSetMinimised(!MON.minimised));
+  $('mon-close').addEventListener('click', () => {
+    MON.open = false;
+    monEl.classList.add('mon-hidden');
+    $('btn-mon').classList.remove('active');
+  });
+
+  // ---- Auto-scroll detection ----
+  $('mon-log').addEventListener('scroll', () => {
+    const log = $('mon-log');
+    MON.autoScroll = log.scrollHeight - log.scrollTop - log.clientHeight < 12;
+  });
+
+  // ---- Keyboard shortcut: M ----
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input, select, textarea')) return;
+    if (e.key === 'm' || e.key === 'M') monToggle();
+    if ((e.key === 'p' || e.key === 'P') && MON.open) monSetPaused(!MON.paused);
+  });
+
+  // ---- Drag (title bar) ----
+  const bar = $('mon-bar');
+
+  bar.addEventListener('pointerdown', e => {
+    if (e.target.closest('.mon-icon, .mon-pill, #mon-filters, #mon-count')) return;
+    MON.dragging = true;
+    bar.setPointerCapture(e.pointerId);
+    const r = monEl.getBoundingClientRect();
+    MON.ex = r.left; MON.ey = r.top;
+    MON.ox = e.clientX; MON.oy = e.clientY;
+    e.preventDefault();
+  });
+  bar.addEventListener('pointermove', e => {
+    if (!MON.dragging) return;
+    const dx = e.clientX - MON.ox, dy = e.clientY - MON.oy;
+    MON.ox = e.clientX; MON.oy = e.clientY;
+    MON.ex += dx; MON.ey += dy;
+    // Clamp to viewport
+    MON.ex = Math.max(0, Math.min(window.innerWidth  - monEl.offsetWidth,  MON.ex));
+    MON.ey = Math.max(0, Math.min(window.innerHeight - monEl.offsetHeight, MON.ey));
+    monEl.style.right = 'auto'; monEl.style.bottom = 'auto';
+    monEl.style.left = MON.ex + 'px';
+    monEl.style.top  = MON.ey + 'px';
+  });
+  bar.addEventListener('pointerup',    () => { MON.dragging = false; });
+  bar.addEventListener('pointercancel',() => { MON.dragging = false; });
+
+  // ---- Resize (grip) ----
+  const grip = $('mon-grip');
+
+  grip.addEventListener('pointerdown', e => {
+    MON.resizing = true;
+    grip.setPointerCapture(e.pointerId);
+    MON.rox = e.clientX; MON.roy = e.clientY;
+    MON.rw = monEl.offsetWidth; MON.rh = monEl.offsetHeight;
+    e.preventDefault();
+  });
+  grip.addEventListener('pointermove', e => {
+    if (!MON.resizing) return;
+    const dw = e.clientX - MON.rox, dh = e.clientY - MON.roy;
+    monEl.style.width  = Math.max(280, MON.rw + dw) + 'px';
+    monEl.style.height = Math.max(120, MON.rh + dh) + 'px';
+  });
+  grip.addEventListener('pointerup',    () => { MON.resizing = false; });
+  grip.addEventListener('pointercancel',() => { MON.resizing = false; });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  THEME
+// ═══════════════════════════════════════════════════════════
+const THEMES = ['default','light','stealth','matrix','retro'];
+
+function applyTheme(name) {
+  if (!THEMES.includes(name)) name = 'default';
+  document.documentElement.setAttribute('data-theme', name);
+  const sel = $('sel-theme');
+  if (sel) sel.value = name;
+  localStorage.setItem('osc_theme', name);
+}
+
+function initTheme() {
+  // URL param overrides localStorage (useful in kiosk URLs)
+  const urlTheme = new URLSearchParams(window.location.search).get('theme');
+  const saved    = urlTheme || localStorage.getItem('osc_theme') || 'default';
+  applyTheme(saved);
+  $('sel-theme').addEventListener('change', e => {
+    applyTheme(e.target.value);
+    S.widgets.forEach(w => refreshWidget(w));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  KIOSK URL GENERATOR
+// ═══════════════════════════════════════════════════════════
+function buildKioskURL(embed) {
+  const base   = window.location.href.split('?')[0].split('#')[0];
+  const theme  = $('kiosk-theme-sel')?.value || '';
+  const params = new URLSearchParams();
+  params.set('kiosk', '');
+  if (theme) params.set('theme', theme);
+
+  if (embed) {
+    // Bake the entire layout into the URL as a compressed JSON fragment.
+    // We use base64url so it survives copy-paste and most URL length limits.
+    const payload = JSON.stringify({
+      _version: 2,
+      gridSize: S.gridSize, showGrid: S.showGrid, snap: S.snap,
+      idCtr: S.idCtr, widgets: S.widgets,
+      wsUrl: S.wsUrl, wsFmt: S.wsFmt,
+    });
+    // btoa needs latin-1; encodeURIComponent + escape handles unicode safely
+    const b64 = btoa(unescape(encodeURIComponent(payload)))
+                  .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    params.set('layout', b64);
+  }
+
+  // Render ?kiosk cleanly (no =) then append others
+  let url = base + '?kiosk';
+  if (theme)  url += '&theme=' + encodeURIComponent(theme);
+  if (embed)  url += '&layout=' + params.get('layout');
+  return url;
+}
+
+function updateKioskModal() {
+  const embed  = $('kiosk-embed')?.checked || false;
+  const url    = buildKioskURL(embed);
+  const urlEl  = $('kiosk-url-display');
+  const noteEl = $('kiosk-size-note');
+  const openEl = $('btn-kiosk-open');
+  if (urlEl)  urlEl.value = url;
+  if (openEl) openEl.href = url;
+  if (noteEl) {
+    const kb = (new TextEncoder().encode(url).length / 1024).toFixed(1);
+    noteEl.textContent = embed
+      ? `URL is ${kb} KB — works across devices without sharing a file`
+      : 'Layout must already be in localStorage on the target device';
+  }
+}
+
+function initKioskModal() {
+  $('btn-kiosk-url').addEventListener('click', () => {
+    $('kiosk-theme-sel').value = '';
+    $('kiosk-embed').checked   = false;
+    updateKioskModal();
+    $('modal-kiosk').classList.remove('hidden');
+  });
+
+  $('kiosk-theme-sel').addEventListener('change', updateKioskModal);
+  $('kiosk-embed').addEventListener('change', updateKioskModal);
+
+  $('btn-kiosk-copy').addEventListener('click', () => {
+    const url = $('kiosk-url-display').value;
+    navigator.clipboard.writeText(url).then(() => {
+      $('btn-kiosk-copy').textContent = '✓ Copied';
+      setTimeout(() => { $('btn-kiosk-copy').textContent = 'Copy'; }, 2000);
+    }).catch(() => {
+      // Fallback for http / older browsers
+      $('kiosk-url-display').select();
+      document.execCommand('copy');
+      $('btn-kiosk-copy').textContent = '✓ Copied';
+      setTimeout(() => { $('btn-kiosk-copy').textContent = 'Copy'; }, 2000);
+    });
+  });
+
+  $('btn-kiosk-close').addEventListener('click', () =>
+    $('modal-kiosk').classList.add('hidden'));
+  $('modal-kiosk').addEventListener('click', e => {
+    if (e.target === $('modal-kiosk')) $('modal-kiosk').classList.add('hidden');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TOOLBAR BINDINGS
+// ═══════════════════════════════════════════════════════════
+function initToolbar() {
+  $('btn-undo').addEventListener('click', histUndo);
+  $('btn-redo').addEventListener('click', histRedo);
+
+  $('btn-mode').addEventListener('click', () => setMode(S.mode === 'edit' ? 'perform' : 'edit'));
+
+  document.querySelectorAll('[data-add]').forEach(btn => {
+    btn.addEventListener('click', () => addWidget(btn.dataset.add));
+  });
+
+  $('btn-grid').addEventListener('click', e => {
+    S.showGrid = !S.showGrid;
+    e.target.classList.toggle('active', S.showGrid);
+    applyGrid();
+    markDirty();
+  });
+
+  $('btn-snap').addEventListener('click', e => {
+    S.snap = !S.snap;
+    e.target.classList.toggle('active', S.snap);
+    markDirty();
+  });
+
+  $('sel-grid-size').addEventListener('change', e => {
+    S.gridSize = parseInt(e.target.value);
+    applyGrid();
+    markDirty();
+  });
+
+  $('btn-save').addEventListener('click', saveJSON);
+
+  $('btn-load').addEventListener('click', () => $('file-inp').click());
+  $('file-inp').addEventListener('change', e => {
+    if (e.target.files[0]) loadJSON(e.target.files[0]);
+    e.target.value = '';
+  });
+
+  $('btn-clear').addEventListener('click', clearAll);
+
+  $('btn-osc-cfg').addEventListener('click', () => {
+    $('inp-ws-url').value = S.wsUrl;
+    $('inp-ws-fmt').value = S.wsFmt;
+    // Show mixed-content warning and update placeholder when served over HTTPS
+    const isHttps = location.protocol === 'https:';
+    const warnEl  = $('https-ws-warn');
+    const urlInp  = $('inp-ws-url');
+    if (warnEl) warnEl.style.display = isHttps ? '' : 'none';
+    if (urlInp) urlInp.placeholder = isHttps ? 'wss://yourhost:8080' : 'ws://localhost:8080';
+    $('modal-osc').classList.remove('hidden');
+  });
+
+  $('btn-osc-connect').addEventListener('click', () => {
+    connectWS(S.wsUrl);
+  });
+
+  $('btn-modal-cancel').addEventListener('click', () => $('modal-osc').classList.add('hidden'));
+  $('modal-osc').addEventListener('click', e => {
+    if (e.target === $('modal-osc')) $('modal-osc').classList.add('hidden');
+  });
+
+  $('btn-modal-save').addEventListener('click', () => {
+    S.wsUrl = $('inp-ws-url').value.trim();
+    S.wsFmt = $('inp-ws-fmt').value;
+    localStorage.setItem('osc_ws_url', S.wsUrl);
+    localStorage.setItem('osc_ws_fmt', S.wsFmt);
+    $('modal-osc').classList.add('hidden');
+    markDirty();
+    connectWS(S.wsUrl);
+  });
+
+  $('btn-props-close').addEventListener('click', () => select(null));
+
+  $('btn-canvas-bg').addEventListener('click', openCanvasBgPanel);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CANVAS BACKGROUND IMAGE
+// ═══════════════════════════════════════════════════════════
+function applyCanvasBg() {
+  const imgEl = $('canvas-bg-img');
+  const vidEl = $('canvas-bg-vid');
+  const cbg   = activePage()?.canvasBg || {};
+  if (!imgEl || !vidEl) return;
+
+  // Hide both first
+  imgEl.style.display = 'none';
+  imgEl.style.backgroundImage = '';
+  vidEl.style.display = 'none';
+  vidEl.pause?.();
+
+  if (!cbg.image) return;
+
+  if (cbg.mediaType === 'video') {
+    vidEl.style.display        = 'block';
+    vidEl.style.opacity        = cbg.opacity ?? 1;
+    vidEl.style.objectFit      = fitForSize(cbg.size);
+    vidEl.style.objectPosition = cbg.position || 'center';
+    // Only reload src if it changed — prevents flicker
+    const src = cbg.image;
+    if (vidEl.getAttribute('data-src') !== src) {
+      vidEl.setAttribute('data-src', src);
+      vidEl.src = src;
+      vidEl.load();
+      vidEl.play().catch(() => {});
+    }
+  } else {
+    imgEl.style.display            = 'block';
+    imgEl.style.backgroundImage    = `url('${cbg.image}')`;
+    imgEl.style.backgroundSize     = cbg.size     || 'cover';
+    imgEl.style.backgroundPosition = cbg.position || 'center';
+    imgEl.style.backgroundRepeat   = cbg.repeat   || 'no-repeat';
+    imgEl.style.opacity            = cbg.opacity  ?? 1;
+  }
+}
+
+function openCanvasBgPanel() {
+  select(null);
+  const panel = $('props');
+  panel.classList.remove('hidden');
+  $('props-type').textContent = 'CANVAS BG';
+
+  const cbg    = activePage().canvasBg;
+  const isVid  = cbg.mediaType === 'video';
+  const hasSrc = !!cbg.image;
+  const isBlob = hasSrc && cbg.image.startsWith('blob:');
+  const isData = hasSrc && cbg.image.startsWith('data:');
+  const dispUrl = (hasSrc && !isBlob && !isData) ? cbg.image : '';
+
+  $('props-body').innerHTML = `
+    <div class="ps">
+      <div class="ps-title">Media Type</div>
+      <div class="pr">
+        <span class="pl">Type</span>
+        <select class="pi" id="cvbg-mediatype" style="width:110px">
+          <option value="image" ${!isVid?'selected':''}>Image</option>
+          <option value="video" ${isVid?'selected':''}>Video (MP4)</option>
+        </select>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="ps-title" id="cvbg-src-title">${isVid?'Video Source':'Image Source'}</div>
+      <div class="img-preview ${hasSrc?'has-img':''}" id="cvbg-preview">
+        ${hasSrc && isVid ? `<video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"><source src="${cbg.image}" type="video/mp4"></video>` : ''}
+        ${hasSrc && !isVid ? '' : ''}
+        <span>${isVid?'No video':'No image'}</span>
+      </div>
+      ${hasSrc && !isVid ? `<script>document.getElementById('cvbg-preview').style.backgroundImage="url('${cbg.image}')";document.getElementById('cvbg-preview').style.backgroundSize='contain';<\/script>` : ''}
+      <div class="pr col" style="margin-bottom:4px">
+        <span class="pl">URL</span>
+        <input type="text" class="pi" id="cvbg-url" value="${dispUrl}"
+          placeholder="${isVid?'https://…/video.mp4':'https://…/image.jpg'}">
+      </div>
+      <div class="pr" style="margin-bottom:4px">
+        <button class="tb-btn" id="cvbg-pick" style="font-size:10px;padding:3px 8px">📁 Local file</button>
+        <button class="tb-btn danger" id="cvbg-clear" style="font-size:10px;padding:3px 8px">✕ Clear</button>
+      </div>
+      ${isBlob ? '<div class="local-warn">⚠ Local file — reselect after page reload</div>' : ''}
+    </div>
+    <div class="ps" id="cvbg-display-section">
+      <div class="ps-title">Display</div>
+      <div class="pr">
+        <span class="pl">Size</span>
+        <select class="pi" id="cvbg-size" style="width:110px">
+          <option value="cover"     ${(cbg.size||'cover')==='cover'?'selected':''}>Cover</option>
+          <option value="contain"   ${cbg.size==='contain'?'selected':''}>Contain</option>
+          <option value="100% 100%" ${cbg.size==='100% 100%'?'selected':''}>Stretch</option>
+          <option value="auto"      ${cbg.size==='auto'?'selected':''}>Actual size</option>
+        </select>
+      </div>
+      <div class="pr">
+        <span class="pl">Position</span>
+        <select class="pi" id="cvbg-pos" style="width:110px">
+          <option value="center"        ${(cbg.position||'center')==='center'?'selected':''}>Centre</option>
+          <option value="top left"      ${cbg.position==='top left'?'selected':''}>Top left</option>
+          <option value="top center"    ${cbg.position==='top center'?'selected':''}>Top centre</option>
+          <option value="top right"     ${cbg.position==='top right'?'selected':''}>Top right</option>
+          <option value="center left"   ${cbg.position==='center left'?'selected':''}>Mid left</option>
+          <option value="center right"  ${cbg.position==='center right'?'selected':''}>Mid right</option>
+          <option value="bottom left"   ${cbg.position==='bottom left'?'selected':''}>Bot left</option>
+          <option value="bottom center" ${cbg.position==='bottom center'?'selected':''}>Bot centre</option>
+          <option value="bottom right"  ${cbg.position==='bottom right'?'selected':''}>Bot right</option>
+        </select>
+      </div>
+      <div class="pr" id="cvbg-repeat-row" ${isVid?'style="display:none"':''}>
+        <span class="pl">Repeat</span>
+        <select class="pi" id="cvbg-repeat" style="width:110px">
+          <option value="no-repeat" ${(cbg.repeat||'no-repeat')==='no-repeat'?'selected':''}>No repeat</option>
+          <option value="repeat"    ${cbg.repeat==='repeat'?'selected':''}>Tile</option>
+          <option value="repeat-x"  ${cbg.repeat==='repeat-x'?'selected':''}>Tile X only</option>
+          <option value="repeat-y"  ${cbg.repeat==='repeat-y'?'selected':''}>Tile Y only</option>
+        </select>
+      </div>
+      <div class="pr">
+        <span class="pl">Opacity</span>
+        <input type="number" class="pi" id="cvbg-opacity"
+          value="${cbg.opacity??1}" min="0" max="1" step="0.05">
+      </div>
+    </div>
+  `;
+
+  // ── Apply preview and state ──
+  function setPreview(src, type) {
+    const prev = $('cvbg-preview');
+    if (!prev) return;
+    prev.classList.toggle('has-img', !!src);
+    // Clear
+    prev.style.backgroundImage = '';
+    const existVid = prev.querySelector('video');
+    if (existVid) existVid.remove();
+    const existSpan = prev.querySelector('span');
+    if (existSpan) existSpan.style.display = src ? 'none' : '';
+
+    if (src && type === 'video') {
+      const v = document.createElement('video');
+      v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+      v.style.cssText = 'width:100%;height:100%;object-fit:contain';
+      const s = document.createElement('source');
+      s.src = src; s.type = 'video/mp4';
+      v.appendChild(s); prev.appendChild(v);
+      v.load(); v.play().catch(()=>{});
+    } else if (src) {
+      prev.style.backgroundImage = `url('${src}')`;
+      prev.style.backgroundSize  = 'contain';
+      prev.style.backgroundColor = '#000';
+    }
+  }
+
+  function applyMedia(src, type) {
+    cbg.image     = src;
+    cbg.mediaType = type || cbg.mediaType;
+    const urlEl = $('cvbg-url');
+    const isBlob = src.startsWith('blob:');
+    if (urlEl && !isBlob && !src.startsWith('data:')) urlEl.value = src;
+    setPreview(src, cbg.mediaType);
+    applyCanvasBg();
+  }
+
+  function bindCvbg(elId, key, coerce) {
+    const el = $(elId);
+    if (!el) return;
+    el.addEventListener('input',  e => { cbg[key] = coerce ? coerce(e.target.value) : e.target.value; applyCanvasBg(); });
+    el.addEventListener('change', e => { cbg[key] = coerce ? coerce(e.target.value) : e.target.value; applyCanvasBg(); });
+  }
+
+  // Init preview for current state
+  if (hasSrc) setPreview(cbg.image, cbg.mediaType);
+
+  // Media type toggle
+  $('cvbg-mediatype').addEventListener('change', e => {
+    cbg.mediaType = e.target.value;
+    const isV = cbg.mediaType === 'video';
+    const title = $('cvbg-src-title');
+    const repeatRow = $('cvbg-repeat-row');
+    if (title)     title.textContent = isV ? 'Video Source' : 'Image Source';
+    if (repeatRow) repeatRow.style.display = isV ? 'none' : '';
+    // Clear src when switching type
+    applyMedia('', cbg.mediaType);
+    const urlEl = $('cvbg-url');
+    if (urlEl) { urlEl.value = ''; urlEl.placeholder = isV ? 'https://…/video.mp4' : 'https://…/image.jpg'; }
+  });
+
+  // URL input
+  const urlEl = $('cvbg-url');
+  if (urlEl) {
+    const commit = () => {
+      const v = urlEl.value.trim();
+      if (v) applyMedia(v, cbg.mediaType);
+    };
+    urlEl.addEventListener('change', commit);
+    urlEl.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
+  }
+
+  // Local file picker — image or video branch
+  $('cvbg-pick').addEventListener('click', () => {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    const isV = cbg.mediaType === 'video';
+    inp.accept = isV ? 'video/mp4,video/*' : 'image/*';
+    inp.onchange = () => {
+      const file = inp.files[0];
+      if (!file) return;
+      if (isV) {
+        // Use blob URL for video — can't base64 large files
+        const blobUrl = URL.createObjectURL(file);
+        cbg.image     = blobUrl;
+        cbg.mediaType = 'video';
+        cbg._blobFile = file.name; // remember name for UI
+        setPreview(blobUrl, 'video');
+        applyCanvasBg();
+        // Show warn
+        const urlEl = $('cvbg-url');
+        if (urlEl) urlEl.value = '';
+        // Inject warning if not already there
+        let warn = $('cvbg-blob-warn');
+        if (!warn) {
+          warn = document.createElement('div');
+          warn.id = 'cvbg-blob-warn';
+          warn.className = 'local-warn';
+          warn.textContent = `⚠ "${file.name}" — local only, reselect after reload`;
+          $('cvbg-pick').parentNode.after(warn);
+        } else {
+          warn.textContent = `⚠ "${file.name}" — local only, reselect after reload`;
+        }
+      } else {
+        // Image — embed as base64
+        const reader = new FileReader();
+        reader.onload = ev => applyMedia(ev.target.result, 'image');
+        reader.readAsDataURL(file);
+      }
+    };
+    inp.click();
+  });
+
+  // Clear
+  $('cvbg-clear').addEventListener('click', () => {
+    applyMedia('', cbg.mediaType);
+    const warn = $('cvbg-blob-warn');
+    if (warn) warn.remove();
+  });
+
+  bindCvbg('cvbg-size',    'size');
+  bindCvbg('cvbg-pos',     'position');
+  bindCvbg('cvbg-repeat',  'repeat');
+  bindCvbg('cvbg-opacity', 'opacity', parseFloat);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PAGE SYSTEM
+// ═══════════════════════════════════════════════════════════
+
+function updateKioskSinglePage() {
+  document.body.classList.toggle('single-page', S.pages.length === 1);
+}
+
+function switchPage(targetId, fromOSC) {
+  if (targetId === S.pageId) return;
+  const target = S.pages.find(p => p.id === targetId);
+  if (!target) return;
+
+  // Unmount current page widgets from DOM
+  S.widgets.forEach(w => unmountWidget(w.id));
+
+  // Deselect
+  select(null);
+  TOUCHES.clear();
+
+  // Switch
+  S.pageId = targetId;
+
+  // Mount new page widgets
+  S.widgets.forEach(w => mountWidget(w));
+
+  applyCanvasBg();
+  renderPageBar();
+  updateHint();
+
+  // Send OSC if configured
+  if (target.sendOnSwitch !== false) {
+    sendOSC(target.oscAddress, 1);
+  }
+
+  // Emit feedback to monitor
+  monLog('in', target.oscAddress + ' [page switch' + (fromOSC ? ' via OSC' : '') + ']', '');
+}
+
+function addPage(name) {
+  const p = makeBlankPage(name);
+  S.pages.push(p);
+  switchPage(p.id);
+  updateKioskSinglePage();
+  renderPageBar();
+  // Auto-open rename
+  setTimeout(() => beginRename(p.id), 60);
+}
+
+function deletePage(id) {
+  if (S.pages.length <= 1) { toast('Cannot delete the last page', 'err'); return; }
+  const idx = S.pages.findIndex(p => p.id === id);
+  if (idx < 0) return;
+  // Unmount widgets if this is the active page
+  if (id === S.pageId) {
+    S.widgets.forEach(w => unmountWidget(w.id));
+    const next = S.pages[idx + 1] || S.pages[idx - 1];
+    S.pageId = next.id;
+    S.widgets.forEach(w => mountWidget(w));
+    applyCanvasBg();
+  }
+  S.pages.splice(idx, 1);
+  renderPageBar();
+  updateKioskSinglePage();
+  toast('Page deleted', 'ok');
+}
+
+function duplicatePage(id) {
+  const src = S.pages.find(p => p.id === id);
+  if (!src) return;
+  const newPage = JSON.parse(JSON.stringify(src)); // deep clone
+  newPage.id   = pageUid();
+  newPage.name = src.name + ' copy';
+  newPage.oscAddress = '/page/' + (pageCtr - 1);
+  // Re-ID all widgets to avoid id collisions
+  newPage.widgets = newPage.widgets.map(w => ({ ...w, id: uid() }));
+  const idx = S.pages.findIndex(p => p.id === id);
+  S.pages.splice(idx + 1, 0, newPage);
+  switchPage(newPage.id);
+  updateKioskSinglePage();
+  renderPageBar();
+  toast('Page duplicated', 'ok');
+}
+
+function movePage(id, dir) {
+  const idx = S.pages.findIndex(p => p.id === id);
+  const to  = idx + dir;
+  if (to < 0 || to >= S.pages.length) return;
+  [S.pages[idx], S.pages[to]] = [S.pages[to], S.pages[idx]];
+  renderPageBar();
+}
+
+let PS_TARGET_ID = null; // page settings target
+
+function openPageSettings(id, anchorEl) {
+  PS_TARGET_ID = id;
+  const p   = S.pages.find(pg => pg.id === id);
+  if (!p) return;
+  const ps  = $('page-settings');
+  $('ps-name').value     = p.name;
+  $('ps-osc').value      = p.oscAddress || '';
+  $('ps-send').checked   = p.sendOnSwitch !== false;
+  ps.classList.add('open');
+  // Position above the tab
+  const r   = anchorEl.getBoundingClientRect();
+  const top = r.top - ps.offsetHeight - 6;
+  ps.style.left   = Math.min(r.left, window.innerWidth - ps.offsetWidth - 8) + 'px';
+  ps.style.top    = (top > 8 ? top : r.bottom + 6) + 'px';
+  ps.style.bottom = 'auto';
+}
+
+function closePageSettings() {
+  $('page-settings').classList.remove('open');
+  PS_TARGET_ID = null;
+}
+
+function beginRename(id) {
+  const tab = document.querySelector(`.page-tab[data-pid="${id}"]`);
+  if (!tab) return;
+  const nameSpan = tab.querySelector('.tab-name');
+  if (!nameSpan) return;
+  const inp = document.createElement('input');
+  inp.className = 'tab-rename';
+  inp.value = nameSpan.textContent;
+  nameSpan.replaceWith(inp);
+  inp.focus(); inp.select();
+  const commit = () => {
+    const val = inp.value.trim() || nameSpan.textContent;
+    const p = S.pages.find(pg => pg.id === id);
+    if (p) p.name = val;
+    renderPageBar();
+  };
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') inp.blur();
+    if (e.key === 'Escape') { inp.value = nameSpan.textContent; inp.blur(); }
+    e.stopPropagation();
+  });
+}
+
+function renderPageBar() {
+  const bar = $('page-bar');
+  // Remove existing tabs (keep the + button)
+  bar.querySelectorAll('.page-tab').forEach(t => t.remove());
+  const addBtn = $('btn-page-add');
+
+  S.pages.forEach((p, i) => {
+    const tab = document.createElement('div');
+    tab.className = 'page-tab' + (p.id === S.pageId ? ' active' : '');
+    tab.dataset.pid = p.id;
+    tab.draggable = true;
+    tab.innerHTML = `
+      <span class="tab-name">${esc(p.name)}</span>
+      <button class="tab-close" title="Delete page" tabindex="-1">✕</button>`;
+    tab.addEventListener('click', e => {
+      if (e.target.closest('.tab-close')) return;
+      switchPage(p.id);
+    });
+    tab.addEventListener('dblclick', e => {
+      if (!e.target.closest('.tab-close')) beginRename(p.id);
+    });
+    tab.querySelector('.tab-close').addEventListener('click', e => {
+      e.stopPropagation();
+      if (!confirm(`Delete page "${p.name}"?`)) return;
+      deletePage(p.id);
+    });
+    // Right-click → settings
+    tab.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      openPageSettings(p.id, tab);
+    });
+    // Long-press → settings (touch)
+    let lpTimer;
+    tab.addEventListener('pointerdown', () => {
+      lpTimer = setTimeout(() => openPageSettings(p.id, tab), 600);
+    });
+    tab.addEventListener('pointerup',     () => clearTimeout(lpTimer));
+    tab.addEventListener('pointercancel', () => clearTimeout(lpTimer));
+    // Drag-to-reorder
+    tab.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', p.id);
+      tab.style.opacity = '0.5';
+    });
+    tab.addEventListener('dragend',  () => { tab.style.opacity = ''; });
+    tab.addEventListener('dragover', e => { e.preventDefault(); tab.classList.add('drag-over'); });
+    tab.addEventListener('dragleave',() => { tab.classList.remove('drag-over'); });
+    tab.addEventListener('drop',     e => {
+      e.preventDefault(); tab.classList.remove('drag-over');
+      const fromId = e.dataTransfer.getData('text/plain');
+      const fromIdx = S.pages.findIndex(pg => pg.id === fromId);
+      const toIdx   = S.pages.findIndex(pg => pg.id === p.id);
+      if (fromIdx >= 0 && toIdx >= 0 && fromIdx !== toIdx) {
+        const [moved] = S.pages.splice(fromIdx, 1);
+        S.pages.splice(toIdx, 0, moved);
+        renderPageBar();
+      }
+    });
+
+    bar.insertBefore(tab, addBtn);
+  });
+}
+
+function initPageSettings() {
+  $('ps-name').addEventListener('input', e => {
+    if (!PS_TARGET_ID) return;
+    const p = S.pages.find(pg => pg.id === PS_TARGET_ID);
+    if (p) { p.name = e.target.value; renderPageBar(); }
+  });
+  $('ps-osc').addEventListener('input', e => {
+    if (!PS_TARGET_ID) return;
+    const p = S.pages.find(pg => pg.id === PS_TARGET_ID);
+    if (p) p.oscAddress = e.target.value.trim();
+  });
+  $('ps-send').addEventListener('change', e => {
+    if (!PS_TARGET_ID) return;
+    const p = S.pages.find(pg => pg.id === PS_TARGET_ID);
+    if (p) p.sendOnSwitch = e.target.checked;
+  });
+  $('ps-duplicate').addEventListener('click', () => {
+    if (PS_TARGET_ID) duplicatePage(PS_TARGET_ID);
+    closePageSettings();
+  });
+  $('ps-delete').addEventListener('click', () => {
+    if (PS_TARGET_ID) {
+      const p = S.pages.find(pg => pg.id === PS_TARGET_ID);
+      if (p && confirm(`Delete page "${p.name}"?`)) deletePage(PS_TARGET_ID);
+    }
+    closePageSettings();
+  });
+  $('ps-move-left').addEventListener('click', () => {
+    if (PS_TARGET_ID) movePage(PS_TARGET_ID, -1);
+  });
+  $('ps-move-right').addEventListener('click', () => {
+    if (PS_TARGET_ID) movePage(PS_TARGET_ID, +1);
+  });
+  // Close on outside click
+  document.addEventListener('pointerdown', e => {
+    if (!$('page-settings').classList.contains('open')) return;
+    if (!e.target.closest('#page-settings') && !e.target.closest('.page-tab')) {
+      closePageSettings();
+    }
+  }, { capture: true });
+
+  $('btn-page-add').addEventListener('click', () => addPage());
+}
+
+// OSC page switching — called from handleOSCReceive
+function handlePageOSC(address, value) {
+  // Match by OSC address
+  let target = S.pages.find(p => p.oscAddress === address);
+  // Also support /page/<index> (1-based) and /page/<name>
+  if (!target) {
+    const m = address.match(/^\/page\/(.+)$/i);
+    if (m) {
+      const token = m[1];
+      const idx   = parseInt(token);
+      if (!isNaN(idx) && idx >= 1 && idx <= S.pages.length) {
+        target = S.pages[idx - 1];
+      } else {
+        target = S.pages.find(p => p.name.toLowerCase() === token.toLowerCase());
+      }
+    }
+  }
+  if (target && value !== 0) {
+    switchPage(target.id, true);
+    return true;
+  }
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CANVAS RESOLUTION LOCK
+// ═══════════════════════════════════════════════════════════
+
+function applyResolution() {
+  const canvas     = $('canvas');
+  const wrap       = $('canvas-wrap');
+  const badge      = $('res-badge');
+  const btn        = $('btn-res-lock');
+  const r          = S.res;
+
+  if (!r.locked) {
+    // Free canvas — fill wrap naturally
+    canvas.classList.remove('res-locked');
+    wrap.classList.remove('res-locked-wrap');
+    canvas.style.width     = '';
+    canvas.style.height    = '';
+    canvas.style.transform = '';
+    r.scale = 1;
+    if (badge) badge.style.display = 'none';
+    if (btn)   { btn.classList.remove('active'); btn.title = 'Set canvas resolution'; }
+    return;
+  }
+
+  // Locked — compute scale to fit wrap
+  const wrapW = wrap.clientWidth;
+  const wrapH = wrap.clientHeight;
+  let   scale = 1;
+
+  if (r.fit === 'stretch') {
+    // No uniform scale — set both independently
+    canvas.style.width  = r.w + 'px';
+    canvas.style.height = r.h + 'px';
+    canvas.style.transform = `scale(${wrapW / r.w}, ${wrapH / r.h})`;
+    scale = Math.min(wrapW / r.w, wrapH / r.h); // approx for pointer math
+  } else if (r.fit === 'fill') {
+    scale = Math.max(wrapW / r.w, wrapH / r.h);
+    canvas.style.width  = r.w + 'px';
+    canvas.style.height = r.h + 'px';
+    canvas.style.transform = `scale(${scale})`;
+  } else { // 'fit' (default — letterbox)
+    scale = Math.min(wrapW / r.w, wrapH / r.h);
+    canvas.style.width  = r.w + 'px';
+    canvas.style.height = r.h + 'px';
+    canvas.style.transform = `scale(${scale})`;
+  }
+
+  r.scale = scale;
+  canvas.classList.add('res-locked');
+  wrap.classList.add('res-locked-wrap');
+
+  if (badge) {
+    badge.textContent = `${r.w} × ${r.h}  ·  ${Math.round(scale * 100)}%  ·  ${r.fit.toUpperCase()}`;
+    badge.style.display = '';
+  }
+  if (btn) {
+    btn.classList.add('active');
+    btn.title = `Resolution locked: ${r.w}×${r.h}`;
+  }
+}
+
+// Remap a client XY to canvas-space XY, accounting for scale + centering
+function clientToCanvas(cx, cy) {
+  const r    = S.res;
+  if (!r.locked) {
+    const rect = $('canvas').getBoundingClientRect();
+    return [cx - rect.left, cy - rect.top];
+  }
+  // The canvas is centred inside wrap via flexbox, then scaled
+  const wrap  = $('canvas-wrap');
+  const scale = r.scale;
+  const wrapR = wrap.getBoundingClientRect();
+  // Centre of scaled canvas inside wrap
+  const scaledW = r.w * scale;
+  const scaledH = r.h * scale;
+  const offX    = wrapR.left + (wrapR.width  - scaledW) / 2;
+  const offY    = wrapR.top  + (wrapR.height - scaledH) / 2;
+  return [
+    (cx - offX) / scale,
+    (cy - offY) / scale,
+  ];
+}
+
+// Wire resolution button and modal
+function initResModal() {
+  const btn     = $('btn-res-lock');
+  const modal   = $('modal-res');
+  const preset  = $('res-preset');
+  const wInp    = $('res-w');
+  const hInp    = $('res-h');
+  const fitSel  = $('res-fit');
+  const note    = $('res-scale-note');
+
+  function updateNote() {
+    const wrap  = $('canvas-wrap');
+    const rw    = parseInt(wInp.value) || 1920;
+    const rh    = parseInt(hInp.value) || 1080;
+    const fit   = fitSel.value;
+    const wrapW = wrap.clientWidth;
+    const wrapH = wrap.clientHeight;
+    let sc;
+    if (fit === 'stretch')    sc = null;
+    else if (fit === 'fill')  sc = Math.max(wrapW/rw, wrapH/rh);
+    else                      sc = Math.min(wrapW/rw, wrapH/rh);
+    const pct = sc ? Math.round(sc*100)+'%' : 'variable';
+    note.textContent = `At current window size (${wrapW}×${wrapH}): scale = ${pct}`;
+  }
+
+  btn.addEventListener('click', () => {
+    wInp.value   = S.res.w;
+    hInp.value   = S.res.h;
+    fitSel.value = S.res.fit;
+    preset.value = '';
+    updateNote();
+    modal.classList.remove('hidden');
+  });
+
+  preset.addEventListener('change', () => {
+    if (!preset.value) return;
+    const [pw, ph] = preset.value.split(',').map(Number);
+    wInp.value = pw; hInp.value = ph;
+    updateNote();
+  });
+  wInp.addEventListener('input', updateNote);
+  hInp.addEventListener('input', updateNote);
+  fitSel.addEventListener('change', updateNote);
+
+  $('res-apply').addEventListener('click', () => {
+    S.res.locked = true;
+    S.res.w      = parseInt(wInp.value)  || 1920;
+    S.res.h      = parseInt(hInp.value)  || 1080;
+    S.res.fit    = fitSel.value;
+    applyResolution();
+    modal.classList.add('hidden');
+    toast(`Canvas locked to ${S.res.w}×${S.res.h}`, 'ok');
+  });
+
+  $('res-unlock').addEventListener('click', () => {
+    S.res.locked = false;
+    applyResolution();
+    modal.classList.add('hidden');
+    toast('Canvas resolution unlocked', 'ok');
+  });
+
+  $('res-cancel').addEventListener('click', () => modal.classList.add('hidden'));
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+
+  // Recompute scale whenever the window resizes
+  const ro = new ResizeObserver(() => { if (S.res.locked) applyResolution(); });
+  ro.observe($('canvas-wrap'));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AUTO-SAVE / RESTORE
+// ═══════════════════════════════════════════════════════════
+function autosave() {
+  try {
+    function safePage(p) {
+      const cbgSafe = { ...p.canvasBg };
+      if (cbgSafe.image?.startsWith('blob:')) cbgSafe.image = '';
+      const wSafe = p.widgets.map(w => {
+        if (w.bgImage?.startsWith('blob:')) return { ...w, bgImage: '' };
+        if (w.src?.startsWith('blob:'))    return { ...w, src: '' };
+        return w;
+      });
+      return { ...p, canvasBg: cbgSafe, widgets: wSafe };
+    }
+    localStorage.setItem('osc_layout', JSON.stringify({
+      _version: 3,
+      gridSize: S.gridSize, showGrid: S.showGrid, snap: S.snap,
+      idCtr: S.idCtr, pageCtr,
+      wsUrl: S.wsUrl, wsFmt: S.wsFmt,
+      res: { locked: S.res.locked, w: S.res.w, h: S.res.h, fit: S.res.fit },
+      pages:  S.pages.map(safePage),
+      pageId: S.pageId,
+    }));
+  } catch(e) {}
+}
+
+function autorestore() {
+  // 1. Check for an embedded layout in the URL (?layout=<base64url>)
+  //    This makes kiosk URLs self-contained — no localStorage needed.
+  const urlParams = new URLSearchParams(window.location.search);
+  const layoutB64 = urlParams.get('layout');
+  if (layoutB64) {
+    try {
+      const json = decodeURIComponent(escape(atob(
+        layoutB64.replace(/-/g,'+').replace(/_/g,'/')
+      )));
+      const data = JSON.parse(json);
+      applyLayoutData(data);
+      return; // URL layout takes priority over localStorage
+    } catch(e) { /* corrupt param — fall through to localStorage */ }
+  }
+
+  // 2. Fall back to localStorage
+  try {
+    const raw = localStorage.getItem('osc_layout');
+    if (!raw) return;
+    applyLayoutData(JSON.parse(raw));
+  } catch(e) {}
+}
+
+function applyLayoutData(data) {
+  S.gridSize = data.gridSize || 20;
+  S.showGrid = data.showGrid ?? true;
+  S.snap     = data.snap ?? true;
+  S.idCtr    = data.idCtr || 1;
+  if (data.pageCtr) pageCtr = data.pageCtr;
+  if (data.wsUrl) S.wsUrl = data.wsUrl;
+  if (data.wsFmt) S.wsFmt = data.wsFmt;
+  if (data.res) {
+    S.res.locked = data.res.locked ?? false;
+    S.res.w      = data.res.w     || 1920;
+    S.res.h      = data.res.h     || 1080;
+    S.res.fit    = data.res.fit   || 'fit';
+  }
+
+  if (data.pages && data.pages.length) {
+    // v3 format — full pages array
+    S.pages  = data.pages;
+    S.pageId = data.pageId || data.pages[0].id;
+  } else {
+    // v2 backward-compat — single page from flat widgets+canvasBg
+    const p = makeBlankPage('Page 1');
+    if (data.canvasBg) Object.assign(p.canvasBg, data.canvasBg);
+    p.widgets = data.widgets || [];
+    S.pages  = [p];
+    S.pageId = p.id;
+  }
+
+  // Mount widgets for the active page
+  S.widgets.forEach(w => mountWidget(w));
+
+  $('btn-grid').classList.toggle('active', S.showGrid);
+  $('btn-snap').classList.toggle('active', S.snap);
+  $('sel-grid-size').value = S.gridSize;
+  applyGrid();
+  applyCanvasBg();
+  applyResolution();
+  renderPageBar();
+  updateKioskSinglePage();
+}
+
+setInterval(autosave, 5000);
+window.addEventListener('beforeunload', autosave);
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  initToolbar();
+  initKioskModal();
+  initPageSettings();
+  initMonitor();
+  applyGrid();
+  autorestore();
+  // Ensure at least one page exists (fresh start)
+  if (S.pages.length === 0) {
+    const p = makeBlankPage('Page 1');
+    S.pages.push(p);
+    S.pageId = p.id;
+    renderPageBar();
+    updateKioskSinglePage();
+  }
+  // Seed undo history with initial state
+  histPush();
+  histUpdateButtons();
+  // Kiosk init (after pages are loaded)
+  if (S.kiosk) {
+    document.body.classList.add('kiosk');
+    setMode('perform');
+    // Auto-connect WebSocket — skip ws:// from HTTPS (mixed content will be blocked)
+    const canConnect = S.wsUrl && S.wsUrl !== 'ws://localhost:8080' &&
+      !(location.protocol === 'https:' && S.wsUrl.startsWith('ws://'));
+    if (canConnect) connectWS(S.wsUrl);
+  }
+});
+</script>
+</body>
+</html>
