@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSC Touch Editor — Help & Getting Started</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface2: #1e1e1e;
+  --border: #2a2a2a;
+  --border2: #3a3a3a;
+  --text: #d8d8d8;
+  --text-dim: #666;
+  --text-mid: #999;
+  --accent: #e8a020;
+  --accent2: #e04030;
+  --success: #30c870;
+  --blue: #3090e0;
+  --mono: 'JetBrains Mono', 'Courier New', monospace;
+  --sans: 'Inter', system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+/* ── Layout ── */
+.shell { display: flex; min-height: 100vh; }
+
+nav {
+  width: 240px; flex-shrink: 0;
+  position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; overflow-x: hidden;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 24px 0 40px;
+}
+nav::-webkit-scrollbar { width: 3px; }
+nav::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.nav-logo {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.nav-logo .logo-title {
+  font-family: var(--mono);
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  line-height: 1.2;
+}
+.nav-logo .logo-sub {
+  font-size: 10px; color: var(--text-dim);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.nav-group { margin-bottom: 6px; }
+.nav-group-title {
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--text-dim);
+  padding: 8px 20px 4px;
+}
+nav a {
+  display: block; padding: 5px 20px;
+  font-size: 12px; color: var(--text-mid);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+nav a:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+nav a.active { color: var(--accent); border-left-color: var(--accent); }
+
+main {
+  flex: 1; max-width: 860px;
+  padding: 48px 56px 80px;
+  overflow-x: hidden;
+}
+
+/* ── Typography ── */
+h1 { font-size: 28px; font-weight: 700; color: var(--accent); margin-bottom: 8px; line-height: 1.2; }
+h2 { font-size: 18px; font-weight: 700; margin: 48px 0 14px; color: var(--text);
+     padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+h3 { font-size: 14px; font-weight: 600; margin: 24px 0 8px; color: var(--text); }
+h4 { font-size: 12px; font-weight: 600; margin: 16px 0 6px; color: var(--text-mid);
+     text-transform: uppercase; letter-spacing: 0.08em; }
+p  { margin-bottom: 12px; color: var(--text-mid); }
+p strong { color: var(--text); }
+ul, ol { padding-left: 20px; margin-bottom: 12px; color: var(--text-mid); }
+li { margin-bottom: 4px; }
+li strong { color: var(--text); }
+a { color: var(--accent); }
+
+/* ── Hero ── */
+.hero {
+  background: linear-gradient(135deg, rgba(232,160,32,0.08), rgba(0,0,0,0));
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 28px 32px;
+  margin-bottom: 40px;
+}
+.hero-lead { font-size: 15px; color: var(--text); line-height: 1.6; margin-bottom: 0; }
+
+/* ── Code ── */
+code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--accent);
+}
+pre {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  margin: 12px 0 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text);
+}
+pre code { background: none; border: none; padding: 0; color: inherit; font-size: inherit; }
+.comment { color: var(--text-dim); }
+.keyword { color: #c084fc; }
+.string  { color: #86efac; }
+.number  { color: #fdba74; }
+.fn      { color: var(--blue); }
+
+/* ── Callouts ── */
+.callout {
+  border-left: 3px solid var(--accent);
+  background: rgba(232,160,32,0.06);
+  padding: 10px 14px;
+  border-radius: 0 4px 4px 0;
+  margin: 16px 0;
+  font-size: 13px;
+  color: var(--text-mid);
+}
+.callout.info  { border-color: var(--blue);    background: rgba(48,144,224,0.06); }
+.callout.warn  { border-color: var(--accent);  background: rgba(232,160,32,0.06); }
+.callout.tip   { border-color: var(--success); background: rgba(48,200,112,0.06); }
+.callout.danger{ border-color: var(--accent2); background: rgba(224,64,48,0.06); }
+.callout strong { color: var(--text); }
+
+/* ── Tables ── */
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+th { text-align: left; padding: 8px 12px; background: var(--surface2);
+     color: var(--text-mid); font-size: 10px; text-transform: uppercase;
+     letter-spacing: 0.08em; border-bottom: 1px solid var(--border2); }
+td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text-mid); }
+td:first-child { font-family: var(--mono); font-size: 12px; color: var(--accent); white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+
+/* ── Kbd ── */
+kbd {
+  font-family: var(--mono); font-size: 10px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-bottom-width: 2px;
+  padding: 2px 6px; border-radius: 3px; color: var(--text);
+}
+
+/* ── Widget grid ── */
+.widget-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 12px; margin: 16px 0; }
+.widget-card {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 14px;
+}
+.widget-card .wc-icon { font-size: 20px; margin-bottom: 6px; }
+.widget-card .wc-name { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.widget-card .wc-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+
+/* ── Download button ── */
+.dl-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: #000;
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  padding: 10px 20px; border-radius: 4px;
+  text-decoration: none; border: none; cursor: pointer;
+  transition: background 0.12s;
+  margin: 8px 6px 8px 0;
+}
+.dl-btn:hover { background: #f0b030; color: #000; }
+.dl-btn.secondary {
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--accent);
+}
+.dl-btn.secondary:hover { background: rgba(232,160,32,0.1); }
+
+/* ── Step list ── */
+.steps { counter-reset: step; list-style: none; padding: 0; }
+.steps li {
+  counter-increment: step;
+  display: flex; gap: 14px; margin-bottom: 16px;
+  align-items: flex-start;
+}
+.steps li::before {
+  content: counter(step);
+  flex-shrink: 0;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--accent); color: #000;
+  font-size: 11px; font-weight: 700;
+  font-family: var(--mono);
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px;
+}
+
+/* ── Divider ── */
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+/* ── Footer ── */
+footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-logo">
+    <div class="logo-title">OSC Touch Editor</div>
+    <div class="logo-sub">Help &amp; Reference</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">Getting Started</div>
+    <a href="#overview">What is this?</a>
+    <a href="#quickstart">Quick start (5 min)</a>
+    <a href="#bridge">WebSocket bridge</a>
+    <a href="#nodejs">Node.js bridge script</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title">The Editor</div>
+    <a href="#modes">Edit vs Perform mode</a>
+    <a href="#widgets">Widget types</a>
+    <a href="#pages">Pages</a>
+    <a href="#canvas-bg">Canvas backgrounds</a>
+    <a href="#media">Images &amp; video</a>
+    <a href="#themes">Themes</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title">OSC</div>
+    <a href="#osc-intro">OSC basics</a>
+    <a href="#osc-send">Sending OSC</a>
+    <a href="#osc-receive">Receiving OSC</a>
+    <a href="#monitor">Monitor</a>
+    <a href="#osc-page">Page switching via OSC</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title">Deployment</div>
+    <a href="#kiosk">Kiosk mode</a>
+    <a href="#save-load">Save &amp; Load</a>
+    <a href="#keyboard">Keyboard shortcuts</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title">Software Targets</div>
+    <a href="#max">Max/MSP</a>
+    <a href="#pd">Pure Data</a>
+    <a href="#touchdesigner">TouchDesigner</a>
+    <a href="#reaper">REAPER</a>
+    <a href="#resolume">Resolume</a>
+    <a href="#qlcplus">QLC+</a>
+  </div>
+</nav>
+
+<!-- ── MAIN ── -->
+<main>
+
+<h1>OSC Touch Editor</h1>
+<p style="color:var(--text-dim);font-family:var(--mono);font-size:12px;margin-bottom:24px">
+  Help &amp; Getting Started Guide
+</p>
+
+<div class="hero">
+  <p class="hero-lead">
+    OSC Touch Editor is a browser-based control surface designer. Build custom
+    touch interfaces with sliders, knobs, buttons, XY pads, and more — then send
+    and receive <strong>Open Sound Control (OSC)</strong> messages to control any
+    compatible software: Max/MSP, Pure Data, TouchDesigner, REAPER, Resolume,
+    QLC+, and hundreds of others.
+  </p>
+</div>
+
+<!-- ───────────────────────── OVERVIEW ───────────────────────── -->
+<h2 id="overview">What is OSC Touch Editor?</h2>
+<p>
+  OSC (Open Sound Control) is a network protocol used by audio, video, and
+  lighting software to communicate in real time. OSC Touch Editor gives you
+  a drag-and-drop canvas where you place control widgets, assign each one an
+  OSC address, and then use your touch screen or mouse to send values to any
+  software that speaks OSC.
+</p>
+<p>
+  Because browsers cannot send raw UDP packets (which OSC traditionally uses),
+  this tool communicates via <strong>WebSocket</strong>. A small bridge script
+  running on your local machine (or on a server) receives the WebSocket messages
+  and forwards them as UDP OSC to your target software.
+</p>
+
+<div class="callout info">
+  <strong>No installation needed for the editor.</strong> Open <code>index.html</code>
+  in any modern browser — Chrome, Edge, or Safari. Firefox works too, but Chrome
+  gives the best touch performance on tablets.
+</div>
+
+<!-- ───────────────────────── QUICKSTART ───────────────────────── -->
+<h2 id="quickstart">Quick Start (5 minutes)</h2>
+<ol class="steps">
+  <li>
+    <div>
+      <strong>Open the editor.</strong> Load <code>index.html</code> in Chrome.
+      If you're hosting it on GitHub Pages, just navigate to your page URL.
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Add a widget.</strong> Click <strong>Add → H-Slider</strong> in the toolbar.
+      A slider appears in the centre of the canvas. It's selected automatically.
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Configure it.</strong> In the Properties panel (right side), set the
+      <em>OSC Address</em> to something like <code>/filter/cutoff</code> and
+      set Min/Max to <code>0</code>–<code>127</code>.
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Start the bridge.</strong> Download and run the Node.js bridge script
+      below. It listens for WebSocket connections and forwards to your target software.
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Connect.</strong> Click <strong>OSC → Bridge</strong>, enter
+      <code>ws://localhost:8080</code>, click <strong>Save &amp; Connect</strong>.
+      The status dot turns green.
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Switch to Perform mode.</strong> Press <kbd>Tab</kbd> or click
+      <strong>PERFORM</strong> in the toolbar. Now drag the slider — OSC messages
+      are sent in real time.
+    </div>
+  </li>
+</ol>
+
+<!-- ───────────────────────── BRIDGE ───────────────────────── -->
+<h2 id="bridge">Why do I need a bridge?</h2>
+<p>
+  Web browsers run in a sandboxed environment. They can open WebSocket connections
+  but cannot send raw UDP packets — which is how OSC is traditionally transmitted.
+  The bridge is a tiny Node.js script that sits in the middle:
+</p>
+<pre><code>Browser (WebSocket) ──→ Bridge script ──→ Your software (UDP OSC)</code></pre>
+<p>
+  You run the bridge on the same machine as your target software (or on any machine
+  on the same network). The bridge script supports three message formats: JSON,
+  osc.js extended JSON, and plain text.
+</p>
+
+<div class="callout tip">
+  <strong>Tip:</strong> Open Stage Control also includes a built-in WebSocket server
+  that this editor can connect to directly — no separate bridge needed if you're
+  already using OSC.
+</div>
+
+<!-- ───────────────────────── NODE SCRIPT ───────────────────────── -->
+<h2 id="nodejs">Node.js Bridge Script</h2>
+<p>
+  The bridge script below handles everything: WebSocket server, OSC UDP send/receive,
+  bidirectional feedback, and reconnection. It requires Node.js 16+ and two npm packages.
+</p>
+
+<h3>Installation</h3>
+<pre><code><span class="comment"># Install Node.js from https://nodejs.org if you haven't already</span>
+
+<span class="comment"># Create a folder and install dependencies</span>
+mkdir osc-bridge &amp;&amp; cd osc-bridge
+npm init -y
+npm install ws node-osc</code></pre>
+
+<h3>Usage</h3>
+<pre><code><span class="comment"># Basic — listens on WS port 8080, sends OSC to localhost:57120</span>
+node osc-bridge.js
+
+<span class="comment"># Custom ports and target</span>
+node osc-bridge.js --ws 9000 --host 192.168.1.50 --port 57110 --listen 57121
+
+<span class="comment"># With verbose logging</span>
+node osc-bridge.js --verbose</code></pre>
+
+<h3>Download the script</h3>
+<a class="dl-btn" id="dl-bridge" href="#">⬇ Download osc-bridge.js</a>
+<a class="dl-btn secondary" href="#nodejs-code">View source below</a>
+
+<h3 id="nodejs-code">Full source</h3>
+<pre><code id="bridge-source-display"></code></pre>
+
+<!-- ───────────────────────── MODES ───────────────────────── -->
+<h2 id="modes">Edit Mode vs Perform Mode</h2>
+<p>
+  The editor has two modes toggled with the <strong>EDIT / PERFORM</strong>
+  button in the top-left of the toolbar (or press <kbd>Tab</kbd>).
+</p>
+<table>
+  <tr><th>Feature</th><th>Edit mode</th><th>Perform mode</th></tr>
+  <tr><td>Drag widgets</td><td>✓</td><td>✗</td></tr>
+  <tr><td>Resize widgets</td><td>✓</td><td>✗</td></tr>
+  <tr><td>Properties panel</td><td>✓</td><td>✗</td></tr>
+  <tr><td>Add / delete widgets</td><td>✓</td><td>✗</td></tr>
+  <tr><td>Send OSC</td><td>✗</td><td>✓</td></tr>
+  <tr><td>Multi-touch control</td><td>✗ (1 pointer)</td><td>✓ (unlimited)</td></tr>
+  <tr><td>Receive OSC feedback</td><td>✓</td><td>✓</td></tr>
+  <tr><td>Switch pages</td><td>✓</td><td>✓</td></tr>
+  <tr><td>Grid toggle</td><td>✓</td><td>✓</td></tr>
+</table>
+
+<!-- ───────────────────────── WIDGETS ───────────────────────── -->
+<h2 id="widgets">Widget Types</h2>
+<div class="widget-grid">
+  <div class="widget-card">
+    <div class="wc-icon">⬛</div>
+    <div class="wc-name">Button</div>
+    <div class="wc-desc">Toggle or momentary. Sends configurable on/off values. Tap to toggle; hold to send while pressed (momentary).</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">▬</div>
+    <div class="wc-name">H-Slider</div>
+    <div class="wc-desc">Horizontal fader. Drag or tap anywhere to set value. Good for volume, pan, and continuous parameters.</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">▮</div>
+    <div class="wc-name">V-Slider</div>
+    <div class="wc-desc">Vertical fader. Same as H-Slider but oriented vertically. Ideal for mixing console-style layouts.</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">◎</div>
+    <div class="wc-name">Knob</div>
+    <div class="wc-desc">Drag up/down to change value. 200px of vertical travel = full range sweep. Shows current value in centre.</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">⊕</div>
+    <div class="wc-name">XY Pad</div>
+    <div class="wc-desc">Two-axis control. X and Y each send to separate OSC addresses. Multi-finger aware — each finger updates independently.</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">𝐀</div>
+    <div class="wc-name">Label</div>
+    <div class="wc-desc">Non-interactive heading. Configure font size, weight, alignment, colour, uppercase. Great for panel dividers.</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">≡</div>
+    <div class="wc-name">Text</div>
+    <div class="wc-desc">Multi-line text block with configurable background, border, and full typography controls. For notes and instructions.</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">▶</div>
+    <div class="wc-name">Video</div>
+    <div class="wc-desc">Embedded video player. Supports URL or local file. Autoplay, loop, mute, controls toggles. Can show live camera feeds via URL.</div>
+  </div>
+</div>
+
+<h3>Common widget properties</h3>
+<table>
+  <tr><th>Property</th><th>Description</th></tr>
+  <tr><td>Label</td><td>Text shown on the widget face</td></tr>
+  <tr><td>OSC Address</td><td>The OSC path sent when the widget changes, e.g. <code>/mixer/ch1/volume</code></td></tr>
+  <tr><td>Min / Max</td><td>Value range. Use Preset for common ranges (0–1, 0–127 MIDI, -1–1, etc.)</td></tr>
+  <tr><td>Colour</td><td>Accent colour — fill for sliders, arc for knobs, outline for buttons</td></tr>
+  <tr><td>Receive only</td><td>Widget displays incoming OSC values but ignores touch — use for metering/feedback</td></tr>
+  <tr><td>Background media</td><td>Image or MP4 video behind the control, with size/position/opacity controls</td></tr>
+</table>
+
+<!-- ───────────────────────── PAGES ───────────────────────── -->
+<h2 id="pages">Pages</h2>
+<p>
+  Pages let you build multiple independent canvases within one layout file.
+  Each page has its own set of widgets and its own canvas background.
+</p>
+<h3>Managing pages</h3>
+<ul>
+  <li><strong>Add</strong> — click <strong>＋</strong> at the right of the tab bar.</li>
+  <li><strong>Rename</strong> — double-click any tab to edit the name inline.</li>
+  <li><strong>Delete</strong> — hover a tab and click ✕, or right-click → Delete.</li>
+  <li><strong>Reorder</strong> — drag tabs left and right to change order.</li>
+  <li><strong>Duplicate</strong> — right-click (or long-press) a tab → Duplicate. All widgets are copied with new IDs.</li>
+  <li><strong>Move left/right</strong> — available in the right-click page settings popover.</li>
+</ul>
+
+<h3>OSC address per page</h3>
+<p>
+  Each page has a configurable OSC address in its settings (right-click the tab).
+  When <em>Send on switch</em> is enabled, switching to that page sends
+  <code>OSC_ADDRESS 1</code> — useful for telling your software which page is active.
+</p>
+
+<!-- ───────────────────────── CANVAS BG ───────────────────────── -->
+<h2 id="canvas-bg">Canvas Backgrounds</h2>
+<p>
+  Click <strong>🖼 Canvas BG</strong> in the toolbar to open the canvas background panel.
+  Each page has its own independent background. Supported media:
+</p>
+<ul>
+  <li><strong>Image</strong> — any URL (<code>https://…/image.jpg</code>) or local file (embedded as base64, persists in saves).</li>
+  <li><strong>Video (MP4)</strong> — any URL or local file. Local files use a browser blob URL (session-only — needs reselecting after reload). URL-based videos persist fully.</li>
+</ul>
+<p>Controls: Size (Cover/Contain/Stretch/Actual), Position (9-point grid), Repeat (images only), Opacity.</p>
+
+<!-- ───────────────────────── MEDIA ───────────────────────── -->
+<h2 id="media">Images &amp; Video in Widgets</h2>
+<p>
+  Any widget (except Label/Text) can have a background image or video via the
+  <strong>Background Media</strong> section in its properties panel.
+  The media renders behind the control graphics — the slider fill and knob arc
+  sit on top of it.
+</p>
+<p>
+  The <strong>Video widget</strong> is a standalone playback element. Add it from
+  the toolbar and configure the source URL or pick a local file in its properties.
+  It plays back with full Autoplay/Loop/Muted/Controls options, independent of OSC.
+</p>
+
+<!-- ───────────────────────── THEMES ───────────────────────── -->
+<h2 id="themes">Themes</h2>
+<p>Select a theme from the <strong>Theme</strong> dropdown at the far right of the toolbar.</p>
+<table>
+  <tr><th>Theme</th><th>Character</th><th>Best for</th></tr>
+  <tr><td>Default</td><td>Amber on near-black</td><td>General use, dark environments</td></tr>
+  <tr><td>Light</td><td>Blue on warm white</td><td>Bright venues, daylight</td></tr>
+  <tr><td>Stealth</td><td>White on pure black</td><td>Cinema, dark stage, minimal look</td></tr>
+  <tr><td>Matrix</td><td>Phosphor green, scanlines</td><td>Tech installations, sci-fi aesthetic</td></tr>
+  <tr><td>Retro</td><td>Amber CRT with vignette</td><td>Nostalgic/analog aesthetic</td></tr>
+</table>
+<p>Theme choice is saved per-browser. It can also be baked into a Kiosk URL with the <code>?theme=matrix</code> parameter.</p>
+
+<!-- ───────────────────────── OSC INTRO ───────────────────────── -->
+<h2 id="osc-intro">OSC Basics</h2>
+<p>
+  <strong>Open Sound Control</strong> is a message-passing protocol over UDP (or TCP).
+  Every message has an <em>address</em> (like a URL path) and one or more <em>arguments</em> (values).
+</p>
+<pre><code><span class="comment"># A typical OSC message</span>
+/mixer/ch1/volume  0.75
+
+<span class="comment"># Multiple arguments</span>
+/xy/pad1  0.3  0.8
+
+<span class="comment"># Trigger (no value needed)</span>
+/transport/play  1</code></pre>
+<p>
+  This editor sends a single numeric argument per widget. The XY pad sends two
+  messages — one for X (<code>/xy/x</code>) and one for Y (<code>/xy/y</code>).
+</p>
+
+<!-- ───────────────────────── OSC SEND ───────────────────────── -->
+<h2 id="osc-send">Sending OSC</h2>
+<p>
+  Every interactive widget sends its value as an OSC message when touched in Perform mode.
+  Set the address in the widget's <strong>OSC Address</strong> property.
+</p>
+<h3>Message formats</h3>
+<p>Choose your format in the OSC Bridge settings modal:</p>
+<table>
+  <tr><th>Format</th><th>Example</th><th>Compatible with</th></tr>
+  <tr><td>JSON</td><td><code>{"address":"/vol","args":[0.5]}</code></td><td>Most bridge scripts, custom code</td></tr>
+  <tr><td>osc.js</td><td><code>{"address":"/vol","args":[{"type":"f","value":0.5}]}</code></td><td>osc.js, Node.js bridges</td></tr>
+  <tr><td>Plain text</td><td><code>/vol 0.5</code></td><td>Simple bridges, telnet testing</td></tr>
+</table>
+
+<h3>Value ranges</h3>
+<p>
+  Set Min/Max per widget using the Preset dropdown. The value sent is always
+  within the configured range. Use <code>0–127</code> for MIDI CC values,
+  <code>0–1</code> for normalised parameters, <code>-1–1</code> for bipolar
+  controls like pan.
+</p>
+
+<!-- ───────────────────────── OSC RECEIVE ───────────────────────── -->
+<h2 id="osc-receive">Receiving OSC</h2>
+<p>
+  The editor can receive OSC feedback from your software and update widget
+  displays in real time — useful for metering, state synchronisation, and
+  showing values that change independently of user interaction.
+</p>
+<h3>Setting up receive</h3>
+<ul>
+  <li>Make sure your bridge script is running with a <code>--listen</code> port.</li>
+  <li>Configure your software to send OSC to that port on <code>localhost</code>.</li>
+  <li>The bridge forwards messages back to the browser via WebSocket.</li>
+  <li>Any widget whose OSC address matches receives the value and updates its display.</li>
+</ul>
+<h3>Receive-only widgets</h3>
+<p>
+  Check <strong>Receive only</strong> in a widget's properties to make it display
+  incoming values without reacting to touch. Use this for VU meters, playback
+  position displays, or any feedback-only control.
+  A green <code>RX ONLY</code> badge appears in edit mode.
+</p>
+<h3>XY pad receive</h3>
+<p>
+  The XY pad has separate OSC addresses for X and Y. You can drive X and Y
+  from different addresses — for example <code>/xy/pan</code> and
+  <code>/xy/depth</code>.
+</p>
+
+<!-- ───────────────────────── MONITOR ───────────────────────── -->
+<h2 id="monitor">OSC Monitor</h2>
+<p>
+  Click <strong>⎍ Monitor</strong> in the OSC toolbar group (or press <kbd>M</kbd>)
+  to open the floating monitor window. It shows all inbound and outbound OSC messages
+  in real time.
+</p>
+<ul>
+  <li><strong>Filter pills</strong> — show All, ▶ Out only, or ◀ In only.</li>
+  <li><kbd>P</kbd> — pause/resume logging.</li>
+  <li><strong>⌫</strong> — clear the log.</li>
+  <li><strong>─</strong> — minimise to title bar.</li>
+  <li>Drag the title bar to reposition. Resize from the bottom-right grip.</li>
+</ul>
+<p>The monitor stores up to 500 messages and auto-scrolls. Scroll up to browse history — auto-scroll resumes when you return to the bottom.</p>
+
+<!-- ───────────────────────── OSC PAGE ───────────────────────── -->
+<h2 id="osc-page">Page Switching via OSC</h2>
+<p>Pages can be triggered by incoming OSC messages. Three matching methods are supported:</p>
+<table>
+  <tr><th>Method</th><th>Example</th><th>How it works</th></tr>
+  <tr><td>Exact address</td><td><code>/lighting 1</code></td><td>Matches a page whose OSC address is <code>/lighting</code></td></tr>
+  <tr><td>Index</td><td><code>/page/2 1</code></td><td>Switches to the 2nd page (1-based)</td></tr>
+  <tr><td>Name</td><td><code>/page/Audio 1</code></td><td>Matches a page named "Audio" (case-insensitive)</td></tr>
+</table>
+<div class="callout warn">
+  <strong>Value 0 is ignored</strong> — send value <code>1</code> (or any non-zero number) to trigger a page switch.
+  This prevents toggle-style footswitches from accidentally switching away.
+</div>
+
+<!-- ───────────────────────── KIOSK ───────────────────────── -->
+<h2 id="kiosk">Kiosk Mode</h2>
+<p>
+  Kiosk mode removes the entire editor UI and locks the layout into Perform mode.
+  It's designed for dedicated touch screen installations.
+</p>
+<h3>Activating kiosk mode</h3>
+<p>Add <code>?kiosk</code> to any URL:</p>
+<pre><code>https://yourdomain.com/index.html?kiosk
+https://yourdomain.com/index.html?kiosk&amp;theme=stealth</code></pre>
+
+<h3>Generating the kiosk URL</h3>
+<p>Click <strong>⊞ Kiosk URL</strong> in the toolbar. The modal offers:</p>
+<ul>
+  <li><strong>Plain URL</strong> — short, uses <code>localStorage</code> on the target device.</li>
+  <li><strong>Embed layout</strong> — bakes the entire layout as base64 into the URL.
+      Works on any device, any browser, with no prior setup. Large layouts with embedded
+      images make longer URLs.</li>
+  <li><strong>Theme override</strong> — bake a specific theme into the URL regardless of the device's saved preference.</li>
+</ul>
+
+<div class="callout danger">
+  <strong>Security note:</strong> Anyone with the kiosk URL can view and control the layout,
+  but cannot access the editor. The editor is inaccessible unless the URL is changed to remove <code>?kiosk</code>.
+</div>
+
+<!-- ───────────────────────── SAVE/LOAD ───────────────────────── -->
+<h2 id="save-load">Save &amp; Load</h2>
+<ul>
+  <li><strong>Autosave</strong> — the layout is automatically saved to <code>localStorage</code>
+      every 5 seconds and on page unload. It's restored automatically on next load.</li>
+  <li><strong>Save (↓)</strong> — downloads a <code>.json</code> file you can share or back up.</li>
+  <li><strong>Load (↑)</strong> — imports a saved <code>.json</code> file, replacing the current layout.</li>
+</ul>
+<div class="callout warn">
+  <strong>Local files (images/videos):</strong> Images are embedded as base64 in the JSON and persist fully.
+  Videos selected from a local file use browser blob URLs which are session-only —
+  they won't survive a page reload. Use URLs for video sources in production deployments.
+</div>
+
+<!-- ───────────────────────── KEYBOARD ───────────────────────── -->
+<h2 id="keyboard">Keyboard Shortcuts</h2>
+<table>
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td><kbd>Tab</kbd></td><td>Toggle Edit / Perform mode</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Undo</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Y</kbd> or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Redo</td></tr>
+  <tr><td><kbd>Delete</kbd> or <kbd>Backspace</kbd></td><td>Delete selected widget (edit mode)</td></tr>
+  <tr><td><kbd>Escape</kbd></td><td>Deselect widget</td></tr>
+  <tr><td><kbd>↑ ↓ ← →</kbd></td><td>Nudge selected widget by grid size</td></tr>
+  <tr><td><kbd>Shift</kbd>+<kbd>↑ ↓ ← →</kbd></td><td>Nudge by 1 px</td></tr>
+  <tr><td><kbd>M</kbd></td><td>Open / close OSC Monitor</td></tr>
+  <tr><td><kbd>P</kbd></td><td>Pause / resume Monitor logging</td></tr>
+</table>
+
+<hr class="section-divider">
+
+<!-- ───────────────────────── SOFTWARE TARGETS ───────────────────────── -->
+<h2>Software Integration</h2>
+
+<h2 id="max">Max/MSP</h2>
+<p>Use the <code>udpreceive</code> object to receive OSC, and <code>udpsend</code> to send feedback.</p>
+<pre><code><span class="comment">--- Receive from bridge (bridge listens on 57120 and forwards here) ---</span>
+[udpreceive 57120] → [oscparse] → route /mixer/ch1/volume
+
+<span class="comment">--- Send feedback back to bridge ---</span>
+[pack /mixer/ch1/volume 0.5] → [oscformat] → [udpsend 127.0.0.1 57121]</code></pre>
+<p>Or use the <strong>Node4Max</strong> package for direct WebSocket integration without UDP.</p>
+
+<h2 id="pd">Pure Data</h2>
+<p>Use the <code>mrpeach</code> externals for OSC support:</p>
+<pre><code>[netreceive -u 57120] → [unpackOSC] → [routeOSC /mixer/ch1/volume] → [print]</code></pre>
+
+<h2 id="touchdesigner">TouchDesigner</h2>
+<p>Add an <strong>OSC In DAT</strong> with port <code>57120</code>. In the parameter table, match
+the address column to your widget addresses. For sending feedback, use <strong>OSC Out DAT</strong>
+pointed at <code>localhost:57121</code> (your bridge's listen port).</p>
+
+<h2 id="reaper">REAPER</h2>
+<p>
+  Install the <strong>ReaOSC</strong> plugin or use the built-in <strong>Web interface
+  + OSC</strong> support. In REAPER → Preferences → Control Surfaces, add an OSC
+  device on port <code>57120</code>. Map parameters using the OSC pattern matching.
+</p>
+
+<h2 id="resolume">Resolume Avenue / Arena</h2>
+<p>
+  Go to <strong>Preferences → OSC</strong>, enable OSC input on port <code>57120</code>.
+  Widget OSC addresses must match Resolume's parameter paths exactly, e.g.
+  <code>/composition/layers/1/video/opacity</code>.
+</p>
+
+<h2 id="qlcplus">QLC+</h2>
+<p>
+  In QLC+ → Inputs/Outputs, add an OSC plugin input on port <code>57120</code>.
+  Map widget addresses to virtual console buttons and faders via the input profile.
+  Use <code>0–255</code> range for faders or <code>0/1</code> for toggles.
+</p>
+
+<hr class="section-divider">
+
+<footer>
+  OSC Touch Editor — open source, single-file HTML application.
+  Designed for museum installations, live performance, and AV control.
+  No server required for the editor itself.
+</footer>
+
+</main>
+</div>
+
+<script>
+// ── Inject bridge source into the page ──
+const bridgeSource = `#!/usr/bin/env node
+/**
+ * osc-bridge.js — WebSocket → UDP OSC bridge for OSC Touch Editor
+ *
+ * Usage:
+ *   node osc-bridge.js [options]
+ *
+ * Options:
+ *   --ws <port>      WebSocket server port          (default: 8080)
+ *   --host <host>    OSC target host                (default: 127.0.0.1)
+ *   --port <port>    OSC target UDP port            (default: 57120)
+ *   --listen <port>  UDP port to receive OSC on     (default: 57121)
+ *   --verbose        Log all messages to console
+ *   --help           Show this help
+ *
+ * Dependencies:
+ *   npm install ws node-osc
+ */
+
+'use strict';
+
+const { WebSocketServer } = require('ws');
+const { Client, Server }  = require('node-osc');
+const os   = require('os');
+
+// ── Parse command-line arguments ──────────────────────────────────────────
+const args = process.argv.slice(2);
+function getArg(name, fallback) {
+  const idx = args.indexOf(name);
+  return idx >= 0 && args[idx + 1] ? args[idx + 1] : fallback;
+}
+if (args.includes('--help')) {
+  console.log('Usage: node osc-bridge.js [--ws PORT] [--host HOST] [--port PORT] [--listen PORT] [--verbose]');
+  process.exit(0);
+}
+
+const WS_PORT    = parseInt(getArg('--ws',     '8080'));
+const OSC_HOST   = getArg('--host',   '127.0.0.1');
+const OSC_PORT   = parseInt(getArg('--port',   '57120'));
+const LISTEN_PORT= parseInt(getArg('--listen', '57121'));
+const VERBOSE    = args.includes('--verbose');
+
+// ── Colour helpers ────────────────────────────────────────────────────────
+const c = {
+  reset: '\\x1b[0m',  bold: '\\x1b[1m',
+  green: '\\x1b[32m', amber: '\\x1b[33m',
+  blue:  '\\x1b[34m', dim:   '\\x1b[2m',
+  red:   '\\x1b[31m',
+};
+function log(colour, prefix, msg) {
+  console.log(colour + prefix + c.reset + ' ' + msg);
+}
+
+// ── Local IP ──────────────────────────────────────────────────────────────
+function localIP() {
+  const nets = os.networkInterfaces();
+  for (const iface of Object.values(nets)) {
+    for (const addr of iface) {
+      if (addr.family === 'IPv4' && !addr.internal) return addr.address;
+    }
+  }
+  return '127.0.0.1';
+}
+
+// ── OSC Client (send to target software) ─────────────────────────────────
+const oscClient = new Client(OSC_HOST, OSC_PORT);
+
+// ── WebSocket Server ──────────────────────────────────────────────────────
+const wss = new WebSocketServer({ port: WS_PORT });
+const clients = new Set();
+
+console.log('');
+console.log(c.bold + c.amber + '  OSC Touch Editor — WebSocket Bridge' + c.reset);
+console.log(c.dim + '  ─────────────────────────────────────────' + c.reset);
+console.log(c.green + '  WebSocket' + c.reset + ' listening on    ws://localhost:' + WS_PORT);
+console.log(c.green + '  WebSocket' + c.reset + ' local network   ws://' + localIP() + ':' + WS_PORT);
+console.log(c.blue  + '  OSC out' + c.reset   + ' → ' + OSC_HOST + ':' + OSC_PORT);
+console.log(c.blue  + '  OSC in'  + c.reset   + '  ← localhost:' + LISTEN_PORT);
+console.log('');
+
+wss.on('connection', (ws, req) => {
+  clients.add(ws);
+  const ip = req.socket.remoteAddress;
+  log(c.green, '  [WS +]', 'Client connected from ' + ip + ' (' + clients.size + ' total)');
+
+  ws.on('message', (data) => {
+    const raw = data.toString().trim();
+    if (!raw) return;
+
+    let address, args;
+
+    // Detect format and parse
+    if (raw.startsWith('{')) {
+      // JSON or osc.js format
+      try {
+        const msg  = JSON.parse(raw);
+        address    = msg.address;
+        const a    = msg.args || [];
+        args       = a.map(x => (typeof x === 'object' && x !== null && 'value' in x) ? x.value : x);
+      } catch (e) {
+        if (VERBOSE) log(c.red, '  [ERR]', 'Invalid JSON: ' + raw);
+        return;
+      }
+    } else if (raw.startsWith('/')) {
+      // Plain text: /address value1 value2 ...
+      const parts = raw.split(' ');
+      address = parts[0];
+      args    = parts.slice(1).map(v => {
+        const n = parseFloat(v);
+        return isNaN(n) ? v : n;
+      });
+    } else {
+      if (VERBOSE) log(c.red, '  [ERR]', 'Unknown format: ' + raw);
+      return;
+    }
+
+    if (!address) return;
+
+    // Forward to OSC target
+    try {
+      oscClient.send(address, ...args, () => {});
+      if (VERBOSE) log(c.amber, '  [→ OSC]', address + ' ' + args.join(' '));
+    } catch (e) {
+      log(c.red, '  [ERR]', 'OSC send failed: ' + e.message);
+    }
+  });
+
+  ws.on('close', () => {
+    clients.delete(ws);
+    log(c.dim, '  [WS -]', 'Client disconnected (' + clients.size + ' remaining)');
+  });
+
+  ws.on('error', (e) => {
+    if (VERBOSE) log(c.red, '  [WS ERR]', e.message);
+  });
+});
+
+wss.on('error', (e) => {
+  log(c.red, '  [WS SERVER ERR]', e.message);
+  if (e.code === 'EADDRINUSE') {
+    console.error('  Port ' + WS_PORT + ' is already in use. Try --ws ' + (WS_PORT + 1));
+    process.exit(1);
+  }
+});
+
+// ── OSC Server (receive feedback from target software) ───────────────────
+const oscServer = new Server(LISTEN_PORT, '0.0.0.0', () => {
+  if (VERBOSE) log(c.blue, '  [OSC IN]', 'Listening on port ' + LISTEN_PORT);
+});
+
+oscServer.on('message', (msg) => {
+  // msg = [address, ...args]
+  const [address, ...argValues] = msg;
+  const value = argValues.length === 1 ? argValues[0] : argValues;
+
+  const json = JSON.stringify({ address, args: [value] });
+
+  if (VERBOSE) log(c.blue, '  [← OSC]', address + ' ' + (Array.isArray(value) ? value.join(' ') : value));
+
+  // Broadcast to all connected WebSocket clients
+  let sent = 0;
+  for (const ws of clients) {
+    if (ws.readyState === 1) { // OPEN
+      try { ws.send(json); sent++; } catch (e) { /* ignore */ }
+    }
+  }
+  if (VERBOSE && sent === 0) log(c.dim, '  [OSC IN]', 'No WS clients connected — message dropped');
+});
+
+// ── Graceful shutdown ─────────────────────────────────────────────────────
+process.on('SIGINT', () => {
+  console.log('');
+  log(c.dim, '  [STOP]', 'Shutting down...');
+  oscClient.close();
+  oscServer.close();
+  wss.close(() => process.exit(0));
+});
+
+process.on('uncaughtException', (e) => {
+  log(c.red, '  [FATAL]', e.message);
+  process.exit(1);
+});
+`;
+
+// Display in page
+document.getElementById('bridge-source-display').textContent = bridgeSource;
+
+// Download button
+document.getElementById('dl-bridge').addEventListener('click', function(e) {
+  e.preventDefault();
+  const blob = new Blob([bridgeSource], { type: 'text/javascript' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'osc-bridge.js';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+// Active nav link on scroll
+const sections = document.querySelectorAll('h2[id]');
+const navLinks  = document.querySelectorAll('nav a');
+const io = new IntersectionObserver(entries => {
+  for (const e of entries) {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const match = document.querySelector('nav a[href="#' + e.target.id + '"]');
+      if (match) match.classList.add('active');
+    }
+  }
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => io.observe(s));
+</script>
+</body>
+</html>
