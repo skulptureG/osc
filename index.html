@@ -205,27 +205,24 @@ html, body {
 #toolbar {
   position: fixed;
   top: 0; left: 0; right: 0;
-  height: 44px;
+  height: 40px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 0;
   z-index: 500;
   padding: 0 4px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  gap: 0;
+  overflow: visible;
 }
-#toolbar::-webkit-scrollbar { height: 3px; }
-#toolbar::-webkit-scrollbar-thumb { background: var(--border2); }
 
 .tb-group {
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 0 8px;
+  padding: 0 7px;
   border-right: 1px solid var(--border);
-  height: 44px;
+  height: 40px;
   flex-shrink: 0;
 }
 .tb-group:last-child { border-right: none; }
@@ -233,7 +230,7 @@ html, body {
 .tb-label {
   font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--text-dim);
   margin-right: 2px;
   white-space: nowrap;
@@ -245,7 +242,7 @@ html, body {
   color: var(--text-mid);
   font-family: var(--mono);
   font-size: 11px;
-  padding: 4px 10px;
+  padding: 3px 8px;
   cursor: pointer;
   border-radius: 3px;
   transition: border-color 0.12s, color 0.12s, background 0.12s;
@@ -262,7 +259,7 @@ html, body {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  padding: 5px 14px;
+  padding: 5px 12px;
 }
 #btn-mode.performing {
   background: #2a1a00;
@@ -283,12 +280,13 @@ html, body {
 }
 .tb-select:focus { border-color: var(--accent); }
 
+/* Status dot pushed to far right */
 #ws-status-area {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-left: auto;
-  padding: 0 12px;
+  padding: 0 10px;
   flex-shrink: 0;
   white-space: nowrap;
 }
@@ -307,9 +305,78 @@ html, body {
 /* ============ LAYOUT ============ */
 #layout {
   position: fixed;
-  top: 44px; left: 0; right: 0; bottom: 0;
+  top: 40px; left: 0; right: 0; bottom: 0;
   display: flex;
 }
+
+/* ============ LEFT WIDGET PANEL ============ */
+#widget-panel {
+  width: 108px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 100;
+  transition: width 0.15s;
+}
+#widget-panel::-webkit-scrollbar { width: 3px; }
+#widget-panel::-webkit-scrollbar-thumb { background: var(--border2); }
+
+#widget-panel.hidden-panel { width: 0; border-right: none; overflow: hidden; }
+
+.wp-section-title {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  padding: 8px 10px 3px;
+  white-space: nowrap;
+}
+
+.wp-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: var(--text-mid);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 7px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+.wp-btn:last-child { border-bottom: none; }
+.wp-btn:hover { background: var(--surface2); color: var(--accent); }
+.wp-btn .wp-icon {
+  font-size: 13px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.wp-btn:hover .wp-icon { opacity: 1; }
+.wp-btn .wp-label { font-size: 10px; flex: 1; }
+
+/* Hide panel in perform/kiosk */
+body.performing #widget-panel { display: none; }
+body.kiosk #widget-panel { display: none; }
+
+/* ============ KIOSK MODE ============ */
+body.kiosk #toolbar    { display: none; }
+body.kiosk #layout     { top: 0; }
+body.kiosk #props      { display: none; }
+body.kiosk #toast      { display: none; }
+body.kiosk .modal-bg   { display: none !important; }
+body.kiosk *           { cursor: none !important; }
 
 /* ============ CANVAS ============ */
 #canvas-wrap {
@@ -329,19 +396,17 @@ html, body {
 }
 
 /* ── Resolution-locked canvas ── */
+/* JS sets width, height, and translate+scale transform directly.
+   Canvas stays position:absolute; the transform centres and scales it. */
 #canvas.res-locked {
-  position: relative;   /* taken out of inset flow */
-  inset: unset;
-  flex-shrink: 0;
-  transform-origin: center center;
-  /* width/height set by JS */
+  /* transform-origin and transform set inline by applyResolution() */
 }
 
-/* Letterbox background when locked */
 #canvas-wrap.res-locked-wrap {
-  background: #000;
+  background: #000;   /* letterbox bars */
 }
-/* Edit-mode overlay showing the locked boundary */
+
+/* Edit-mode boundary glow */
 body:not(.performing) #canvas.res-locked {
   box-shadow: 0 0 0 1px var(--accent), 0 0 40px rgba(0,0,0,0.8);
 }
@@ -1271,65 +1336,52 @@ body.performing #canvas-drop-hint { display: none; }
 
 <!-- ============ TOOLBAR ============ -->
 <div id="toolbar">
+  <!-- Mode toggle -->
   <div class="tb-group">
     <button class="tb-btn" id="btn-mode">✏  EDIT</button>
   </div>
 
-  <div class="tb-group" id="tg-add">
-    <span class="tb-label">Add</span>
-    <button class="tb-btn" data-add="button">⬛ Button</button>
-    <button class="tb-btn" data-add="hslider">▬ H-Slider</button>
-    <button class="tb-btn" data-add="vslider">▮ V-Slider</button>
-    <button class="tb-btn" data-add="knob">◎ Knob</button>
-    <button class="tb-btn" data-add="xypad">⊕ XY Pad</button>
-    <button class="tb-btn" data-add="label">𝐀 Label</button>
-    <button class="tb-btn" data-add="text">≡ Text</button>
-    <button class="tb-btn" data-add="video">▶ Video</button>
-  </div>
-
+  <!-- Grid -->
   <div class="tb-group" id="tg-grid">
-    <span class="tb-label">Grid</span>
     <button class="tb-btn active" id="btn-grid">Grid</button>
     <button class="tb-btn active" id="btn-snap">Snap</button>
     <select class="tb-select" id="sel-grid-size">
-      <option value="10">10 px</option>
-      <option value="20" selected>20 px</option>
-      <option value="40">40 px</option>
-      <option value="80">80 px</option>
+      <option value="10">10</option>
+      <option value="20" selected>20</option>
+      <option value="40">40</option>
+      <option value="80">80</option>
     </select>
   </div>
 
+  <!-- File -->
   <div class="tb-group" id="tg-file">
-    <span class="tb-label">File</span>
-    <button class="tb-btn tb-btn-dim" id="btn-undo" title="Undo (Ctrl+Z)">↩ Undo</button>
-    <button class="tb-btn tb-btn-dim" id="btn-redo" title="Redo (Ctrl+Y)">↪ Redo</button>
-    <button class="tb-btn" id="btn-save">↓ Save</button>
-    <button class="tb-btn" id="btn-load">↑ Load</button>
-    <button class="tb-btn danger" id="btn-clear">✕ Clear</button>
-    <button class="tb-btn" id="btn-kiosk-url">⊞ Kiosk URL</button>
-    <button class="tb-btn" id="btn-canvas-bg">🖼 Canvas BG</button>
-    <button class="tb-btn" id="btn-res-lock" title="Set canvas resolution">⬛ Resolution</button>
+    <button class="tb-btn tb-btn-dim" id="btn-undo" title="Undo (Ctrl+Z)">↩</button>
+    <button class="tb-btn tb-btn-dim" id="btn-redo" title="Redo (Ctrl+Y)">↪</button>
+    <button class="tb-btn" id="btn-save" title="Save layout">↓ Save</button>
+    <button class="tb-btn" id="btn-load" title="Load layout">↑ Load</button>
+    <button class="tb-btn danger" id="btn-clear" title="Clear all">✕</button>
+    <button class="tb-btn" id="btn-kiosk-url" title="Generate kiosk URL">⊞ Kiosk</button>
+    <button class="tb-btn" id="btn-canvas-bg" title="Canvas background">🖼 BG</button>
+    <button class="tb-btn" id="btn-res-lock" title="Set canvas resolution">⬛ Res</button>
   </div>
 
+  <!-- OSC -->
   <div class="tb-group">
-    <span class="tb-label">OSC</span>
     <button class="tb-btn" id="btn-osc-cfg">⚡ Bridge</button>
     <button class="tb-btn" id="btn-osc-connect">Connect</button>
     <button class="tb-btn" id="btn-mon">⎍ Monitor</button>
     <a class="tb-btn" href="help.html" target="_blank" rel="noopener" style="text-decoration:none">? Help</a>
   </div>
 
+  <!-- Theme + status (right side) -->
   <div id="ws-status-area">
-    <div class="tb-group" style="border-right:none;border-left:1px solid var(--border)">
-      <span class="tb-label">Theme</span>
-      <select class="tb-select" id="sel-theme">
-        <option value="default">Default</option>
-        <option value="light">Light</option>
-        <option value="stealth">Stealth</option>
-        <option value="matrix">Matrix</option>
-        <option value="retro">Retro</option>
-      </select>
-    </div>
+    <select class="tb-select" id="sel-theme" title="Theme">
+      <option value="default">Default</option>
+      <option value="light">Light</option>
+      <option value="stealth">Stealth</option>
+      <option value="matrix">Matrix</option>
+      <option value="retro">Retro</option>
+    </select>
     <div class="status-dot" id="dot"></div>
     <span id="status-label">Disconnected</span>
   </div>
@@ -1337,6 +1389,37 @@ body.performing #canvas-drop-hint { display: none; }
 
 <!-- ============ MAIN LAYOUT ============ -->
 <div id="layout">
+
+  <!-- Left widget panel (edit mode only) -->
+  <div id="widget-panel">
+    <div class="wp-section-title">Widgets</div>
+    <button class="wp-btn" data-add="button">
+      <span class="wp-icon">⬛</span><span class="wp-label">Button</span>
+    </button>
+    <button class="wp-btn" data-add="hslider">
+      <span class="wp-icon">▬</span><span class="wp-label">H-Slider</span>
+    </button>
+    <button class="wp-btn" data-add="vslider">
+      <span class="wp-icon">▮</span><span class="wp-label">V-Slider</span>
+    </button>
+    <button class="wp-btn" data-add="knob">
+      <span class="wp-icon">◎</span><span class="wp-label">Knob</span>
+    </button>
+    <button class="wp-btn" data-add="xypad">
+      <span class="wp-icon">⊕</span><span class="wp-label">XY Pad</span>
+    </button>
+    <div class="wp-section-title" style="margin-top:4px">Display</div>
+    <button class="wp-btn" data-add="label">
+      <span class="wp-icon">𝐀</span><span class="wp-label">Label</span>
+    </button>
+    <button class="wp-btn" data-add="text">
+      <span class="wp-icon">≡</span><span class="wp-label">Text</span>
+    </button>
+    <button class="wp-btn" data-add="video">
+      <span class="wp-icon">▶</span><span class="wp-label">Video</span>
+    </button>
+  </div>
+
   <!-- Canvas -->
   <div id="canvas-wrap">
     <div id="canvas" class="grid-on">
@@ -1347,7 +1430,7 @@ body.performing #canvas-drop-hint { display: none; }
         <div class="hint-box">
           <div class="hint-title">OSC Touch Editor</div>
           <div class="hint-sub">
-            Use the toolbar above to add widgets<br>
+            Use the <strong style="color:var(--accent)">widget panel on the left</strong> to add controls<br>
             Drag to position · Handles to resize · Click to select<br>
             Switch to <strong style="color:var(--accent)">PERFORM</strong> to send OSC
           </div>
@@ -2338,16 +2421,85 @@ function mountWidget(w) {
   updateHint();
 }
 
+// ─── Surgical updaters (called when a video bg is present) ──────────────────
+// These update only the changing parts of a widget without touching the video.
+
+function refreshSliderFill(el, w) {
+  const t = norm(w.value, w.min, w.max);
+  if (w.type === 'hslider') {
+    const fills = el.querySelectorAll('.slider-fill');
+    if (fills[0]) fills[0].style.width  = (t * 100).toFixed(2) + '%';
+    if (fills[1]) fills[1].style.width  = ((1 - t) * 100).toFixed(2) + '%';
+  } else {
+    const fills = el.querySelectorAll('.slider-fill');
+    if (fills[0]) fills[0].style.height = (t * 100).toFixed(2) + '%';
+  }
+  const valEl = el.querySelector('.slider-val');
+  if (valEl) valEl.textContent = fmtVal(w.value, w.min, w.max);
+}
+
+function refreshKnobArc(el, w) {
+  // Replace only the SVG inside the knob, leaving the video untouched
+  const wrap = el.querySelector('.knob-svg-wrap');
+  if (wrap) wrap.innerHTML = knobSVG(w);
+}
+
+function refreshButtonState(el, w) {
+  const btn = el.querySelector('.wt-button');
+  if (!btn) return;
+  const on = w.value >= w.onVal;
+  btn.className = `wt-button ${on ? 'btn-on' : 'btn-off'}`;
+  btn.style.background   = on ? w.color : 'rgba(0,0,0,0.5)';
+  btn.style.borderColor  = w.color;
+  btn.style.color        = on ? '#000' : w.color;
+}
+
+function refreshXYDot(el, w) {
+  const tx = clamp(norm(w.valueX, w.minX, w.maxX), 0, 1);
+  const ty = clamp(norm(w.valueY, w.minY, w.maxY), 0, 1);
+  const xPct = (tx * 100).toFixed(2) + '%';
+  const yPct = ((1 - ty) * 100).toFixed(2) + '%';
+  const hline = el.querySelector('.xypad-hline');
+  const vline = el.querySelector('.xypad-vline');
+  const dot   = el.querySelector('.xypad-dot');
+  const vals  = el.querySelector('.xypad-vals');
+  if (hline) hline.style.top  = yPct;
+  if (vline) vline.style.left = xPct;
+  if (dot)   { dot.style.top = yPct; dot.style.left = xPct; }
+  if (vals)  vals.textContent = `x:${fmtVal(w.valueX, w.minX, w.maxX)}  y:${fmtVal(w.valueY, w.minY, w.maxY)}`;
+}
+
+// ─── Main refresh ───────────────────────────────────────────────────────────
 function refreshWidget(w) {
   const el = gel(w.id);
   if (!el) return;
+
+  // Always update position/size/selection classes
   el.style.left = w.x + 'px';
-  el.style.top = w.y + 'px';
-  el.style.width = w.w + 'px';
+  el.style.top  = w.y + 'px';
+  el.style.width  = w.w + 'px';
   el.style.height = w.h + 'px';
   el.classList.toggle('sel',  S.sel === w.id);
   el.classList.toggle('msel', S.selIds.has(w.id));
-  el.querySelector('.w-inner').innerHTML = wHTML(w);
+
+  const inner = el.querySelector('.w-inner');
+
+  // If there is a live video background, use surgical updates to avoid
+  // destroying and recreating the <video> element (which causes black flashes).
+  if (w.bgImage && w.bgMediaType === 'video' && inner.querySelector('video.w-bg-vid')) {
+    switch (w.type) {
+      case 'hslider':
+      case 'vslider': refreshSliderFill(inner, w); return;
+      case 'knob':    refreshKnobArc(inner, w);    return;
+      case 'button':  refreshButtonState(inner, w); return;
+      case 'xypad':   refreshXYDot(inner, w);       return;
+    }
+    // For label/text/video widgets with video bg, fall through to full rebuild
+    // since they don't animate during interaction anyway
+  }
+
+  // Default: full innerHTML replace (no video bg, or structural change)
+  inner.innerHTML = wHTML(w);
 }
 
 function unmountWidget(id) {
@@ -3248,15 +3400,14 @@ function setMode(mode) {
   if (mode === 'perform') {
     btn.textContent = '▶  PERFORM';
     btn.classList.add('performing');
-    $('tg-add').style.visibility = 'hidden';
-    // Grid toggle stays visible in perform; snap & size are edit-only
+    // Widget panel hidden by body.performing CSS rule
+    // Snap and grid-size are edit-only — hide in perform
     $('btn-snap').style.display      = 'none';
     $('sel-grid-size').style.display = 'none';
     select(null);
   } else {
     btn.textContent = '✏  EDIT';
     btn.classList.remove('performing');
-    $('tg-add').style.visibility     = '';
     $('btn-snap').style.display      = '';
     $('sel-grid-size').style.display = '';
   }
@@ -3731,6 +3882,7 @@ function initTheme() {
   $('sel-theme').addEventListener('change', e => {
     applyTheme(e.target.value);
     S.widgets.forEach(w => refreshWidget(w));
+    markDirty();
   });
 }
 
@@ -4052,13 +4204,14 @@ function openCanvasBgPanel() {
     if (urlEl && !isBlob && !src.startsWith('data:')) urlEl.value = src;
     setPreview(src, cbg.mediaType);
     applyCanvasBg();
+    markDirty();
   }
 
   function bindCvbg(elId, key, coerce) {
     const el = $(elId);
     if (!el) return;
-    el.addEventListener('input',  e => { cbg[key] = coerce ? coerce(e.target.value) : e.target.value; applyCanvasBg(); });
-    el.addEventListener('change', e => { cbg[key] = coerce ? coerce(e.target.value) : e.target.value; applyCanvasBg(); });
+    el.addEventListener('input',  e => { cbg[key] = coerce ? coerce(e.target.value) : e.target.value; applyCanvasBg(); markDirty(); });
+    el.addEventListener('change', e => { cbg[key] = coerce ? coerce(e.target.value) : e.target.value; applyCanvasBg(); markDirty(); });
   }
 
   // Init preview for current state
@@ -4188,7 +4341,7 @@ function addPage(name) {
   switchPage(p.id);
   updateKioskSinglePage();
   renderPageBar();
-  // Auto-open rename
+  markDirty();
   setTimeout(() => beginRename(p.id), 60);
 }
 
@@ -4196,7 +4349,6 @@ function deletePage(id) {
   if (S.pages.length <= 1) { toast('Cannot delete the last page', 'err'); return; }
   const idx = S.pages.findIndex(p => p.id === id);
   if (idx < 0) return;
-  // Unmount widgets if this is the active page
   if (id === S.pageId) {
     S.widgets.forEach(w => unmountWidget(w.id));
     const next = S.pages[idx + 1] || S.pages[idx - 1];
@@ -4207,23 +4359,24 @@ function deletePage(id) {
   S.pages.splice(idx, 1);
   renderPageBar();
   updateKioskSinglePage();
+  markDirty();
   toast('Page deleted', 'ok');
 }
 
 function duplicatePage(id) {
   const src = S.pages.find(p => p.id === id);
   if (!src) return;
-  const newPage = JSON.parse(JSON.stringify(src)); // deep clone
+  const newPage = JSON.parse(JSON.stringify(src));
   newPage.id   = pageUid();
   newPage.name = src.name + ' copy';
   newPage.oscAddress = '/page/' + (pageCtr - 1);
-  // Re-ID all widgets to avoid id collisions
   newPage.widgets = newPage.widgets.map(w => ({ ...w, id: uid() }));
   const idx = S.pages.findIndex(p => p.id === id);
   S.pages.splice(idx + 1, 0, newPage);
   switchPage(newPage.id);
   updateKioskSinglePage();
   renderPageBar();
+  markDirty();
   toast('Page duplicated', 'ok');
 }
 
@@ -4233,6 +4386,7 @@ function movePage(id, dir) {
   if (to < 0 || to >= S.pages.length) return;
   [S.pages[idx], S.pages[to]] = [S.pages[to], S.pages[idx]];
   renderPageBar();
+  markDirty();
 }
 
 let PS_TARGET_ID = null; // page settings target
@@ -4349,17 +4503,17 @@ function initPageSettings() {
   $('ps-name').addEventListener('input', e => {
     if (!PS_TARGET_ID) return;
     const p = S.pages.find(pg => pg.id === PS_TARGET_ID);
-    if (p) { p.name = e.target.value; renderPageBar(); }
+    if (p) { p.name = e.target.value; renderPageBar(); markDirty(); }
   });
   $('ps-osc').addEventListener('input', e => {
     if (!PS_TARGET_ID) return;
     const p = S.pages.find(pg => pg.id === PS_TARGET_ID);
-    if (p) p.oscAddress = e.target.value.trim();
+    if (p) { p.oscAddress = e.target.value.trim(); markDirty(); }
   });
   $('ps-send').addEventListener('change', e => {
     if (!PS_TARGET_ID) return;
     const p = S.pages.find(pg => pg.id === PS_TARGET_ID);
-    if (p) p.sendOnSwitch = e.target.checked;
+    if (p) { p.sendOnSwitch = e.target.checked; markDirty(); }
   });
   $('ps-duplicate').addEventListener('click', () => {
     if (PS_TARGET_ID) duplicatePage(PS_TARGET_ID);
@@ -4418,81 +4572,84 @@ function handlePageOSC(address, value) {
 // ═══════════════════════════════════════════════════════════
 
 function applyResolution() {
-  const canvas     = $('canvas');
-  const wrap       = $('canvas-wrap');
-  const badge      = $('res-badge');
-  const btn        = $('btn-res-lock');
-  const r          = S.res;
+  const canvas = $('canvas');
+  const wrap   = $('canvas-wrap');
+  const badge  = $('res-badge');
+  const btn    = $('btn-res-lock');
+  const r      = S.res;
 
   if (!r.locked) {
-    // Free canvas — fill wrap naturally
     canvas.classList.remove('res-locked');
     wrap.classList.remove('res-locked-wrap');
-    canvas.style.width     = '';
-    canvas.style.height    = '';
-    canvas.style.transform = '';
+    canvas.style.cssText = '';   // clear all inline styles at once
     r.scale = 1;
     if (badge) badge.style.display = 'none';
     if (btn)   { btn.classList.remove('active'); btn.title = 'Set canvas resolution'; }
     return;
   }
 
-  // Locked — compute scale to fit wrap
   const wrapW = wrap.clientWidth;
   const wrapH = wrap.clientHeight;
-  let   scale = 1;
+  let scaleX = 1, scaleY = 1;
 
   if (r.fit === 'stretch') {
-    // No uniform scale — set both independently
-    canvas.style.width  = r.w + 'px';
-    canvas.style.height = r.h + 'px';
-    canvas.style.transform = `scale(${wrapW / r.w}, ${wrapH / r.h})`;
-    scale = Math.min(wrapW / r.w, wrapH / r.h); // approx for pointer math
+    scaleX = wrapW / r.w;
+    scaleY = wrapH / r.h;
   } else if (r.fit === 'fill') {
-    scale = Math.max(wrapW / r.w, wrapH / r.h);
-    canvas.style.width  = r.w + 'px';
-    canvas.style.height = r.h + 'px';
-    canvas.style.transform = `scale(${scale})`;
-  } else { // 'fit' (default — letterbox)
-    scale = Math.min(wrapW / r.w, wrapH / r.h);
-    canvas.style.width  = r.w + 'px';
-    canvas.style.height = r.h + 'px';
-    canvas.style.transform = `scale(${scale})`;
+    scaleX = scaleY = Math.max(wrapW / r.w, wrapH / r.h);
+  } else { // 'fit' — letterbox
+    scaleX = scaleY = Math.min(wrapW / r.w, wrapH / r.h);
   }
 
-  r.scale = scale;
+  // Store scalar scale (used by clientToCanvas when uniform)
+  r.scale = Math.min(scaleX, scaleY);
+
+  // Centre: translate the canvas so it appears centred in the wrap.
+  // With transform-origin top-left, the transform expands right+down,
+  // so we offset by half the remaining space.
+  const scaledW = r.w * scaleX;
+  const scaledH = r.h * scaleY;
+  const tx = Math.round((wrapW - scaledW) / 2);
+  const ty = Math.round((wrapH - scaledH) / 2);
+
+  canvas.style.width       = r.w + 'px';
+  canvas.style.height      = r.h + 'px';
+  canvas.style.position    = 'absolute';
+  canvas.style.inset       = '0 auto auto 0'; // pin to top-left, flexbox handles via translate
+  canvas.style.transform   = `translate(${tx}px, ${ty}px) scale(${scaleX}${scaleX !== scaleY ? ', ' + scaleY : ''})`;
+  canvas.style.transformOrigin = 'top left';
+
   canvas.classList.add('res-locked');
   wrap.classList.add('res-locked-wrap');
 
   if (badge) {
-    badge.textContent = `${r.w} × ${r.h}  ·  ${Math.round(scale * 100)}%  ·  ${r.fit.toUpperCase()}`;
+    const pct = r.fit === 'stretch'
+      ? `${Math.round(scaleX*100)}% × ${Math.round(scaleY*100)}%`
+      : `${Math.round(r.scale*100)}%`;
+    badge.textContent = `${r.w} × ${r.h}  ·  ${pct}  ·  ${r.fit.toUpperCase()}`;
     badge.style.display = '';
   }
   if (btn) {
     btn.classList.add('active');
-    btn.title = `Resolution locked: ${r.w}×${r.h}`;
+    btn.title = `Locked: ${r.w}×${r.h} (${r.fit})`;
   }
 }
 
-// Remap a client XY to canvas-space XY, accounting for scale + centering
+// Remap a client XY to canvas-space (widget coordinate) XY.
+// getBoundingClientRect() on the canvas already accounts for the CSS scale
+// transform, so we can simply subtract the canvas origin and divide by scale.
 function clientToCanvas(cx, cy) {
-  const r    = S.res;
+  const r     = S.res;
+  const rect  = $('canvas').getBoundingClientRect();
   if (!r.locked) {
-    const rect = $('canvas').getBoundingClientRect();
     return [cx - rect.left, cy - rect.top];
   }
-  // The canvas is centred inside wrap via flexbox, then scaled
-  const wrap  = $('canvas-wrap');
-  const scale = r.scale;
-  const wrapR = wrap.getBoundingClientRect();
-  // Centre of scaled canvas inside wrap
-  const scaledW = r.w * scale;
-  const scaledH = r.h * scale;
-  const offX    = wrapR.left + (wrapR.width  - scaledW) / 2;
-  const offY    = wrapR.top  + (wrapR.height - scaledH) / 2;
+  // scale may differ in X/Y for 'stretch' mode
+  const scaleX = rect.width  / r.w;
+  const scaleY = rect.height / r.h;
   return [
-    (cx - offX) / scale,
-    (cy - offY) / scale,
+    (cx - rect.left) / scaleX,
+    (cy - rect.top)  / scaleY,
   ];
 }
 
@@ -4547,6 +4704,7 @@ function initResModal() {
     S.res.fit    = fitSel.value;
     applyResolution();
     modal.classList.add('hidden');
+    markDirty();
     toast(`Canvas locked to ${S.res.w}×${S.res.h}`, 'ok');
   });
 
@@ -4554,6 +4712,7 @@ function initResModal() {
     S.res.locked = false;
     applyResolution();
     modal.classList.add('hidden');
+    markDirty();
     toast('Canvas resolution unlocked', 'ok');
   });
 
@@ -4569,6 +4728,7 @@ function initResModal() {
 //  AUTO-SAVE / RESTORE
 // ═══════════════════════════════════════════════════════════
 function autosave() {
+  if (!S.dirty) return;   // nothing changed — skip serialisation
   try {
     function safePage(p) {
       const cbgSafe = { ...p.canvasBg };
@@ -4589,6 +4749,7 @@ function autosave() {
       pages:  S.pages.map(safePage),
       pageId: S.pageId,
     }));
+    S.dirty = false;   // clear after successful save
   } catch(e) {}
 }
 
@@ -4658,7 +4819,11 @@ function applyLayoutData(data) {
 }
 
 setInterval(autosave, 5000);
-window.addEventListener('beforeunload', autosave);
+window.addEventListener('beforeunload', () => {
+  // Always save on page close — don't gate on S.dirty
+  S.dirty = true;
+  autosave();
+});
 
 // ═══════════════════════════════════════════════════════════
 //  INIT
