@@ -1509,7 +1509,7 @@ body.performing #canvas-drop-hint { display: none; }
     <div class="modal-title">⚡ OSC / WebSocket Bridge</div>
     <div class="modal-row">
       <label>WebSocket URL</label>
-      <input type="text" class="pi" id="inp-ws-url" placeholder="ws://localhost:8080">
+      <input type="text" class="pi" id="inp-ws-url" placeholder="https://reflex-causing-dioxide.ngrok-free.dev/">
     </div>    <div class="modal-row">
       <label>Message Format</label>
       <select class="pi" id="inp-ws-fmt">
@@ -1595,7 +1595,7 @@ const S = {
   gridSize: 20,
   showGrid: true,
   snap:     true,
-  wsUrl:    localStorage.getItem('osc_ws_url') || 'ws://localhost:8080',
+  wsUrl:    localStorage.getItem('osc_ws_url') || 'https://reflex-causing-dioxide.ngrok-free.dev/',
   wsFmt:    localStorage.getItem('osc_ws_fmt') || 'json',
   ws:       null,
   wsState:  'disconnected',
@@ -3864,7 +3864,7 @@ function initToolbar() {
     const warnEl  = $('https-ws-warn');
     const urlInp  = $('inp-ws-url');
     if (warnEl) warnEl.style.display = isHttps ? '' : 'none';
-    if (urlInp) urlInp.placeholder = isHttps ? 'wss://yourhost:8080' : 'ws://localhost:8080';
+    if (urlInp) urlInp.placeholder = isHttps ? 'wss://yourhost:8080' : 'https://reflex-causing-dioxide.ngrok-free.dev/';
     $('modal-osc').classList.remove('hidden');
   });
 
@@ -4687,7 +4687,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('kiosk');
     setMode('perform');
     // Auto-connect WebSocket — skip ws:// from HTTPS (mixed content will be blocked)
-    const canConnect = S.wsUrl && S.wsUrl !== 'ws://localhost:8080' &&
+    const canConnect = S.wsUrl && S.wsUrl !== 'https://reflex-causing-dioxide.ngrok-free.dev/' &&
       !(location.protocol === 'https:' && S.wsUrl.startsWith('ws://'));
     if (canConnect) connectWS(S.wsUrl);
   }
