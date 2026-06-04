@@ -1610,6 +1610,9 @@ body.performing #canvas-drop-hint { display: none; }
     <button class="wp-btn" data-add="xypad">
       <span class="wp-icon">⊕</span><span class="wp-label">XY Pad</span>
     </button>
+    <button class="wp-btn" data-add="encoder">
+      <span class="wp-icon">↻</span><span class="wp-label">Encoder</span>
+    </button>
     <div class="wp-section-title" style="margin-top:4px">Display</div>
     <button class="wp-btn" data-add="label">
       <span class="wp-icon">𝐀</span><span class="wp-label">Label</span>
@@ -1623,9 +1626,6 @@ body.performing #canvas-drop-hint { display: none; }
     <div class="wp-section-title" style="margin-top:4px">Controls</div>
     <button class="wp-btn" data-add="transport">
       <span class="wp-icon">⏹</span><span class="wp-label">Transport</span>
-    </button>
-    <button class="wp-btn" data-add="encoder">
-      <span class="wp-icon">↻</span><span class="wp-label">Encoder</span>
     </button>
   </div>
 
@@ -1761,6 +1761,9 @@ body.performing #canvas-drop-hint { display: none; }
   <button class="cmenu-item" data-add="xypad">
     <span class="ci-icon">⊕</span> XY Pad
   </button>
+  <button class="cmenu-item" data-add="encoder">
+    <span class="ci-icon">↻</span> Encoder
+  </button>
   <div class="cmenu-divider"></div>
   <div class="cmenu-title">Display</div>
   <button class="cmenu-item" data-add="label">
@@ -1776,9 +1779,6 @@ body.performing #canvas-drop-hint { display: none; }
   <div class="cmenu-title">Controls</div>
   <button class="cmenu-item" data-add="transport">
     <span class="ci-icon">⏹</span> Transport
-  </button>
-  <button class="cmenu-item" data-add="encoder">
-    <span class="ci-icon">↻</span> Encoder
   </button>
 </div>
 
@@ -5501,19 +5501,25 @@ function initResModal() {
   const fitSel  = $('res-fit');
   const note    = $('res-scale-note');
 
+  // Guard: if any required element is missing, skip silently
+  if (!btn || !modal || !wInp || !hInp || !fitSel) return;
+
   function updateNote() {
+    if (!note) return;
     const wrap  = $('canvas-wrap');
     const rw    = parseInt(wInp.value) || 1920;
     const rh    = parseInt(hInp.value) || 1080;
     const fit   = fitSel.value;
-    const wrapW = wrap.clientWidth;
-    const wrapH = wrap.clientHeight;
+    const wrapW = wrap ? wrap.clientWidth  : 0;
+    const wrapH = wrap ? wrap.clientHeight : 0;
     let sc;
-    if (fit === 'stretch')    sc = null;
-    else if (fit === 'fill')  sc = Math.max(wrapW/rw, wrapH/rh);
-    else                      sc = Math.min(wrapW/rw, wrapH/rh);
+    if (fit === 'stretch')   sc = null;
+    else if (fit === 'fill') sc = wrapW && wrapH ? Math.max(wrapW/rw, wrapH/rh) : null;
+    else                     sc = wrapW && wrapH ? Math.min(wrapW/rw, wrapH/rh) : null;
     const pct = sc ? Math.round(sc*100)+'%' : 'variable';
-    note.textContent = `At current window size (${wrapW}×${wrapH}): scale = ${pct}`;
+    note.textContent = wrapW
+      ? `At current window size (${wrapW}×${wrapH}): scale = ${pct}`
+      : `Open the modal to see scale preview`;
   }
 
   btn.addEventListener('click', () => {
