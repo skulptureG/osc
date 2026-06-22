@@ -250,6 +250,8 @@ footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border
     <div class="nav-group-title">The Editor</div>
     <a href="#modes">Edit vs Perform mode</a>
     <a href="#widgets">Widget types</a>
+    <a href="#multiselect">Multi-select &amp; align</a>
+    <a href="#locking">Widget locking</a>
     <a href="#pages">Pages</a>
     <a href="#canvas-bg">Canvas backgrounds</a>
     <a href="#media">Images &amp; video</a>
@@ -266,6 +268,7 @@ footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border
   <div class="nav-group">
     <div class="nav-group-title">Deployment</div>
     <a href="#kiosk">Kiosk mode</a>
+    <a href="#standalone">Standalone export</a>
     <a href="#save-load">Save &amp; Load</a>
     <a href="#keyboard">Keyboard shortcuts</a>
   </div>
@@ -291,10 +294,11 @@ footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border
 <div class="hero">
   <p class="hero-lead">
     OSC Touch Editor is a browser-based control surface designer. Build custom
-    touch interfaces with sliders, knobs, buttons, XY pads, and more — then send
-    and receive <strong>Open Sound Control (OSC)</strong> messages to control any
-    compatible software: Max/MSP, Pure Data, TouchDesigner, REAPER, Resolume,
-    QLC+, and hundreds of others.
+    touch interfaces with sliders, knobs, buttons, XY pads, DJ-style jog wheels,
+    step sequencers, and more — then send and receive
+    <strong>Open Sound Control (OSC)</strong> messages to control any compatible
+    software: Max/MSP, Pure Data, TouchDesigner, REAPER, Resolume, QLC+, and
+    hundreds of others.
   </p>
 </div>
 
@@ -478,6 +482,36 @@ node osc-bridge.js --verbose</code></pre>
     <div class="wc-name">Video</div>
     <div class="wc-desc">Embedded video player. Supports URL or local file. Autoplay, loop, mute, controls toggles. Can show live camera feeds via URL.</div>
   </div>
+  <div class="widget-card">
+    <div class="wc-icon">⏹</div>
+    <div class="wc-name">Transport</div>
+    <div class="wc-desc">Seven playback buttons (⏮⏪⏹▶⏸⏩⏭), each with its own OSC address, enable toggle, and name. Multi-touch — press several at once.</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">↻</div>
+    <div class="wc-name">Encoder</div>
+    <div class="wc-desc">Infinite-rotation dial with acceleration. Relative mode sends ±step values; absolute mode sends an accumulated count. No min/max ceiling.</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">⚡</div>
+    <div class="wc-name">3-Pole Switch</div>
+    <div class="wc-desc">DJ-style hardware switch. Top = HOLD (toggles on/off), middle = OFF, bottom = MOMENTARY (active while held, springs back to centre on release).</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">🎨</div>
+    <div class="wc-name">Colour Picker</div>
+    <div class="wc-desc">Saturation/value pad plus a hue strip. Sends Red, Green and Blue as three independent OSC messages — choose 0–255 or 0–1 output.</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">⊙</div>
+    <div class="wc-name">Jog Wheel</div>
+    <div class="wc-desc">DJ-style scratch platter. Sends continuous relative rotation while dragging, plus a separate touch on/off message — not a position control.</div>
+  </div>
+  <div class="widget-card">
+    <div class="wc-icon">▦</div>
+    <div class="wc-name">Step Sequencer</div>
+    <div class="wc-desc">N×N grid of trigger pads, up to 128×128. Tap to toggle, drag to paint a run. Multi-touch — play several pads with different fingers at once.</div>
+  </div>
 </div>
 
 <h3>Common widget properties</h3>
@@ -490,6 +524,101 @@ node osc-bridge.js --verbose</code></pre>
   <tr><td>Receive only</td><td>Widget displays incoming OSC values but ignores touch — use for metering/feedback</td></tr>
   <tr><td>Background media</td><td>Image or MP4 video behind the control, with size/position/opacity controls</td></tr>
 </table>
+
+<h3>Optional effects: shadow, background colour, active colour &amp; spring return</h3>
+<p>
+  Four more effects are available on most widgets, each off by default and tucked
+  under their own collapsible section in the properties panel:
+</p>
+<ul>
+  <li><strong>Drop Shadow</strong> — available on every widget. Configurable offset,
+      blur, spread, colour and opacity. Off by default.</li>
+  <li><strong>Background Colour</strong> — a solid secondary fill behind the control,
+      distinct from the accent colour and from Background Media. Available on Button,
+      H-Slider, V-Slider, Knob, XY Pad, Encoder, Transport, 3-Pole Switch, Colour
+      Picker and Jog Wheel.</li>
+  <li><strong>Active Colour</strong> — swaps the control's live indicator (fill,
+      pointer, dot, lever, notch) to a chosen colour the instant you touch or drag
+      it, and back to the normal colour the moment you release. Available on
+      Button, H-Slider, V-Slider, Knob, XY Pad, Encoder, 3-Pole Switch and Jog
+      Wheel — not Transport, Colour Picker, or Step Sequencer.</li>
+  <li><strong>Spring Return</strong> — on release, the widget animates back to a
+      target value instead of staying where you left it. Choose Linear, Ease, Bounce,
+      or Elastic easing and a duration. Available on H-Slider, V-Slider, Knob and
+      XY Pad only.</li>
+</ul>
+<div class="callout tip">
+  <strong>Tip:</strong> Active Colour is a great way to give touch feedback on
+  dimly-lit stages — a fader that flashes white the instant it's grabbed is much
+  easier to track by feel than one that looks identical pressed or not.
+</div>
+<div class="callout tip">
+  <strong>Spring Return</strong> is the editor equivalent of a self-centring
+  fader — useful for pitch-bend style controls that should snap back to zero
+  the moment you let go.
+</div>
+
+<!-- ───────────────────────── MULTI-SELECT ───────────────────────── -->
+<h2 id="multiselect">Multi-Select &amp; Alignment</h2>
+<p>
+  Select more than one widget at once to move, align, or edit them together.
+</p>
+<h3>Selecting multiple widgets</h3>
+<ul>
+  <li><strong>Shift+click</strong> a widget to add or remove it from the current selection.</li>
+  <li><strong>Drag on empty canvas</strong> to draw a rubber-band rectangle — every widget
+      it touches is selected on release.</li>
+  <li><strong>Click and drag any already-selected widget</strong> (without Shift) to move the
+      whole group together, preserving relative positions.</li>
+</ul>
+<h3>The multi-select panel</h3>
+<p>With two or more widgets selected, the properties panel switches to group actions:</p>
+<table>
+  <tr><th>Action</th><th>What it does</th></tr>
+  <tr><td>⧉ Duplicate</td><td>Clones every selected widget with a one-grid-step offset</td></tr>
+  <tr><td>🔒 Lock All / 🔓 Unlock All</td><td>Toggles the lock state of every selected widget in one tap — label reflects current state</td></tr>
+  <tr><td>🗑 Delete</td><td>Removes every selected widget</td></tr>
+  <tr><td>Align Left/Right/Top/Bottom</td><td>Snaps all selected widgets to the outermost edge of the group</td></tr>
+  <tr><td>Centre H / Centre V</td><td>Aligns all selected widgets to the group's horizontal or vertical midpoint</td></tr>
+  <tr><td>Distribute Horiz./Vert.</td><td>Spaces widgets evenly between the two outermost ones (needs 3+ selected)</td></tr>
+  <tr><td>Colour</td><td>Applies one colour to every selected widget's accent colour</td></tr>
+  <tr><td>Nudge X/Y</td><td>Moves every selected widget by the same pixel offset</td></tr>
+</table>
+<div class="callout info">
+  <strong>Locked widgets inside a group:</strong> a locked widget never moves during a
+  group-move, align, distribute, or nudge — but its current position still counts as a
+  reference edge for the others. See <a href="#locking">Widget Locking</a> below.
+</div>
+
+<!-- ───────────────────────── LOCKING ───────────────────────── -->
+<h2 id="locking">Widget Locking</h2>
+<p>
+  Lock a widget to prevent it from being moved or resized by accident while you keep
+  editing the rest of a busy layout.
+</p>
+<h3>Locking a widget</h3>
+<p>
+  Select the widget and check <strong>Locked</strong> at the top of the
+  <em>Position &amp; Size</em> section in its properties panel. The X/Y/W/H fields
+  dim immediately to show they're no longer editable.
+</p>
+<h3>What locking changes</h3>
+<table>
+  <tr><th>Blocked</th><th>Still allowed</th></tr>
+  <tr><td>Dragging to reposition</td><td>Editing label, colour, OSC address, and every other property</td></tr>
+  <tr><td>Resize handles (hidden entirely)</td><td>Selecting the widget — so you can find the unlock checkbox</td></tr>
+  <tr><td>Arrow-key nudging</td><td>Duplicating (the copy keeps the same lock state)</td></tr>
+  <tr><td>Group-move, bulk Align/Distribute/Nudge</td><td>Deleting</td></tr>
+</table>
+<p>
+  A small 🔒 badge appears in the widget's top-right corner in edit mode, and the
+  widget renders slightly dimmed. Both disappear in Perform mode, where edit chrome
+  is hidden regardless.
+</p>
+<p>
+  To lock or unlock several widgets at once, select them all and use
+  <strong>🔒 Lock All</strong> / <strong>🔓 Unlock All</strong> in the multi-select panel.
+</p>
 
 <!-- ───────────────────────── PAGES ───────────────────────── -->
 <h2 id="pages">Pages</h2>
@@ -616,12 +745,46 @@ node osc-bridge.js --verbose</code></pre>
   position displays, or any feedback-only control.
   A green <code>RX ONLY</code> badge appears in edit mode.
 </p>
-<h3>XY pad receive</h3>
+<h3>Receive behaviour by widget type</h3>
+<p>Each widget type does something different with an incoming value:</p>
+<table>
+  <tr><th>Widget</th><th>On receive</th></tr>
+  <tr><td>H-Slider / V-Slider / Knob</td><td>Updates the displayed value and fill position</td></tr>
+  <tr><td>Button</td><td>Snaps to its On or Off state based on a threshold</td></tr>
+  <tr><td>XY Pad</td><td>X and Y addresses update independently — drive each from a different source</td></tr>
+  <tr><td>Encoder</td><td>Updates the accumulated count and the visual dial angle</td></tr>
+  <tr><td>Transport</td><td>Lights or unlights the matching button — useful for showing playback state</td></tr>
+  <tr><td>Label / Text</td><td>Displays the incoming number as text — handy for counters and readouts</td></tr>
+  <tr><td>Colour Picker</td><td>Updates the matching R, G or B channel and re-syncs the SV pad dot and hue marker</td></tr>
+  <tr><td>Jog Wheel</td><td>Syncs the visual platter angle — only while you aren't touching it, so it never fights a scratch gesture</td></tr>
+</table>
+<div class="callout warn">
+  <strong>3-Pole Switch and Step Sequencer are send-only</strong> — they don't yet
+  react to incoming OSC. Everything else above supports feedback.
+</div>
+
+<h3>Receive-only widgets</h3>
 <p>
-  The XY pad has separate OSC addresses for X and Y. You can drive X and Y
-  from different addresses — for example <code>/xy/pan</code> and
-  <code>/xy/depth</code>.
+  Check <strong>Receive only</strong> in a widget's properties to make it display
+  incoming values without reacting to touch. Use this for VU meters, playback
+  position displays, or any feedback-only control.
+  A green <code>RX ONLY</code> badge appears in edit mode.
 </p>
+
+<h3>Send on connect</h3>
+<p>
+  The moment the WebSocket connects (including a reconnect after the bridge
+  restarts), the editor automatically broadcasts the current value of every
+  widget across every page. This keeps your target software in sync with
+  whatever state the interface was already showing, without you needing to
+  touch anything.
+</p>
+<div class="callout info">
+  Currently covers sliders, knobs, buttons, XY pads, encoders, transport, and
+  colour pickers. 3-Pole Switch, Jog Wheel, and Step Sequencer state isn't
+  re-broadcast on connect yet — if you reconnect mid-show, give those a touch
+  to resync them.
+</div>
 
 <!-- ───────────────────────── MONITOR ───────────────────────── -->
 <h2 id="monitor">OSC Monitor</h2>
@@ -672,11 +835,66 @@ https://yourdomain.com/index.html?kiosk&amp;theme=stealth</code></pre>
       Works on any device, any browser, with no prior setup. Large layouts with embedded
       images make longer URLs.</li>
   <li><strong>Theme override</strong> — bake a specific theme into the URL regardless of the device's saved preference.</li>
+  <li><strong>Exit PIN</strong> — set a 4-digit PIN required to leave kiosk mode (see below).</li>
 </ul>
 
+<h3>Exiting kiosk mode</h3>
+<p>
+  Press <kbd>Shift</kbd>+<kbd>Q</kbd> or <kbd>Escape</kbd>. If the PIN is left at
+  the default <code>0000</code>, it exits immediately. If you've set a custom PIN
+  in the Kiosk URL modal beforehand, a fullscreen numeric keypad appears instead —
+  enter the correct PIN to exit, or Escape/✕ to cancel and stay in kiosk.
+  An incorrect PIN shakes the dot indicators and clears for another attempt.
+</p>
+
+<h3>Page navigation in kiosk</h3>
+<p>
+  The page tab bar stays visible in kiosk mode (even with only one page), so
+  performers can switch between pages live. Page deletion is disabled while in
+  kiosk — the tab's ✕ close button is hidden, the page settings popover (which
+  holds the Delete option) doesn't open, and the delete function itself refuses
+  to run regardless of how it's triggered.
+</p>
+
 <div class="callout danger">
-  <strong>Security note:</strong> Anyone with the kiosk URL can view and control the layout,
-  but cannot access the editor. The editor is inaccessible unless the URL is changed to remove <code>?kiosk</code>.
+  <strong>Security note:</strong> the PIN protects the in-session
+  <kbd>Shift</kbd>+<kbd>Q</kbd>/<kbd>Escape</kbd> exit shortcut, not the browser
+  itself — someone with access to the address bar can still navigate away or
+  edit the URL directly. For a fully locked-down installation, pair kiosk mode
+  with your OS or browser's own kiosk/lockdown feature.
+</div>
+
+<!-- ───────────────────────── STANDALONE ───────────────────────── -->
+<h2 id="standalone">Standalone Export</h2>
+<p>
+  Click <strong>⬇ Standalone</strong> in the toolbar to download a complete,
+  self-contained copy of the editor with your current layout baked in.
+</p>
+<h3>How it differs from a Kiosk URL</h3>
+<p>
+  A Kiosk URL still depends on hosting <code>index.html</code> somewhere and
+  appending parameters to it. Standalone export produces an actual
+  <code>.html</code> file you can open directly from disk
+  (<code>file://</code>) in any browser — no server, no internet connection,
+  no URL to remember. It's the simplest way to hand off a finished installation
+  to a venue that just needs to double-click a file and go.
+</p>
+<h3>What's included</h3>
+<ul>
+  <li>Every page, every widget, every property — the full current layout.</li>
+  <li>Images (embedded as base64) and URL-based video — both persist fully.</li>
+  <li>Locally-selected video files (blob URLs) do <strong>not</strong> survive
+      the export — re-select them as URLs before exporting, or accept that
+      they'll need reselecting on the destination machine.</li>
+</ul>
+<p>
+  Re-exporting an already-standalone file produces a fresh copy with the
+  updated layout — the old embedded data is replaced cleanly, not duplicated.
+</p>
+<div class="callout tip">
+  <strong>Tip:</strong> the OSC bridge still needs to run on whatever machine
+  is driving your target software — standalone export only removes the
+  editor's own dependency on a server, not the bridge.
 </div>
 
 <!-- ───────────────────────── SAVE/LOAD ───────────────────────── -->
@@ -700,9 +918,11 @@ https://yourdomain.com/index.html?kiosk&amp;theme=stealth</code></pre>
   <tr><td><kbd>Tab</kbd></td><td>Toggle Edit / Perform mode</td></tr>
   <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Undo</td></tr>
   <tr><td><kbd>Ctrl</kbd>+<kbd>Y</kbd> or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Redo</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Duplicate selected widget(s), offset by one grid step (edit mode)</td></tr>
   <tr><td><kbd>Delete</kbd> or <kbd>Backspace</kbd></td><td>Delete selected widget (edit mode)</td></tr>
-  <tr><td><kbd>Escape</kbd></td><td>Deselect widget</td></tr>
-  <tr><td><kbd>↑ ↓ ← →</kbd></td><td>Nudge selected widget by grid size</td></tr>
+  <tr><td><kbd>Escape</kbd></td><td>Deselect widget — or, in kiosk mode, prompt to exit kiosk</td></tr>
+  <tr><td><kbd>Shift</kbd>+<kbd>Q</kbd></td><td>Exit kiosk mode (kiosk only — prompts for PIN if one is set)</td></tr>
+  <tr><td><kbd>↑ ↓ ← →</kbd></td><td>Nudge selected widget by grid size (ignored if the widget is locked)</td></tr>
   <tr><td><kbd>Shift</kbd>+<kbd>↑ ↓ ← →</kbd></td><td>Nudge by 1 px</td></tr>
   <tr><td><kbd>M</kbd></td><td>Open / close OSC Monitor</td></tr>
   <tr><td><kbd>P</kbd></td><td>Pause / resume Monitor logging</td></tr>
