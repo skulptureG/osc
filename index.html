@@ -368,7 +368,6 @@ html, body {
 
 /* Hide panel in perform/kiosk */
 body.performing #widget-panel { display: none; }
-body.kiosk #widget-panel { display: none; }
 
 /* ── Spring return indicator ── */
 @keyframes spring-pulse {
@@ -386,38 +385,19 @@ body.kiosk #widget-panel { display: none; }
 body.kiosk #toolbar       { display: none; }
 body.kiosk #widget-panel  { display: none; }
 body.kiosk #props         { display: none; }
-body.kiosk #page-bar      { display: none; }
 body.kiosk #page-settings { display: none !important; }
 body.kiosk #mon           { display: none !important; }
 body.kiosk #res-badge     { display: none; }
 body.kiosk #toast         { display: none; }
 body.kiosk .modal-bg      { display: none !important; }
-/* Fill the entire viewport — no toolbar, no page-bar */
-body.kiosk #layout        { top: 0 !important; bottom: 0 !important; }
+/* Page bar stays visible in kiosk for navigation, but locked down:
+   no delete (✕), no rename, no settings popover */
+body.kiosk .tab-close     { display: none !important; }
+body.kiosk .page-tab      { cursor: default; }
+/* Layout fills remaining space above the page-bar */
+body.kiosk #layout        { top: 0 !important; }
 /* No cursor for dedicated touch screens */
 body.kiosk *              { cursor: none !important; }
-
-/* Kiosk exit hint — shown for 3s on entry then fades */
-#kiosk-hint {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.8);
-  color: rgba(255,255,255,0.55);
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  padding: 6px 16px;
-  border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.1);
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0;
-  transition: opacity 0.6s;
-  white-space: nowrap;
-}
-#kiosk-hint.visible { opacity: 1; }
 
 /* ---- TRANSPORT WIDGET ---- */
 .wt-transport {
@@ -440,7 +420,7 @@ body.kiosk *              { cursor: none !important; }
   gap: 2px;
   border-radius: 4px;
   border: 1px solid;
-  background: rgba(0,0,0,0.45);
+  background: var(--ctrl-bg2, rgba(0,0,0,0.45));
   cursor: pointer;
   transition: background 0.07s, transform 0.06s;
   min-width: 0;
@@ -478,7 +458,94 @@ body.kiosk *              { cursor: none !important; }
 /* Edit mode: disable button press interaction */
 body:not(.performing) .tp-btn { pointer-events: none; }
 
-/* ============ CANVAS CONTEXT MENU ============ */
+/* ============ KIOSK PIN OVERLAY ============ */
+#pin-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+#pin-overlay.open { display: flex; }
+
+#pin-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+  min-width: 240px;
+}
+#pin-title {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+#pin-dots {
+  display: flex;
+  gap: 16px;
+}
+.pin-dot {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border2);
+  background: transparent;
+  transition: background 0.1s, border-color 0.1s;
+}
+.pin-dot.filled {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+#pin-error {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent2);
+  min-height: 16px;
+  letter-spacing: 0.06em;
+}
+#pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 64px);
+  gap: 10px;
+}
+.pin-key {
+  height: 56px;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.08s, transform 0.08s;
+  user-select: none; -webkit-user-select: none;
+}
+.pin-key:hover  { border-color: var(--accent); }
+.pin-key:active { transform: scale(0.92); background: var(--accent); color: #000; border-color: var(--accent); }
+.pin-cancel { font-size: 16px; color: var(--accent2); }
+.pin-cancel:hover { border-color: var(--accent2) !important; }
+.pin-back   { font-size: 18px; }
+@keyframes pin-shake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-10px); }
+  40%     { transform: translateX(10px); }
+  60%     { transform: translateX(-8px); }
+  80%     { transform: translateX(8px); }
+}
+#pin-dots.shake { animation: pin-shake 0.35s ease-in-out; }
+
 #canvas-menu {
   position: fixed;
   z-index: 800;
@@ -624,6 +691,8 @@ body:not(.performing) #res-badge { display: block; }
   /* important: inner content ignores pointer in edit mode */
 }
 .w:active { cursor: grabbing; }
+.w.locked { cursor: default; }
+.w.locked:active { cursor: default; }
 
 .w-inner {
   width: 100%; height: 100%;
@@ -639,6 +708,28 @@ body:not(.performing) #res-badge { display: block; }
   outline-offset: 0px;
   border-radius: 5px;
 }
+
+/* Locked widgets: no resize handles, dimmed slightly, padlock badge */
+.w.locked .rh { display: none !important; }
+.w.locked .w-inner { opacity: 0.85; }
+.lock-badge {
+  position: absolute;
+  top: -8px; right: -8px;
+  width: 18px; height: 18px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  display: none;
+  align-items: center; justify-content: center;
+  font-size: 9px;
+  color: var(--text-mid);
+  z-index: 25;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.w.locked .lock-badge { display: flex; }
+/* Lock badge only makes sense in edit mode — perform mode hides all edit chrome anyway */
+body.performing .lock-badge { display: none !important; }
 
 /* Resize handles */
 .rh {
@@ -674,6 +765,10 @@ body:not(.performing) #res-badge { display: block; }
   transition: background 0.06s, color 0.06s;
   position: relative;
   overflow: hidden;
+  /* Corner bevel — light edge top-left, dark edge bottom-right */
+  box-shadow:
+    inset 1px 1px 1px rgba(255,255,255,0.12),
+    inset -1px -1px 1px rgba(0,0,0,0.5);
 }
 .wt-button::after {
   content: '';
@@ -683,17 +778,21 @@ body:not(.performing) #res-badge { display: block; }
   pointer-events: none;
 }
 .wt-button.btn-on  { }
-.wt-button.btn-off { background: rgba(0,0,0,0.5); }
+.wt-button.btn-off { background: var(--ctrl-bg2, rgba(0,0,0,0.5)); }
 
 /* ---- TRANSPORT WIDGET ---- */
 .wt-slider {
   width: 100%; height: 100%;
   position: relative;
-  background: rgba(0,0,0,0.45);
+  background: var(--ctrl-bg2, rgba(0,0,0,0.45));
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 5px;
   overflow: hidden;
   cursor: crosshair;
+  /* Corner bevel — light edge top-left, dark edge bottom-right */
+  box-shadow:
+    inset 1px 1px 1px rgba(255,255,255,0.10),
+    inset -1px -1px 1px rgba(0,0,0,0.45);
 }
 .slider-fill {
   position: absolute;
@@ -723,6 +822,101 @@ body:not(.performing) #res-badge { display: block; }
   font-size: 10px; font-weight: 400;
   color: rgba(255,255,255,0.55);
   text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+
+/* ---- 3-POLE SWITCH WIDGET ---- */
+.wt-switch {
+  width: 100%; height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 4px;
+  box-sizing: border-box;
+}
+.sw-track {
+  position: relative;
+  flex-shrink: 0;
+  width: 28px;
+  height: calc(100% - 8px);
+  background: var(--ctrl-bg2, rgba(0,0,0,0.55));
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+/* Zone tap areas — each covers one third. Must re-enable pointer-events
+   since the parent .w-inner sets pointer-events:none (events normally
+   route to .w for dragging; interactive sub-elements opt back in). */
+.sw-zone {
+  position: absolute;
+  left: 0; right: 0;
+  height: 34%;
+  cursor: pointer;
+  z-index: 2;
+  pointer-events: auto;
+  touch-action: none;
+}
+.sw-zone-top    { top: 0; }
+.sw-zone-mid    { top: 33%; }
+.sw-zone-bot    { bottom: 0; }
+
+/* Disable in edit mode — same pattern as transport buttons */
+body:not(.performing) .sw-zone { pointer-events: none; }
+
+/* Detent marks */
+.sw-detent {
+  width: 8px;
+  height: 1px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+/* Lever/handle — purely visual, must not intercept taps meant for zones beneath it */
+.sw-lever {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--sw-color, #e8a020);
+  border: 2px solid rgba(255,255,255,0.25);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  transition: top 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 3;
+  pointer-events: none;
+}
+/* Labels */
+.sw-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: calc(100% - 8px);
+  padding: 4px 0;
+}
+.sw-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+  line-height: 1;
+  white-space: nowrap;
+}
+.sw-label.sw-active { opacity: 1; font-weight: 700; }
+.sw-name {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+  flex-shrink: 0;
 }
 
 /* ---- ENCODER WIDGET ---- */
@@ -786,11 +980,156 @@ body:not(.performing) #res-badge { display: block; }
   flex-shrink: 0;
 }
 
+/* ---- JOG WHEEL WIDGET ---- */
+.wt-jogwheel {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.jw-platter {
+  position: relative;
+  border-radius: 50%;
+  background: var(--ctrl-bg2, radial-gradient(circle at 35% 30%, #2c2c2c, #060606 75%));
+  border: 2px solid rgba(255,255,255,0.12);
+  box-shadow: inset 0 0 22px rgba(0,0,0,0.65), 0 2px 10px rgba(0,0,0,0.5);
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.jw-platter.jw-touched { cursor: grabbing; }
+/* Rotating layer — ticks ring + orientation notch. The centre label disc
+   sits on top and stays upright, like a CDJ platter with a static info area. */
+.jw-rotor {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.jw-rotor.jw-spin {
+  animation: jw-autospin linear infinite;
+  animation-duration: var(--jw-spin-dur, 4s);
+}
+@keyframes jw-autospin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.jw-ticks {
+  position: absolute; inset: 5%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255,255,255,0.16) 0deg 2deg, transparent 2deg 10deg);
+  -webkit-mask: radial-gradient(circle, transparent 84%, black 86%, black 100%);
+          mask: radial-gradient(circle, transparent 84%, black 86%, black 100%);
+}
+.jw-notch {
+  position: absolute;
+  left: 50%; top: 6%;
+  width: 6px; height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+.jw-center {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 46%; height: 46%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+.jw-label {
+  font-family: var(--mono);
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.55);
+  text-align: center;
+  max-width: 88%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.jw-touch-indicator {
+  position: absolute; bottom: 4%; left: 0; right: 0;
+  text-align: center;
+  font-family: var(--mono); font-size: 8px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--success);
+  opacity: 0; transition: opacity 0.1s;
+  pointer-events: none; z-index: 3;
+}
+.jw-platter.jw-touched .jw-touch-indicator { opacity: 1; }
+/* Disable in edit mode — same pattern as other custom-touch controls */
+body:not(.performing) .jw-platter { pointer-events: none; }
+
+/* ---- STEP SEQUENCER WIDGET ---- */
+.wt-sequencer {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.seq-header {
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+  min-height: 0;
+}
+.seq-name {
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+  flex: 1;
+}
+.seq-info {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.seq-grid {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  min-height: 0;
+}
+.seq-pad {
+  border-radius: 2px;
+  background: var(--seq-pad-off, rgba(255,255,255,0.07));
+  border: 1px solid rgba(255,255,255,0.07);
+  transition: background 0.06s;
+  cursor: pointer;
+  min-width: 0; min-height: 0;
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-user-select: none; user-select: none;
+}
+.seq-pad.seq-on {
+  background: var(--seq-pad-on, #e8a020);
+  border-color: rgba(255,255,255,0.2);
+  box-shadow: 0 0 4px var(--seq-pad-on, #e8a020);
+}
+.seq-pad:hover:not(.seq-on) {
+  background: rgba(255,255,255,0.15);
+}
+/* Row separators every 4 rows for visual grouping */
+.seq-pad.seq-row-sep {
+  margin-top: 1px;
+}
+/* Disable in edit mode */
+body:not(.performing) .seq-pad { pointer-events: none; cursor: default; }
+
 /* ---- XY PAD WIDGET ---- */
 .wt-xypad {
   width: 100%; height: 100%;
   position: relative;
-  background: rgba(0,0,0,0.5);
+  background: var(--ctrl-bg2, rgba(0,0,0,0.5));
   border: 1px solid;
   border-radius: 5px;
   overflow: hidden;
@@ -846,6 +1185,96 @@ body:not(.performing) #res-badge { display: block; }
   text-shadow: 0 1px 4px rgba(0,0,0,0.9);
   font-family: var(--mono);
 }
+
+/* ---- COLOUR PICKER WIDGET ---- */
+.wt-colorpicker {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  gap: 5px;
+  padding: 4px;
+  box-sizing: border-box;
+}
+.cp-top {
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
+.cp-name {
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-dim);
+  flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cp-swatch {
+  width: 16px; height: 16px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.25);
+  flex-shrink: 0;
+}
+.cp-rgbval {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-mid);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.cp-main {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  min-height: 0;
+}
+/* Saturation/Value pad — hue sets the base colour via inline style,
+   two layered gradients carve out white→hue (sat) and black→transparent (val) */
+.cp-sv {
+  flex: 1;
+  position: relative;
+  border-radius: 5px;
+  background-image:
+    linear-gradient(to top, #000, transparent),
+    linear-gradient(to right, #fff, transparent);
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: crosshair;
+  pointer-events: auto;
+  touch-action: none;
+  overflow: hidden;
+}
+.cp-sv-dot {
+  position: absolute;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.6);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
+/* Vertical hue strip */
+.cp-hue {
+  width: 16px;
+  flex-shrink: 0;
+  position: relative;
+  border-radius: 5px;
+  background: linear-gradient(to bottom, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: none;
+  overflow: hidden;
+}
+.cp-hue-marker {
+  position: absolute;
+  left: -2px; right: -2px;
+  height: 5px;
+  border-top: 2px solid #fff; border-bottom: 2px solid #fff;
+  box-shadow: 0 0 3px rgba(0,0,0,0.6);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+/* Disable interaction in edit mode — same pattern as transport/switch3 */
+body:not(.performing) .cp-sv,
+body:not(.performing) .cp-hue { pointer-events: none; }
 
 /* ---- RECEIVE-ONLY BADGE ---- */
 .rx-badge {
@@ -1110,30 +1539,8 @@ body:not(.performing) .wt-video.vid-empty {
 /* Adjust canvas-wrap and layout to leave room for tab bar */
 #layout { bottom: 34px; }
 
-/* Kiosk hides tab bar unless there are multiple pages */
-/* In kiosk with one page, layout already fills full screen via body.kiosk rules above.
-   Multi-page kiosk: page-bar is also hidden, so layout fills screen regardless. */
-body.kiosk.single-page #page-bar { display: none; }
-body.kiosk.single-page #layout   { bottom: 0; }
-
-/* ── Rubber-band selection rect ── */
-#sel-rect {
-  position: absolute;
-  border: 1px solid var(--accent);
-  background: rgba(232,160,32,0.08);
-  pointer-events: none;
-  z-index: 50;
-  display: none;
-  border-radius: 2px;
-}
-
-/* ── Multi-selection ring (shown alongside .sel) ── */
-.w.msel .w-inner {
-  outline: 2px solid var(--accent);
-  outline-offset: 0;
-  border-radius: 5px;
-  opacity: 0.92;
-}
+/* Page-bar is always visible in kiosk (even with a single page), for
+   consistent navigation context. Close (✕) is hidden separately above. */
 
 /* ── Multi-select action bar ── */
 #msel-bar {
@@ -1559,8 +1966,9 @@ body.performing #canvas-drop-hint { display: none; }
   <div class="tb-group" id="tg-file">
     <button class="tb-btn tb-btn-dim" id="btn-undo" title="Undo (Ctrl+Z)">↩</button>
     <button class="tb-btn tb-btn-dim" id="btn-redo" title="Redo (Ctrl+Y)">↪</button>
-    <button class="tb-btn" id="btn-save" title="Save layout">↓ Save</button>
-    <button class="tb-btn" id="btn-load" title="Load layout">↑ Load</button>
+    <button class="tb-btn" id="btn-save" title="Save layout JSON">↓ Save</button>
+    <button class="tb-btn" id="btn-load" title="Load layout JSON">↑ Load</button>
+    <button class="tb-btn" id="btn-download-standalone" title="Download standalone HTML — opens anywhere, no server needed">⬇ Standalone</button>
     <button class="tb-btn danger" id="btn-clear" title="Clear all">✕</button>
     <button class="tb-btn" id="btn-kiosk-url" title="Generate kiosk URL">⊞ Kiosk</button>
     <button class="tb-btn" id="btn-canvas-bg" title="Canvas background">🖼 BG</button>
@@ -1612,6 +2020,18 @@ body.performing #canvas-drop-hint { display: none; }
     </button>
     <button class="wp-btn" data-add="encoder">
       <span class="wp-icon">↻</span><span class="wp-label">Encoder</span>
+    </button>
+    <button class="wp-btn" data-add="colorpicker">
+      <span class="wp-icon">🎨</span><span class="wp-label">Colour Picker</span>
+    </button>
+    <button class="wp-btn" data-add="jogwheel">
+      <span class="wp-icon">⊙</span><span class="wp-label">Jog Wheel</span>
+    </button>
+    <button class="wp-btn" data-add="sequencer">
+      <span class="wp-icon">▦</span><span class="wp-label">Step Sequencer</span>
+    </button>
+    <button class="wp-btn" data-add="switch3">
+      <span class="wp-icon">⚡</span><span class="wp-label">3-Pole Switch</span>
     </button>
     <div class="wp-section-title" style="margin-top:4px">Display</div>
     <button class="wp-btn" data-add="label">
@@ -1764,6 +2184,18 @@ body.performing #canvas-drop-hint { display: none; }
   <button class="cmenu-item" data-add="encoder">
     <span class="ci-icon">↻</span> Encoder
   </button>
+  <button class="cmenu-item" data-add="colorpicker">
+    <span class="ci-icon">🎨</span> Colour Picker
+  </button>
+  <button class="cmenu-item" data-add="jogwheel">
+    <span class="ci-icon">⊙</span> Jog Wheel
+  </button>
+  <button class="cmenu-item" data-add="sequencer">
+    <span class="ci-icon">▦</span> Step Sequencer
+  </button>
+  <button class="cmenu-item" data-add="switch3">
+    <span class="ci-icon">⚡</span> 3-Pole Switch
+  </button>
   <div class="cmenu-divider"></div>
   <div class="cmenu-title">Display</div>
   <button class="cmenu-item" data-add="label">
@@ -1822,6 +2254,14 @@ body.performing #canvas-drop-hint { display: none; }
     <div style="border-top:1px solid var(--border);margin:14px 0 10px"></div>
 
     <div class="modal-row">
+      <label>Exit PIN <span style="color:var(--text-dim);font-size:10px">(4 digits — required to exit kiosk, default 0000 = no PIN)</span></label>
+      <input type="text" class="pi" id="kiosk-pin"
+        maxlength="4" pattern="[0-9]{4}" inputmode="numeric"
+        value="0000" placeholder="0000"
+        style="width:80px;letter-spacing:0.3em;font-family:var(--mono);font-size:16px;text-align:center">
+    </div>
+
+    <div class="modal-row">
       <label>Embed layout JSON in URL (self-contained, no localStorage needed)</label>
       <div style="display:flex;gap:6px;align-items:center">
         <input type="checkbox" id="kiosk-embed" style="flex-shrink:0">
@@ -1849,6 +2289,11 @@ body.performing #canvas-drop-hint { display: none; }
         <option value="oscjson">osc.js — {address, args:[{type,value}]}</option>
         <option value="plain">Plain text — /address value</option>
       </select>
+    </div>
+    <div class="modal-row" style="align-items:center">
+      <label>Auto-reconnect</label>
+      <input type="checkbox" id="inp-ws-autoreconnect" style="width:auto;flex:none"
+        title="Automatically retry the connection if it drops unexpectedly">
     </div>
     <div class="modal-note" id="osc-bridge-note">
       <strong>Browsers can't send UDP OSC directly.</strong> You need a local WebSocket→OSC bridge.<br><br>
@@ -1893,7 +2338,36 @@ body.performing #canvas-drop-hint { display: none; }
 
 <!-- Hidden file input -->
 <input type="file" id="file-inp" accept=".json">
-<div id="kiosk-hint">Press Ctrl+K to exit kiosk</div>
+<div id="kiosk-hint">Press Shift+Q or Esc to exit</div>
+
+<!-- ============ KIOSK PIN OVERLAY ============ -->
+<div id="pin-overlay">
+  <div id="pin-box">
+    <div id="pin-title">Enter PIN to exit</div>
+    <div id="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div id="pin-error"></div>
+    <div id="pin-pad">
+      <button class="pin-key" data-d="1">1</button>
+      <button class="pin-key" data-d="2">2</button>
+      <button class="pin-key" data-d="3">3</button>
+      <button class="pin-key" data-d="4">4</button>
+      <button class="pin-key" data-d="5">5</button>
+      <button class="pin-key" data-d="6">6</button>
+      <button class="pin-key" data-d="7">7</button>
+      <button class="pin-key" data-d="8">8</button>
+      <button class="pin-key" data-d="9">9</button>
+      <button class="pin-key pin-cancel" id="pin-cancel">✕</button>
+      <button class="pin-key" data-d="0">0</button>
+      <button class="pin-key pin-back" id="pin-back">⌫</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1923,17 +2397,20 @@ const S = {
   mode:     'edit',
   pages:    [],
   pageId:   null,
-  sel:      null,
-  selIds:   new Set(),  // multi-select widget id set
+  // sel / selIds are NOT declared here — they're per-page accessors,
+  // defined below via Object.defineProperty (mirrors the S.widgets pattern).
   gridSize: 20,
   showGrid: true,
   snap:     true,
   wsUrl:    localStorage.getItem('osc_ws_url') || 'ws://localhost:8080',
   wsFmt:    localStorage.getItem('osc_ws_fmt') || 'json',
+  wsAutoReconnect: localStorage.getItem('osc_ws_autoreconnect') !== 'false', // default true
   ws:       null,
   wsState:  'disconnected',
   idCtr:    1,
-  dirty:    false,  // true whenever unsaved changes exist
+  dirty:    false,
+  kiosk:    false,
+  pin:      '0000',  // PIN to exit kiosk ('0000' = any PIN accepted)
   res: {
     locked: false,
     w:      1920,
@@ -1952,6 +2429,37 @@ function activePage() {
 Object.defineProperty(S, 'widgets', {
   get() { const p = activePage(); return p ? p.widgets : []; },
   set(v) { const p = activePage(); if (p) p.widgets = v; },
+});
+
+// S.sel / S.selIds now refer to the active page's selection state.
+// This is the fix for a real bug: previously these lived top-level on S,
+// so multi-selecting on Page 1 and switching to Page 2 (via any code path
+// that changes S.pageId directly — deletePage, undo/redo restoring a
+// snapshot, etc.) could leave stale widget IDs pointing at a page that's
+// no longer active. Making them per-page accessors closes this off
+// structurally: whichever page is active, S.sel/S.selIds can only ever
+// resolve against that page's own storage.
+//
+// Getters defensively repair pages whose sel/selIds are missing or
+// invalid — this covers pages loaded from older saved JSON (no selIds
+// key at all) and pages cloned via JSON.parse(JSON.stringify(...)) in
+// duplicatePage() (a Set doesn't survive a JSON round-trip; it comes
+// back as a quasi-empty object, not a Set instance).
+Object.defineProperty(S, 'sel', {
+  get() { const p = activePage(); return p ? (p.sel ?? null) : null; },
+  set(v) { const p = activePage(); if (p) p.sel = v; },
+});
+Object.defineProperty(S, 'selIds', {
+  get() {
+    const p = activePage();
+    if (!p) return new Set(); // no active page — harmless throwaway Set
+    if (!(p.selIds instanceof Set)) p.selIds = new Set();
+    return p.selIds;
+  },
+  set(v) {
+    const p = activePage();
+    if (p) p.selIds = (v instanceof Set) ? v : new Set(v || []);
+  },
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -2035,6 +2543,16 @@ function onDown(e) {
 
     if (!w) return;
 
+    // Locked widgets: selectable (so the user can find the unlock toggle
+    // in props), but never draggable or resizable via any mechanism —
+    // resize handle, group-move, or a normal single-widget drag.
+    if (w.locked) {
+      clearMultiSel();
+      select(id);
+      try { e.target.setPointerCapture(pid); } catch(_) {}
+      return;
+    }
+
     // ── Resize handle ──
     if (isRH) {
       clearMultiSel();
@@ -2101,8 +2619,8 @@ function onDown(e) {
   }
 
   // For most widgets: first finger owns the widget, extras are ignored.
-  // xypad, transport and encoder allow multiple simultaneous touches.
-  if (w.type !== 'xypad' && w.type !== 'transport' && w.type !== 'encoder') {
+  // xypad, transport, encoder and sequencer allow multiple simultaneous touches.
+  if (w.type !== 'xypad' && w.type !== 'transport' && w.type !== 'encoder' && w.type !== 'sequencer') {
     for (const t of TOUCHES.values()) {
       if (t.id === id) return;
     }
@@ -2137,7 +2655,61 @@ function onDown(e) {
   } else if (w.type === 'encoder') {
     t.ox    = cx;
     t.oy    = cy;
-    t.accum = 0;   // pixel accumulator
+    t.accum = 0;
+
+  } else if (w.type === 'jogwheel') {
+    // Track angle from the platter's centre — pure client-space math
+    // (ratio/angle calculations are scale-invariant, so no canvas-space
+    // conversion is needed even under a locked, scaled resolution).
+    const rect = gel(id).getBoundingClientRect();
+    const ccx  = rect.left + rect.width  / 2;
+    const ccy  = rect.top  + rect.height / 2;
+    t.jwAngle  = Math.atan2(e.clientY - ccy, e.clientX - ccx) * 180 / Math.PI;
+    w._touched = true;
+    if (w.oscTouch) sendOSC(w.oscTouch, 1);
+    refreshWidget(w);
+
+  } else if (w.type === 'sequencer') {
+    const padEl = e.target.closest('.seq-pad');
+    if (!padEl) return;
+    const idx  = parseInt(padEl.dataset.idx);
+    if (isNaN(idx)) return;
+    if (!w.steps) w.steps = new Array((w.rows||4) * (w.cols||16)).fill(false);
+    const newState = !w.steps[idx];
+    w.steps[idx]   = newState;
+    t.seqPainting  = true;
+    t.seqState     = newState;
+    const cols = w.cols || 16;
+    sendOSC(`${w.osc}/${Math.floor(idx/cols)+1}/${idx%cols+1}`,
+            newState ? (w.onVal??1) : (w.offVal??0));
+    if (!w.toggle) { t.seqMomIdx = idx; }
+    refreshWidget(w);
+    TOUCHES.set(pid, t);
+    try { e.target.setPointerCapture(pid); } catch(_) {}
+    if (S.mode === 'perform') gel(id)?.classList.add('pt-active');
+    return;
+
+  } else if (w.type === 'switch3') {
+    const zoneEl = e.target.closest('[data-swpos]');
+    const tap    = zoneEl ? parseInt(zoneEl.dataset.swpos) : 0;
+    if (tap === -1) {
+      // TOP — HOLD toggle
+      const newPos = w.position === -1 ? 0 : -1;
+      w.position = newPos;
+      sendOSC(w.osc, newPos === -1 ? (w.holdValue ?? 1) : (w.offValue ?? 0));
+      refreshWidget(w);
+    } else if (tap === 0) {
+      // MIDDLE — OFF
+      w.position = 0;
+      sendOSC(w.osc, w.offValue ?? 0);
+      refreshWidget(w);
+    } else {
+      // BOTTOM — MOMENTARY
+      w.position = 1;
+      t.swMomentary = true;
+      sendOSC(w.osc, w.momValue ?? 1);
+      refreshWidget(w);
+    }
 
   } else if (w.type === 'xypad') {
     w.valueX = clamp(denorm(clamp((cx - w.x) / w.w, 0, 1), w.minX, w.maxX), w.minX, w.maxX);
@@ -2145,6 +2717,22 @@ function onDown(e) {
     sendOSC(w.oscX, w.valueX);
     sendOSC(w.oscY, w.valueY);
     refreshWidget(w);
+
+  } else if (w.type === 'colorpicker') {
+    // Determine which sub-area was tapped — SV pad or hue strip.
+    // Uses raw client coords against the sub-element's own rect (not
+    // canvas-space) since the ratio is scale-invariant either way.
+    const svEl  = e.target.closest('.cp-sv');
+    const hueEl = e.target.closest('.cp-hue');
+    if (svEl) {
+      t.cpZone = 'sv';
+      cpApplySV(w, e.clientX, e.clientY, svEl.getBoundingClientRect());
+    } else if (hueEl) {
+      t.cpZone = 'hue';
+      cpApplyHue(w, e.clientY, hueEl.getBoundingClientRect());
+    } else {
+      return; // tapped the info bar / dead zone — don't start a drag
+    }
   }
 
   TOUCHES.set(pid, t);
@@ -2153,6 +2741,8 @@ function onDown(e) {
   if (S.mode === 'perform') {
     cancelSpring(id);
     gel(id)?.classList.add('pt-active');
+    w._active = true; // drives liveColor() — reverted in onUp
+    refreshWidget(w);
   }
 }
 
@@ -2183,11 +2773,15 @@ function onMove(e) {
     }
 
   } else if (t.type === 'gmove') {
-    // Move all selected widgets together
+    // Move all selected widgets together — except any that are locked.
+    // The drag itself can only be *initiated* by clicking an unlocked
+    // member (locked widgets refuse to start a gmove in onDown), but a
+    // locked widget can still ride along inside the selection set, so it
+    // must be explicitly skipped here too.
     const dx = snap(cx - t.ox), dy = snap(cy - t.oy);
     S.selIds.forEach(wid => {
       const pw = gw(wid);
-      if (!pw || !t.origins[wid]) return;
+      if (!pw || pw.locked || !t.origins[wid]) return;
       pw.x = Math.max(0, t.origins[wid].x + dx);
       pw.y = Math.max(0, t.origins[wid].y + dy);
       refreshWidget(pw);
@@ -2281,6 +2875,43 @@ function onMove(e) {
       refreshWidget(w);
     }
 
+  } else if (t.type === 'jogwheel') {
+    const rect = gel(t.id).getBoundingClientRect();
+    const ccx  = rect.left + rect.width  / 2;
+    const ccy  = rect.top  + rect.height / 2;
+    const newAngle = Math.atan2(e.clientY - ccy, e.clientX - ccx) * 180 / Math.PI;
+
+    // Shortest-path delta, correcting for the -180/180 wraparound
+    let delta = newAngle - t.jwAngle;
+    if (delta > 180)  delta -= 360;
+    if (delta < -180) delta += 360;
+    t.jwAngle = newAngle;
+
+    // Accumulate visual rotation (kept bounded 0-360, harmless for CSS rotate())
+    w._rotation = ((w._rotation ?? 0) + delta) % 360;
+    if (w._rotation < 0) w._rotation += 360;
+
+    const sens = w.sensitivity ?? 1;
+    const out  = (w.sendUnit === 'rev') ? (delta / 360) * sens : delta * sens;
+    sendOSC(w.osc, out);
+    refreshWidget(w);
+
+  } else if (t.type === 'sequencer' && t.seqPainting) {
+    // Drag-to-paint: use elementFromPoint to find which pad is under the finger
+    const padEl = document.elementFromPoint(e.clientX, e.clientY);
+    const seqPad = padEl?.closest('.seq-pad');
+    if (seqPad && seqPad.dataset.idx !== undefined) {
+      const idx = parseInt(seqPad.dataset.idx);
+      if (!isNaN(idx) && w.steps[idx] !== t.seqState) {
+        if (!w.steps) w.steps = new Array((w.rows||4)*(w.cols||16)).fill(false);
+        w.steps[idx] = t.seqState;
+        const cols = w.cols || 16;
+        sendOSC(`${w.osc}/${Math.floor(idx/cols)+1}/${idx%cols+1}`,
+                t.seqState ? (w.onVal??1) : (w.offVal??0));
+        refreshWidget(w);
+      }
+    }
+
   } else if (t.type === 'xypad') {
     const r = gel(t.id).getBoundingClientRect();
     w.valueX = clamp(denorm(clamp((cx - r.left) / r.width,       0, 1), w.minX, w.maxX), w.minX, w.maxX);
@@ -2288,6 +2919,18 @@ function onMove(e) {
     sendOSC(w.oscX, w.valueX);
     sendOSC(w.oscY, w.valueY);
     refreshWidget(w);
+
+  } else if (t.type === 'colorpicker') {
+    // Re-query the sub-element each move (DOM is fully rebuilt per refresh,
+    // so any cached reference from onDown would go stale after the first tick)
+    const wEl = gel(t.id);
+    if (t.cpZone === 'sv') {
+      const svEl = wEl?.querySelector('.cp-sv');
+      if (svEl) cpApplySV(w, e.clientX, e.clientY, svEl.getBoundingClientRect());
+    } else if (t.cpZone === 'hue') {
+      const hueEl = wEl?.querySelector('.cp-hue');
+      if (hueEl) cpApplyHue(w, e.clientY, hueEl.getBoundingClientRect());
+    }
   }
 }
 
@@ -2308,6 +2951,38 @@ function onUp(e) {
   // Snapshot after move or resize completes
   if (t.type === 'move' || t.type === 'resize' || t.type === 'gmove') {
     histPush();
+  }
+
+  // Switch3 momentary bottom — spring back to centre on release
+  if (t.swMomentary) {
+    const wSw = gw(t.id);
+    if (wSw && wSw.type === 'switch3') {
+      wSw.position = 0;
+      sendOSC(wSw.osc, wSw.offValue ?? 0);
+      refreshWidget(wSw);
+    }
+  }
+
+  // Jog wheel — send touch-off and clear touched state
+  if (t.type === 'jogwheel') {
+    const wJw = gw(t.id);
+    if (wJw) {
+      wJw._touched = false;
+      if (wJw.oscTouch) sendOSC(wJw.oscTouch, 0);
+      refreshWidget(wJw);
+    }
+  }
+
+  // Sequencer momentary mode — reset last-touched pad to off on release
+  if (t.type === 'sequencer' && !gw(t.id)?.toggle && t.seqMomIdx !== undefined) {
+    const wSq = gw(t.id);
+    if (wSq && wSq.steps) {
+      wSq.steps[t.seqMomIdx] = false;
+      const cols = wSq.cols || 16;
+      sendOSC(`${wSq.osc}/${Math.floor(t.seqMomIdx/cols)+1}/${t.seqMomIdx%cols+1}`,
+              wSq.offVal ?? 0);
+      refreshWidget(wSq);
+    }
   }
 
   // Finalise rubber-band selection
@@ -2337,6 +3012,8 @@ function onUp(e) {
       .some(([otherId, ot]) => otherId !== e.pointerId && ot.id === t.id);
     if (!stillActive) {
       gel(t.id)?.classList.remove('pt-active');
+      const wRel = gw(t.id);
+      if (wRel) { wRel._active = false; refreshWidget(wRel); } // revert liveColor()
       // Trigger spring return on eligible perform-mode widgets
       if (S.mode === 'perform') {
         const wSp = gw(t.id);
@@ -2481,11 +3158,25 @@ function makeWidget(type, x, y) {
                   bgImage: '', bgImageSize: 'cover',
                   bgImagePosition: 'center', bgImageOpacity: 1,
                   bgMediaType: 'image',
+                  bg2: {
+                    enabled: false,   // secondary background colour, opt-in
+                    color: '#1a1a1a',
+                    opacity: 1,
+                  },
+                  activeColor: {
+                    enabled: false,   // swap to this colour while touched/dragged, opt-in
+                    color: '#ffffff',
+                  },
+                  shadow: {
+                    enabled: false,
+                    x: 0, y: 6, blur: 18, spread: 0,
+                    color: '#000000', opacity: 0.55,
+                  },
                   spring: {
-                    enabled:  false,  // spring return active?
-                    target:   0,      // value to return to
-                    duration: 400,    // ms for full return
-                    easing:   'bounce', // 'linear' | 'ease' | 'bounce' | 'elastic'
+                    enabled:  false,
+                    target:   0,
+                    duration: 400,
+                    easing:   'bounce',
                   } }; // 'image' | 'video'
   switch(type) {
     case 'button':
@@ -2499,22 +3190,81 @@ function makeWidget(type, x, y) {
     case 'encoder':
       return { ...base, w:90, h:110,
                label: 'Encoder',
-               step:       1,        // OSC value sent per tick
-               pxPerTick:  8,        // pixels of drag = 1 tick
-               acceleration: true,   // faster drag → bigger step multiplier
-               mode:       'relative', // 'relative' (sends ±step) | 'absolute' (sends accumulated 0-n)
-               sendUp:     1,        // value sent for CW (up)
-               sendDown:  -1,        // value sent for CCW (down)
-               // Runtime state (not persisted, reset on load)
-               _encAngle:  -90,      // visual angle degrees (pointer starts at top)
-               _encSteps:  0,        // accumulated steps count (absolute mode)
-               _encDir:    0 };      // last direction: +1 CW, -1 CCW
+               step:       1,
+               pxPerTick:  8,
+               acceleration: true,
+               mode:       'relative',
+               sendUp:     1,
+               sendDown:  -1,
+               _encAngle:  -90,
+               _encSteps:  0,
+               _encDir:    0 };
+    case 'jogwheel':
+      return { id, type, x, y, w: 200, h: 200,
+               label: 'Jog',
+               color: '#e8a020',
+               osc:      '/osc/1/jog/' + id.slice(1),
+               oscTouch: '/osc/1/jog/' + id.slice(1) + '/touch',
+               oscPos:   '',
+               sensitivity: 1.0,
+               sendUnit: 'deg',
+               autoSpin: false,
+               autoSpinSpeed: 4,
+               receiveOnly: false,
+               _rotation: 0,
+               _touched: false,
+               bg2: { enabled: false, color: '#1a1a1a', opacity: 1 },
+               activeColor: { enabled: false, color: '#ffffff' },
+             };
+    case 'sequencer': {
+      const cols = 16, rows = 4;
+      return { id, type, x, y, w: 360, h: 140,
+               label: 'Seq',
+               color: '#e8a020',
+               osc:     '/osc/1/seq/' + id.slice(1), // pad address = osc + '/{row+1}/{col+1}'
+               cols,    // columns (1–128)
+               rows,    // rows    (1–128)
+               steps:   new Array(cols * rows).fill(false), // flat [row*cols + col]
+               onVal:   1,
+               offVal:  0,
+               toggle:  true,   // true = toggle; false = momentary (sends off on release)
+               receiveOnly: false,
+             };
+    }
+    case 'switch3':
+      return { id, type, x, y, w: 80, h: 140,
+               label: 'Switch',
+               color: '#e8a020',
+               osc: '/osc/1/switch3/' + id.slice(1),
+               position:  0,      // -1 = top/HOLD, 0 = mid/OFF, 1 = bot/MOM
+               holdValue: 1,      // OSC value when top is engaged (held)
+               offValue:  0,      // OSC value at centre
+               momValue:  1,      // OSC value while bottom is pressed
+               showLabel: true,
+               topLabel:  'HOLD',
+               midLabel:  'OFF',
+               botLabel:  'MOM',
+               bg2: { enabled: false, color: '#1a1a1a', opacity: 1 },
+               activeColor: { enabled: false, color: '#ffffff' },
+             };
     case 'xypad':
       return { ...base, w:200, h:200,
                oscX: '/osc/1/xypad/' + id.slice(1) + '/x',
                oscY: '/osc/1/xypad/' + id.slice(1) + '/y',
                valueX: 0.5, valueY: 0.5,
                minX: 0, maxX: 1, minY: 0, maxY: 1 };
+    case 'colorpicker':
+      return { id, type, x, y, w: 190, h: 180,
+               label: 'Color',
+               hue: 0, sat: 1, val: 1,   // working HSV state, driven by touch
+               r: 255, g: 0, b: 0,       // derived RGB, kept in sync, used for OSC + swatch
+               oscR: '/osc/1/color/' + id.slice(1) + '/r',
+               oscG: '/osc/1/color/' + id.slice(1) + '/g',
+               oscB: '/osc/1/color/' + id.slice(1) + '/b',
+               outputRange: '255',       // '255' (0-255 int) | '1' (0-1 float)
+               receiveOnly: false,
+               bg2: { enabled: false, color: '#1a1a1a', opacity: 1 },
+             };
     case 'transport': {
       const prefix = '/transport';
       return { id, type, x, y, w: 380, h: 72,
@@ -2523,6 +3273,7 @@ function makeWidget(type, x, y) {
                momentary: true,
                iconScale: 1.0,   // 0.5 – 2.0 multiplier on base icon size
                showLabel: true,  // show text label under each icon
+               bg2: { enabled: false, color: '#1a1a1a', opacity: 1 },
                buttons: [
                  { key:'home',  label:'⏮', name:'Home',  osc: prefix+'/home',  enabled:true, active:false },
                  { key:'prev',  label:'⏪', name:'Back',  osc: prefix+'/prev',  enabled:true, active:false },
@@ -2536,6 +3287,7 @@ function makeWidget(type, x, y) {
     }
     case 'label':
       return { id, type, x, y, w:240, h:44,
+               osc: '/osc/1/label/' + id.slice(1),  // for OSC receive
                text: 'SECTION LABEL',
                fontSize: 15, fontWeight: 'bold',
                textAlign: 'left', textValign: 'middle',
@@ -2545,6 +3297,7 @@ function makeWidget(type, x, y) {
                borderStyle: 'none', borderColor: '#444444', borderWidth: 1, borderRadius: 4 };
     case 'text':
       return { id, type, x, y, w:240, h:80,
+               osc: '/osc/1/text/' + id.slice(1),   // for OSC receive
                text: 'Text block. Edit in properties.',
                fontSize: 12, fontWeight: 'normal',
                textAlign: 'left', textValign: 'top',
@@ -2592,6 +3345,7 @@ function encoderSVG(w) {
   const TICKS      = 24;
   const TICK_MAJOR = 8; // every Nth tick is major
   const ticks      = [];
+  const lc         = liveColor(w);
   for (let i = 0; i < TICKS; i++) {
     const a   = (i / TICKS) * 360;
     const rad = a * Math.PI / 180;
@@ -2603,7 +3357,7 @@ function encoderSVG(w) {
     const x2  = +(cx + r2 * Math.cos(rad)).toFixed(2);
     const y2  = +(cy + r2 * Math.sin(rad)).toFixed(2);
     ticks.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
-      stroke="${isMajor ? w.color : 'rgba(128,128,128,0.25)'}"
+      stroke="${isMajor ? lc : 'rgba(128,128,128,0.25)'}"
       stroke-width="${isMajor ? 1.5 : 0.8}" stroke-linecap="round"/>`);
   }
 
@@ -2629,16 +3383,16 @@ function encoderSVG(w) {
 
   return `<svg viewBox="0 0 ${svgSize} ${svgSize}" width="${svgSize}" height="${svgSize}" xmlns="http://www.w3.org/2000/svg">
     <!-- Outer ring track -->
-    <circle cx="${cx}" cy="${cy}" r="${Ro + 1}" fill="var(--widget-knob-body)" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${Ro + 1}" fill="var(--ctrl-bg2, var(--widget-knob-body))" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
     <!-- Tick marks -->
     ${ticks.join('\n    ')}
     <!-- Body -->
-    <circle cx="${cx}" cy="${cy}" r="${Rb}" fill="var(--widget-knob-center)" stroke="${w.color}22" stroke-width="1.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${Rb}" fill="var(--widget-knob-center)" stroke="${lc}22" stroke-width="1.5"/>
     <!-- Inner hole -->
-    <circle cx="${cx}" cy="${cy}" r="${Ri}" fill="var(--widget-knob-body)" stroke="rgba(128,128,128,0.08)" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${Ri}" fill="var(--ctrl-bg2, var(--widget-knob-body))" stroke="rgba(128,128,128,0.08)" stroke-width="1"/>
     <!-- Pointer -->
     <line x1="${pix}" y1="${piy}" x2="${pox}" y2="${poy}"
-      stroke="${w.color}" stroke-width="${strokeW}" stroke-linecap="round"/>
+      stroke="${lc}" stroke-width="${strokeW}" stroke-linecap="round"/>
     <!-- Accumulated value text -->
     <text x="${cx}" y="${(cy + fs * 0.38).toFixed(1)}" text-anchor="middle"
       font-family="JetBrains Mono,monospace" font-size="${fs}" font-weight="500"
@@ -2677,13 +3431,14 @@ function knobSVG(w) {
                       +(cy + lInner * Math.sin(vAngle*Math.PI/180)).toFixed(2)];
   const fs = Math.max(7, Math.min(11, svgSize * 0.15));
   const sw = Math.max(2.5, Math.min(5, svgSize * 0.065));
+  const lc = liveColor(w);
 
   return `<svg viewBox="0 0 ${svgSize} ${svgSize}" width="${svgSize}" height="${svgSize}" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="${cx}" cy="${cy}" r="${R + sw + 3}" fill="var(--widget-knob-body)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${R + sw + 3}" fill="var(--ctrl-bg2, var(--widget-knob-body))" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
     <path d="${bgPath}" fill="none" stroke="rgba(128,128,128,0.15)" stroke-width="${sw}" stroke-linecap="round"/>
-    ${valPath ? `<path d="${valPath}" fill="none" stroke="${w.color}" stroke-width="${sw}" stroke-linecap="round"/>` : ''}
+    ${valPath ? `<path d="${valPath}" fill="none" stroke="${lc}" stroke-width="${sw}" stroke-linecap="round"/>` : ''}
     <circle cx="${cx}" cy="${cy}" r="${R*0.42}" fill="var(--widget-knob-center)" stroke="rgba(128,128,128,0.08)" stroke-width="1"/>
-    <line x1="${lix}" y1="${liy}" x2="${lox}" y2="${loy}" stroke="${w.color}" stroke-width="2" stroke-linecap="round" opacity="0.95"/>
+    <line x1="${lix}" y1="${liy}" x2="${lox}" y2="${loy}" stroke="${lc}" stroke-width="2" stroke-linecap="round" opacity="0.95"/>
     <text x="${cx}" y="${(cy+fs*0.35).toFixed(1)}" text-anchor="middle"
       font-family="JetBrains Mono,monospace" font-size="${fs}" font-weight="500"
       fill="var(--text-mid)">${fmtVal(w.value, w.min, w.max)}</text>
@@ -2697,6 +3452,108 @@ function fitForSize(s) {
   if (s === '100% 100%')       return 'fill';
   if (s === 'auto')            return 'none';
   return 'cover';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  COLOUR PICKER — HSV/RGB conversion + interaction helpers
+// ═══════════════════════════════════════════════════════════
+function hsvToRgb(h, s, v) {
+  h = ((h % 360) + 360) % 360;
+  const c = v * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = v - c;
+  let r1, g1, b1;
+  if      (h < 60)  { r1 = c; g1 = x; b1 = 0; }
+  else if (h < 120) { r1 = x; g1 = c; b1 = 0; }
+  else if (h < 180) { r1 = 0; g1 = c; b1 = x; }
+  else if (h < 240) { r1 = 0; g1 = x; b1 = c; }
+  else if (h < 300) { r1 = x; g1 = 0; b1 = c; }
+  else              { r1 = c; g1 = 0; b1 = x; }
+  return [
+    Math.round((r1 + m) * 255),
+    Math.round((g1 + m) * 255),
+    Math.round((b1 + m) * 255),
+  ];
+}
+
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if      (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else                 h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  const v = max;
+  const s = max === 0 ? 0 : d / max;
+  return [h, s, v];
+}
+
+function rgbToHex(r, g, b) {
+  const clampByte = v => Math.max(0, Math.min(255, Math.round(v)));
+  return '#' + [r, g, b].map(v => clampByte(v).toString(16).padStart(2, '0')).join('');
+}
+
+function hexToRgb(hex) {
+  hex = (hex || '#000000').replace('#', '');
+  return [
+    parseInt(hex.slice(0, 2), 16) || 0,
+    parseInt(hex.slice(2, 4), 16) || 0,
+    parseInt(hex.slice(4, 6), 16) || 0,
+  ];
+}
+
+// Recompute w.r/g/b from the current working HSV state
+function cpRecalcRGB(w) {
+  const [r, g, b] = hsvToRgb(w.hue ?? 0, w.sat ?? 1, w.val ?? 1);
+  w.r = r; w.g = g; w.b = b;
+}
+
+// Broadcast the current colour as three separate OSC messages,
+// scaled to the widget's configured output range (0-255 int, or 0-1 float)
+function cpSendAll(w) {
+  const norm = w.outputRange === '1';
+  const r = norm ? +((w.r ?? 0) / 255).toFixed(4) : (w.r ?? 0);
+  const g = norm ? +((w.g ?? 0) / 255).toFixed(4) : (w.g ?? 0);
+  const b = norm ? +((w.b ?? 0) / 255).toFixed(4) : (w.b ?? 0);
+  sendOSC(w.oscR, r);
+  sendOSC(w.oscG, g);
+  sendOSC(w.oscB, b);
+}
+
+// Apply a tap/drag position within the SV pad's own bounding rect.
+// Uses raw client coordinates against the sub-element's rect directly —
+// this ratio is scale-invariant, so it works correctly even when the
+// canvas is scaled under a locked resolution (no clientToCanvas needed).
+function cpApplySV(w, clientX, clientY, rect) {
+  if (!rect || !rect.width || !rect.height) return;
+  w.sat = clamp((clientX - rect.left) / rect.width, 0, 1);
+  w.val = clamp(1 - (clientY - rect.top) / rect.height, 0, 1);
+  cpRecalcRGB(w);
+  refreshWidget(w);
+  cpSendAll(w);
+}
+
+function cpApplyHue(w, clientY, rect) {
+  if (!rect || !rect.height) return;
+  w.hue = clamp((clientY - rect.top) / rect.height, 0, 1) * 360;
+  cpRecalcRGB(w);
+  refreshWidget(w);
+  cpSendAll(w);
+}
+
+// Resolves which colour a widget's "live" indicator (fill, pointer, dot,
+// lever, etc.) should currently render with. While the widget is being
+// touched/dragged and has an enabled Active Colour, that colour takes over;
+// otherwise it falls back to the widget's normal base colour. Jog Wheel
+// reuses its existing `_touched` flag rather than a separate one.
+function liveColor(w) {
+  const touched = w._active || w._touched;
+  return (w.activeColor?.enabled && touched) ? w.activeColor.color : w.color;
 }
 
 function wHTML(w) {
@@ -2726,19 +3583,21 @@ function wHTML(w) {
   switch(w.type) {
     case 'button': {
       const on = w.value >= w.onVal;
+      const lc = liveColor(w);
       return `<div class="wt-button ${on?'btn-on':'btn-off'}"
-        style="background:${on ? w.color : 'rgba(0,0,0,0.5)'};
-               border-color:${w.color};
-               color:${on ? '#000' : w.color};
+        style="background:${on ? lc : 'rgba(0,0,0,0.5)'};
+               border-color:${lc};
+               color:${on ? '#000' : lc};
                font-size:${Math.max(9, Math.min(16, w.h * 0.22))}px">
         ${bgLayer}<span style="position:relative;z-index:1">${esc(w.label)}</span>
       </div>${rxBadge}`;
     }
     case 'hslider': {
       const t = norm(w.value, w.min, w.max);
+      const lc = liveColor(w);
       return `<div class="wt-slider">
         ${bgLayer}
-        <div class="slider-fill" style="left:0;top:0;bottom:0;width:${(t*100).toFixed(2)}%;background:${w.color};opacity:0.8"></div>
+        <div class="slider-fill" style="left:0;top:0;bottom:0;width:${(t*100).toFixed(2)}%;background:${lc};opacity:0.8"></div>
         <div class="slider-fill" style="right:0;top:0;bottom:0;width:${((1-t)*100).toFixed(2)}%;background:rgba(0,0,0,0)"></div>
         <div class="slider-labels">
           <div class="slider-name" style="font-size:${Math.max(9,Math.min(13,w.h*0.2))}px">${esc(w.label)}</div>
@@ -2748,13 +3607,40 @@ function wHTML(w) {
     }
     case 'vslider': {
       const t = norm(w.value, w.min, w.max);
+      const lc = liveColor(w);
       return `<div class="wt-slider">
         ${bgLayer}
-        <div class="slider-fill" style="left:0;right:0;bottom:0;height:${(t*100).toFixed(2)}%;background:${w.color};opacity:0.8"></div>
+        <div class="slider-fill" style="left:0;right:0;bottom:0;height:${(t*100).toFixed(2)}%;background:${lc};opacity:0.8"></div>
         <div class="slider-labels">
           <div class="slider-name" style="font-size:${Math.max(8,Math.min(11,w.w*0.18))}px;writing-mode:vertical-lr;transform:rotate(180deg)">${esc(w.label)}</div>
           <div class="slider-val">${fmtVal(w.value, w.min, w.max)}</div>
         </div>
+      </div>${rxBadge}`;
+    }
+    case 'switch3': {
+      const pos  = w.position ?? 0;
+      const leverPct = pos === -1 ? 10 : pos === 1 ? 88 : 49;
+      const col  = liveColor(w) || '#e8a020';
+      const topA = pos === -1, midA = pos === 0, botA = pos === 1;
+      return `<div class="wt-switch" style="--sw-color:${col}">
+        <div class="sw-track">
+          <div class="sw-zone sw-zone-top" data-swpos="-1"></div>
+          <div class="sw-zone sw-zone-mid" data-swpos="0"></div>
+          <div class="sw-zone sw-zone-bot" data-swpos="1"></div>
+          <div class="sw-detent"></div>
+          <div class="sw-detent"></div>
+          <div class="sw-detent"></div>
+          <div class="sw-lever" style="top:${leverPct}%"></div>
+        </div>
+        ${w.showLabel !== false ? `<div class="sw-labels">
+          <span class="sw-label ${topA?'sw-active':''}" style="${topA?`color:${col}`:''}">
+            ${esc(w.topLabel||'HOLD')}</span>
+          <span class="sw-label ${midA?'sw-active':''}" style="${midA?'color:var(--text-mid)':''}">
+            ${esc(w.midLabel||'OFF')}</span>
+          <span class="sw-label ${botA?'sw-active':''}" style="${botA?`color:${col}`:''}">
+            ${esc(w.botLabel||'MOM')}</span>
+        </div>` : ''}
+        ${w.label ? `<div class="sw-name">${esc(w.label)}</div>` : ''}
       </div>${rxBadge}`;
     }
     case 'encoder': {
@@ -2762,6 +3648,53 @@ function wHTML(w) {
         ${bgLayer}
         <div class="encoder-svg-wrap" style="position:relative;z-index:1">${encoderSVG(w)}</div>
         <div class="encoder-label" style="position:relative;z-index:1">${esc(w.label)}</div>
+      </div>${rxBadge}`;
+    }
+    case 'jogwheel': {
+      const size    = Math.max(40, Math.min(w.w, w.h));
+      const rotation = w._rotation ?? 0;
+      const touched  = !!w._touched;
+      const spinning = w.autoSpin && !touched;
+      return `<div class="wt-jogwheel">
+        <div class="jw-platter ${touched ? 'jw-touched' : ''}"
+             style="width:${size}px;height:${size}px">
+          <div class="jw-rotor ${spinning ? 'jw-spin' : ''}"
+               style="transform:rotate(${rotation.toFixed(2)}deg);--jw-spin-dur:${w.autoSpinSpeed ?? 4}s">
+            <div class="jw-ticks"></div>
+            <div class="jw-notch" style="background:${liveColor(w)};color:${liveColor(w)}"></div>
+          </div>
+          <div class="jw-center">
+            <div class="jw-label">${esc(w.label)}</div>
+          </div>
+          <div class="jw-touch-indicator">●</div>
+        </div>
+      </div>${rxBadge}`;
+    }
+    case 'sequencer': {
+      const cols  = Math.max(1, Math.min(128, w.cols || 16));
+      const rows  = Math.max(1, Math.min(128, w.rows || 4));
+      const steps = w.steps || [];
+      const col   = w.color || '#e8a020';
+      // Gap shrinks as grid grows large — stays visible down to tiny pads
+      const gap   = cols <= 8 && rows <= 8 ? 3 : cols <= 32 && rows <= 32 ? 2 : 1;
+      const pads  = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const idx = r * cols + c;
+          const on  = !!steps[idx];
+          // Visual group separator every 4 rows — subtle spacing
+          const rowSep = r > 0 && r % 4 === 0 && c === 0 ? ' seq-row-sep' : '';
+          pads.push(`<div class="seq-pad${on ? ' seq-on' : ''}${rowSep}" data-idx="${idx}"></div>`);
+        }
+      }
+      return `<div class="wt-sequencer" style="--seq-pad-on:${col}">
+        <div class="seq-header">
+          <span class="seq-name">${esc(w.label)}</span>
+          <span class="seq-info">${cols}×${rows}</span>
+        </div>
+        <div class="seq-grid" style="grid-template-columns:repeat(${cols},1fr);gap:${gap}px">
+          ${pads.join('')}
+        </div>
       </div>${rxBadge}`;
     }
     case 'knob': {
@@ -2776,14 +3709,37 @@ function wHTML(w) {
       const ty = clamp(norm(w.valueY, w.minY, w.maxY), 0, 1);
       const xPct = (tx * 100).toFixed(2);
       const yPct = ((1 - ty) * 100).toFixed(2);
+      const lc = liveColor(w);
       return `<div class="wt-xypad" style="border-color:${w.color}55">
         ${bgLayer}
-        <div class="xypad-hline" style="top:${yPct}%;background:${w.color}"></div>
-        <div class="xypad-vline" style="left:${xPct}%;background:${w.color}"></div>
-        <div class="xypad-dot"   style="left:${xPct}%;top:${yPct}%;background:${w.color};color:${w.color}"></div>
+        <div class="xypad-hline" style="top:${yPct}%;background:${lc}"></div>
+        <div class="xypad-vline" style="left:${xPct}%;background:${lc}"></div>
+        <div class="xypad-dot"   style="left:${xPct}%;top:${yPct}%;background:${lc};color:${lc}"></div>
         <div class="xypad-info">
           <div class="xypad-label">${esc(w.label)}</div>
           <div class="xypad-vals">x:${fmtVal(w.valueX,w.minX,w.maxX)}  y:${fmtVal(w.valueY,w.minY,w.maxY)}</div>
+        </div>
+      </div>${rxBadge}`;
+    }
+    case 'colorpicker': {
+      const hue = w.hue ?? 0, sat = w.sat ?? 1, val = w.val ?? 1;
+      const r = w.r ?? 255, g = w.g ?? 0, b = w.b ?? 0;
+      const dotX  = (sat * 100).toFixed(1);
+      const dotY  = ((1 - val) * 100).toFixed(1);
+      const hueY  = (hue / 360 * 100).toFixed(1);
+      return `<div class="wt-colorpicker">
+        <div class="cp-top">
+          <span class="cp-name">${esc(w.label)}</span>
+          <span class="cp-swatch" style="background:rgb(${r},${g},${b})"></span>
+          <span class="cp-rgbval">${r},${g},${b}</span>
+        </div>
+        <div class="cp-main">
+          <div class="cp-sv" style="background-color:hsl(${hue.toFixed(1)},100%,50%)">
+            <div class="cp-sv-dot" style="left:${dotX}%;top:${dotY}%"></div>
+          </div>
+          <div class="cp-hue">
+            <div class="cp-hue-marker" style="top:${hueY}%"></div>
+          </div>
         </div>
       </div>${rxBadge}`;
     }
@@ -2879,7 +3835,14 @@ function mountWidget(w) {
     el.appendChild(h);
   }
 
+  const lockBadge = document.createElement('div');
+  lockBadge.className = 'lock-badge';
+  lockBadge.textContent = '🔒';
+  el.appendChild(lockBadge);
+
   $('canvas').appendChild(el);
+  // Apply shadow / secondary background colour immediately (not just after an edit)
+  refreshWidget(w);
   updateHint();
 }
 
@@ -2887,14 +3850,15 @@ function mountWidget(w) {
 // These update only the changing parts of a widget without touching the video.
 
 function refreshSliderFill(el, w) {
-  const t = norm(w.value, w.min, w.max);
+  const t  = norm(w.value, w.min, w.max);
+  const lc = liveColor(w);
   if (w.type === 'hslider') {
     const fills = el.querySelectorAll('.slider-fill');
-    if (fills[0]) fills[0].style.width  = (t * 100).toFixed(2) + '%';
+    if (fills[0]) { fills[0].style.width  = (t * 100).toFixed(2) + '%'; fills[0].style.background = lc; }
     if (fills[1]) fills[1].style.width  = ((1 - t) * 100).toFixed(2) + '%';
   } else {
     const fills = el.querySelectorAll('.slider-fill');
-    if (fills[0]) fills[0].style.height = (t * 100).toFixed(2) + '%';
+    if (fills[0]) { fills[0].style.height = (t * 100).toFixed(2) + '%'; fills[0].style.background = lc; }
   }
   const valEl = el.querySelector('.slider-val');
   if (valEl) valEl.textContent = fmtVal(w.value, w.min, w.max);
@@ -2910,10 +3874,11 @@ function refreshButtonState(el, w) {
   const btn = el.querySelector('.wt-button');
   if (!btn) return;
   const on = w.value >= w.onVal;
+  const lc = liveColor(w);
   btn.className = `wt-button ${on ? 'btn-on' : 'btn-off'}`;
-  btn.style.background   = on ? w.color : 'rgba(0,0,0,0.5)';
-  btn.style.borderColor  = w.color;
-  btn.style.color        = on ? '#000' : w.color;
+  btn.style.background   = on ? lc : 'rgba(0,0,0,0.5)';
+  btn.style.borderColor  = lc;
+  btn.style.color        = on ? '#000' : lc;
 }
 
 function refreshXYDot(el, w) {
@@ -2921,13 +3886,14 @@ function refreshXYDot(el, w) {
   const ty = clamp(norm(w.valueY, w.minY, w.maxY), 0, 1);
   const xPct = (tx * 100).toFixed(2) + '%';
   const yPct = ((1 - ty) * 100).toFixed(2) + '%';
+  const lc    = liveColor(w);
   const hline = el.querySelector('.xypad-hline');
   const vline = el.querySelector('.xypad-vline');
   const dot   = el.querySelector('.xypad-dot');
   const vals  = el.querySelector('.xypad-vals');
-  if (hline) hline.style.top  = yPct;
-  if (vline) vline.style.left = xPct;
-  if (dot)   { dot.style.top = yPct; dot.style.left = xPct; }
+  if (hline) { hline.style.top  = yPct; hline.style.background = lc; }
+  if (vline) { vline.style.left = xPct; vline.style.background = lc; }
+  if (dot)   { dot.style.top = yPct; dot.style.left = xPct; dot.style.background = lc; dot.style.color = lc; }
   if (vals)  vals.textContent = `x:${fmtVal(w.valueX, w.minX, w.maxX)}  y:${fmtVal(w.valueY, w.minY, w.maxY)}`;
 }
 
@@ -2941,18 +3907,46 @@ function refreshWidget(w) {
   const el = gel(w.id);
   if (!el) return;
 
-  // Always update position/size/selection classes
-  el.style.left = w.x + 'px';
-  el.style.top  = w.y + 'px';
+  el.style.left   = w.x + 'px';
+  el.style.top    = w.y + 'px';
   el.style.width  = w.w + 'px';
   el.style.height = w.h + 'px';
-  el.classList.toggle('sel',  S.sel === w.id);
-  el.classList.toggle('msel', S.selIds.has(w.id));
+  el.classList.toggle('sel',    S.sel === w.id);
+  el.classList.toggle('msel',   S.selIds.has(w.id));
+  el.classList.toggle('locked', !!w.locked);
 
   const inner = el.querySelector('.w-inner');
+  if (!inner) return;
 
-  // If there is a live video background, use surgical updates to avoid
-  // destroying and recreating the <video> element (which causes black flashes).
+  // Apply optional drop shadow
+  const sh = w.shadow;
+  if (sh?.enabled) {
+    const hex = sh.color || '#000000';
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    const a = (sh.opacity ?? 0.55).toFixed(2);
+    inner.style.boxShadow =
+      `${sh.x||0}px ${sh.y||6}px ${sh.blur||18}px ${sh.spread||0}px rgba(${r},${g},${b},${a})`;
+  } else {
+    inner.style.boxShadow = '';
+  }
+
+  // Apply optional secondary background colour — exposed as a CSS variable
+  // (--ctrl-bg2) that each control's own background/fill rule can opt into.
+  const bg2 = w.bg2;
+  if (bg2?.enabled) {
+    const hex = bg2.color || '#1a1a1a';
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    const a = (bg2.opacity ?? 1).toFixed(2);
+    inner.style.setProperty('--ctrl-bg2', `rgba(${r},${g},${b},${a})`);
+  } else {
+    inner.style.removeProperty('--ctrl-bg2');
+  }
+
+  // Surgical updaters for video-bg widgets (avoids destroying live <video>)
   if (w.bgImage && w.bgMediaType === 'video' && inner.querySelector('video.w-bg-vid')) {
     switch (w.type) {
       case 'hslider':
@@ -2962,11 +3956,9 @@ function refreshWidget(w) {
       case 'button':  refreshButtonState(inner, w); return;
       case 'xypad':   refreshXYDot(inner, w);       return;
     }
-    // For label/text/video widgets with video bg, fall through to full rebuild
-    // since they don't animate during interaction anyway
   }
 
-  // Default: full innerHTML replace (no video bg, or structural change)
+  // Full innerHTML rebuild
   inner.innerHTML = wHTML(w);
 }
 
@@ -3051,6 +4043,7 @@ function buildMultiProps() {
       </div>
       <div class="ms-action-grid">
         <button id="ms-dup">⧉ Duplicate</button>
+        <button id="ms-lock">${ws.every(w => w.locked) ? '🔓 Unlock All' : '🔒 Lock All'}</button>
         <button id="ms-del" class="danger">🗑 Delete</button>
       </div>
     </div>
@@ -3102,7 +4095,7 @@ function buildMultiProps() {
 
   function alignApply(fn) {
     histPush();
-    ws.forEach(fn);
+    ws.forEach(w => { if (!w.locked) fn(w); });
     ws.forEach(w => refreshWidget(w));
     histPush();
   }
@@ -3129,7 +4122,7 @@ function buildMultiProps() {
     histPush();
     let cursor = sorted[0].x + sorted[0].w + gap;
     for (let i = 1; i < sorted.length - 1; i++) {
-      sorted[i].x = Math.round(cursor);
+      if (!sorted[i].locked) sorted[i].x = Math.round(cursor);
       cursor += sorted[i].w + gap;
     }
     ws.forEach(w => refreshWidget(w));
@@ -3143,7 +4136,7 @@ function buildMultiProps() {
     histPush();
     let cursor = sorted[0].y + sorted[0].h + gap;
     for (let i = 1; i < sorted.length - 1; i++) {
-      sorted[i].y = Math.round(cursor);
+      if (!sorted[i].locked) sorted[i].y = Math.round(cursor);
       cursor += sorted[i].h + gap;
     }
     ws.forEach(w => refreshWidget(w));
@@ -3163,6 +4156,7 @@ function buildMultiProps() {
     if (!dx && !dy) return;
     histPush();
     ws.forEach(w => {
+      if (w.locked) return;
       w.x = Math.max(0, w.x + dx);
       w.y = Math.max(0, w.y + dy);
       refreshWidget(w);
@@ -3189,6 +4183,16 @@ function buildMultiProps() {
     toast(`Duplicated ${newIds.length} widgets`, 'ok');
   };
 
+  // ── Lock / Unlock ──
+  $('ms-lock').onclick = () => {
+    const allLocked = ws.every(w => w.locked);
+    histPush();
+    ws.forEach(w => { w.locked = !allLocked; refreshWidget(w); });
+    histPush();
+    toast(allLocked ? `Unlocked ${ws.length} widgets` : `Locked ${ws.length} widgets`, 'ok');
+    buildMultiProps(); // rebuild so the button label reflects the new state
+  };
+
   // ── Delete ──
   $('ms-del').onclick = () => {
     histPush();
@@ -3207,374 +4211,140 @@ function buildMultiProps() {
   $('ms-desel').onclick = () => { clearMultiSel(); closeProps(); };
 }
 
-function buildProps(id) {
-  const w = gw(id);
-  if (!w) return;
-  const panel = $('props');
-  panel.classList.remove('hidden');
-  $('props-type').textContent = w.type.toUpperCase();
+// ═══════════════════════════════════════════════════════════
+//  PROPS PANEL — split into focused sub-functions
+//  Each propsHTML_*  returns an HTML string for its section.
+//  Each propsBinds_* wires event listeners after innerHTML set.
+//  buildProps() is the coordinator — ~50 lines.
+// ═══════════════════════════════════════════════════════════
 
-  const ranges = [
-    ['Custom',''],['0 → 1','0,1'],['0 → 100','0,100'],['-1 → 1','-1,1'],
-    ['0 → 127 (MIDI)','0,127'],['0 → 255','0,255'],['-180 → 180°','-180,180'],['0 → 360°','0,360'],
-  ];
-  const rangeOpts = ranges.map(([l,v]) =>
-    `<option value="${v}" ${(v===`${w.min},${w.max}`)?'selected':''}>${l}</option>`).join('');
-  const rangeOptsX = ranges.map(([l,v]) =>
-    `<option value="${v}" ${(v===`${w.minX},${w.maxX}`)?'selected':''}>${l}</option>`).join('');
-  const rangeOptsY = ranges.map(([l,v]) =>
-    `<option value="${v}" ${(v===`${w.minY},${w.maxY}`)?'selected':''}>${l}</option>`).join('');
+// ── Shared range preset helper ───────────────────────────
+const RANGE_PRESETS = [
+  ['Custom',''],['0 → 1','0,1'],['0 → 100','0,100'],['-1 → 1','-1,1'],
+  ['0 → 127 (MIDI)','0,127'],['0 → 255','0,255'],['-180 → 180°','-180,180'],['0 → 360°','0,360'],
+];
+function rangeOpts(mn, mx) {
+  return RANGE_PRESETS.map(([l, v]) =>
+    `<option value="${v}" ${v === `${mn},${mx}` ? 'selected' : ''}>${l}</option>`).join('');
+}
 
-  // Type-specific extra sections
-  let extra = '';
+// ── Shared bind helper factory ───────────────────────────
+function makeBindHelper(w) {
+  let _timer = null;
+  const debounce = () => { clearTimeout(_timer); _timer = setTimeout(histPush, 600); };
+  const bind = (elId, key, coerce) => {
+    const el = $(elId); if (!el) return;
+    const apply = val => {
+      const v = coerce ? coerce(val) : val;
+      if (v === undefined || v === null || (typeof v === 'number' && isNaN(v))) return;
+      w[key] = v; refreshWidget(w); debounce();
+    };
+    el.addEventListener('input',  e => apply(e.target.value));
+    el.addEventListener('change', e => apply(e.target.value));
+  };
+  return { bind, debounce };
+}
 
-  if (w.type === 'button') {
-    extra = `<div class="ps"><div class="ps-title">Button Options</div>
-      <div class="pr"><span class="pl">Mode</span>
-        <select class="pi" id="pi-toggle" style="width:110px">
-          <option value="1" ${w.toggle?'selected':''}>Toggle</option>
-          <option value="0" ${!w.toggle?'selected':''}>Momentary</option>
-        </select></div>
-      <div class="pr"><span class="pl">On value</span>
-        <input type="number" class="pi" id="pi-onval" value="${w.onVal}" step="any"></div>
-      <div class="pr"><span class="pl">Off value</span>
-        <input type="number" class="pi" id="pi-offval" value="${w.offVal}" step="any"></div>
-    </div>`;
-  }
+// ── HTML generators ──────────────────────────────────────
 
-  if (w.type === 'xypad') {
-    extra = `
-    <div class="ps"><div class="ps-title">OSC Addresses</div>
-      <div class="pr col"><span class="pl">X Address</span>
-        <input type="text" class="pi" id="pi-oscx" value="${esc(w.oscX)}" placeholder="/xy/x"></div>
-      <div class="pr col"><span class="pl">Y Address</span>
-        <input type="text" class="pi" id="pi-oscy" value="${esc(w.oscY)}" placeholder="/xy/y"></div>
-    </div>
-    <div class="ps"><div class="ps-title">X Axis Range</div>
-      <div class="pr"><span class="pl">Min X</span>
-        <input type="number" class="pi" id="pi-minx" value="${w.minX}" step="any"></div>
-      <div class="pr"><span class="pl">Max X</span>
-        <input type="number" class="pi" id="pi-maxx" value="${w.maxX}" step="any"></div>
-      <div class="pr col"><span class="pl">Preset</span>
-        <select class="pi" id="pi-range-preset-x">${rangeOptsX}</select></div>
-    </div>
-    <div class="ps"><div class="ps-title">Y Axis Range</div>
-      <div class="pr"><span class="pl">Min Y</span>
-        <input type="number" class="pi" id="pi-miny" value="${w.minY}" step="any"></div>
-      <div class="pr"><span class="pl">Max Y</span>
-        <input type="number" class="pi" id="pi-maxy" value="${w.maxY}" step="any"></div>
-      <div class="pr col"><span class="pl">Preset</span>
-        <select class="pi" id="pi-range-preset-y">${rangeOptsY}</select></div>
-    </div>`;
-  }
-
-  if (w.type === 'transport') {
-    const btnsHTML = (w.buttons || []).map((b, i) => `
-      <div class="pr" style="gap:5px;align-items:center;margin-bottom:4px">
-        <span style="font-size:15px;width:22px;text-align:center;flex-shrink:0">${esc(b.label)}</span>
-        <input type="text" class="pi" id="tp-name-${i}" value="${esc(b.name)}"
-          placeholder="Name" style="width:60px;flex-shrink:0">
-        <input type="text" class="pi" id="tp-osc-${i}" value="${esc(b.osc)}"
-          placeholder="/transport/play" style="flex:1;min-width:0;font-size:10px">
-        <input type="checkbox" id="tp-en-${i}" ${b.enabled!==false?'checked':''}
-          title="Show / hide this button" style="flex-shrink:0;cursor:pointer">
-      </div>`).join('');
-
-    extra = `
-    <div class="ps">
-      <div class="ps-title">Buttons</div>
-      <div style="display:flex;gap:5px;font-size:8px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;padding:0 2px">
-        <span style="width:22px"></span>
-        <span style="width:60px;flex-shrink:0">Name</span>
-        <span style="flex:1">OSC Address</span>
-        <span style="flex-shrink:0;padding-right:1px">On</span>
-      </div>
-      ${btnsHTML}
-    </div>
-    <div class="ps">
-      <div class="ps-title">Appearance</div>
-      <div class="pr"><span class="pl">Icon scale</span>
-        <input type="range" id="tp-iconscale" min="0.4" max="2.5" step="0.05"
-          value="${w.iconScale??1}" style="flex:1;accent-color:var(--accent)">
-        <span id="tp-iconscale-val" style="font-size:10px;color:var(--text-mid);width:28px;text-align:right">
-          ${Math.round((w.iconScale??1)*100)}%</span>
-      </div>
-      <div class="pr"><span class="pl">Show labels</span>
-        <input type="checkbox" id="tp-showlabel" ${w.showLabel!==false?'checked':''}></div>
-    </div>
-    <div class="ps">
-      <div class="ps-title">Settings</div>
-      <div class="pr"><span class="pl">Send value</span>
-        <input type="number" class="pi" id="tp-sendval" value="${w.sendValue??1}" min="0" step="any" style="width:70px"></div>
-    </div>`;
-  }
+function propsHTML_identity(w, oscRow, rxRow, encOscRow) {
+  const isText      = w.type === 'label' || w.type === 'text';
   const isVideo     = w.type === 'video';
   const isTransport = w.type === 'transport';
   const isEncoder   = w.type === 'encoder';
-  const isText      = w.type === 'label' || w.type === 'text';
+  const showLabel   = (!isText && !isVideo && !isTransport) || isEncoder;
+  // Text/label show an OSC address for receive-only feedback (e.g. display a numeric value)
+  const textOscRow  = isText ? `
+    <div class="pr col"><span class="pl">OSC Address</span>
+      <input type="text" class="pi" id="pi-osc" value="${esc(w.osc||'')}" placeholder="/display/value"
+        title="Receive a numeric OSC value to display it on this widget"></div>
+    <div style="font-size:9px;color:var(--text-dim);padding:0 2px 4px;line-height:1.4">
+      Receive-only — incoming numeric values replace the text content</div>` : '';
+  return `<div class="ps">
+    <div class="ps-title">Identity</div>
+    ${showLabel ? `<div class="pr col"><span class="pl">Label</span>
+      <input type="text" class="pi" id="pi-label" value="${esc(w.label)}"></div>` : ''}
+    ${textOscRow}
+    ${oscRow}${encOscRow}${rxRow}
+  </div>`;
+}
 
-  if (isEncoder) {
-    extra = `
-    <div class="ps"><div class="ps-title">Encoder Settings</div>
-      <div class="pr"><span class="pl">Mode</span>
-        <select class="pi" id="enc-mode">
-          <option value="relative" ${(w.mode||'relative')==='relative'?'selected':''}>Relative (±step)</option>
-          <option value="absolute" ${w.mode==='absolute'?'selected':''}>Absolute (count)</option>
-        </select></div>
-      <div class="pr"><span class="pl">CW value</span>
-        <input type="number" class="pi" id="enc-up" value="${w.sendUp??1}" step="any" style="width:70px"></div>
-      <div class="pr"><span class="pl">CCW value</span>
-        <input type="number" class="pi" id="enc-down" value="${w.sendDown??-1}" step="any" style="width:70px"></div>
-      <div class="pr"><span class="pl">Px / tick</span>
-        <input type="number" class="pi" id="enc-pxtick" value="${w.pxPerTick??8}" min="1" max="50" step="1" style="width:70px"></div>
-      <div class="pr"><span class="pl">Acceleration</span>
-        <input type="checkbox" id="enc-accel" ${w.acceleration!==false?'checked':''}></div>
-      <div class="pr"><button class="tb-btn" id="enc-reset" style="font-size:10px;padding:3px 8px;width:100%">↺ Reset count to 0</button></div>
-    </div>`;
-  }
+function propsHTML_range(w) {
+  return `<div class="ps">
+    <div class="ps-title">Value Range</div>
+    <div class="pr"><span class="pl">Min</span>
+      <input type="number" class="pi" id="pi-min" value="${w.min}" step="any"></div>
+    <div class="pr"><span class="pl">Max</span>
+      <input type="number" class="pi" id="pi-max" value="${w.max}" step="any"></div>
+    <div class="pr col"><span class="pl">Preset</span>
+      <select class="pi" id="pi-range-preset">${rangeOpts(w.min, w.max)}</select></div>
+  </div>`;
+}
 
-  const rangeSection = (!isText && !isVideo && !isTransport && !isEncoder && w.type !== 'xypad') ? `
-    <div class="ps">
-      <div class="ps-title">Value Range</div>
-      <div class="pr"><span class="pl">Min</span>
-        <input type="number" class="pi" id="pi-min" value="${w.min}" step="any"></div>
-      <div class="pr"><span class="pl">Max</span>
-        <input type="number" class="pi" id="pi-max" value="${w.max}" step="any"></div>
-      <div class="pr col"><span class="pl">Preset</span>
-        <select class="pi" id="pi-range-preset">${rangeOpts}</select></div>
-    </div>` : '';
+function propsHTML_appearance(w) {
+  if (w.type === 'video') return '';
+  return `<div class="ps">
+    <div class="ps-title">${w.type === 'label' || w.type === 'text' ? 'Text Colour' : 'Appearance'}</div>
+    <div class="pr"><span class="pl">Color</span>
+      <input type="color" class="pi" id="pi-color" value="${w.color}"></div>
+  </div>`;
+}
 
-  const oscRow = (!isText && !isVideo && !isTransport && !isEncoder && w.type !== 'xypad') ? `
-      <div class="pr col"><span class="pl">OSC Address</span>
-        <input type="text" class="pi" id="pi-osc" value="${esc(w.osc)}" placeholder="/control/1"></div>` : '';
-
-  const rxRow = (!isText && !isVideo && !isTransport && !isEncoder) ? `
-      <div class="pr">
-        <span class="pl">Receive only</span>
-        <input type="checkbox" id="pi-rxonly" ${w.receiveOnly?'checked':''}>
-      </div>` : '';
-
-  // Encoder has its own OSC address in the identity section
-  const encOscRow = isEncoder ? `
-      <div class="pr col"><span class="pl">OSC Address</span>
-        <input type="text" class="pi" id="pi-osc" value="${esc(w.osc)}" placeholder="/encoder/1"></div>` : '';
-
-  const hasSpring = ['hslider','vslider','knob','xypad'].includes(w.type);
-  const sp = w.spring || {};
-  const springSection = hasSpring ? `
-    <div class="ps">
-      <div class="ps-title">Spring Return</div>
-      <div class="pr">
-        <span class="pl">Enable</span>
-        <input type="checkbox" id="spr-enabled" ${sp.enabled?'checked':''}>
-      </div>
-      <div id="spr-fields" ${sp.enabled?'':'style="opacity:0.4;pointer-events:none"'}>
-        ${w.type === 'xypad' ? `
-        <div class="pr"><span class="pl">Target X</span>
-          <input type="number" class="pi" id="spr-targetx"
-            value="${sp.targetX??sp.target??0}" step="any" style="width:80px"></div>
-        <div class="pr"><span class="pl">Target Y</span>
-          <input type="number" class="pi" id="spr-targety"
-            value="${sp.targetY??sp.target??0}" step="any" style="width:80px"></div>
-        ` : `
-        <div class="pr"><span class="pl">Target value</span>
-          <input type="number" class="pi" id="spr-target"
-            value="${sp.target??0}" step="any" style="width:80px"></div>
-        `}
-        <div class="pr"><span class="pl">Duration (ms)</span>
-          <input type="number" class="pi" id="spr-dur"
-            value="${sp.duration??400}" min="50" max="5000" step="50" style="width:80px"></div>
-        <div class="pr"><span class="pl">Easing</span>
-          <select class="pi" id="spr-ease">
-            <option value="linear"  ${(sp.easing||'bounce')==='linear' ?'selected':''}>Linear</option>
-            <option value="ease"    ${sp.easing==='ease'   ?'selected':''}>Ease in-out</option>
-            <option value="bounce"  ${(sp.easing||'bounce')==='bounce' ?'selected':''}>Bounce</option>
-            <option value="elastic" ${sp.easing==='elastic'?'selected':''}>Elastic</option>
-          </select>
-        </div>
-      </div>
-    </div>` : '';
-
-  // Label/Text typography section
-  const textSection = isText ? `
-    <div class="ps"><div class="ps-title">Text Content</div>
-      <div class="pr col">
-        <textarea class="pi" id="pi-text" rows="4"
-          style="resize:vertical;line-height:1.5">${esc(w.text||'')}</textarea>
-      </div>
+function propsHTML_bgMedia(w) {
+  const isVid = (w.bgMediaType || 'image') === 'video';
+  return `<div class="ps">
+    <div class="ps-title">Background Media</div>
+    <div class="pr"><span class="pl">Type</span>
+      <select class="pi" id="pi-bgmediatype" style="width:100px">
+        <option value="image" ${!isVid ? 'selected' : ''}>Image</option>
+        <option value="video" ${isVid  ? 'selected' : ''}>Video (MP4)</option>
+      </select></div>
+    <div class="img-preview ${w.bgImage ? 'has-img' : ''}" id="pi-bg-preview">
+      ${w.bgImage && isVid ? `<video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"><source src="${w.bgImage}" type="video/mp4"></video>` : ''}
+      <span>${isVid ? 'No video' : 'No image'}</span>
     </div>
-    <div class="ps"><div class="ps-title">Typography</div>
-      <div class="pr"><span class="pl">Size (px)</span>
-        <input type="number" class="pi" id="pi-fontsize" value="${w.fontSize||14}" min="6" max="120" step="1"></div>
-      <div class="pr"><span class="pl">Weight</span>
-        <select class="pi" id="pi-fontweight">
-          <option value="normal" ${(w.fontWeight||'normal')==='normal'?'selected':''}>Normal</option>
-          <option value="bold"   ${w.fontWeight==='bold'?'selected':''}>Bold</option>
-          <option value="300"    ${w.fontWeight==='300'?'selected':''}>Light</option>
-        </select></div>
-      <div class="pr"><span class="pl">Align</span>
-        <select class="pi" id="pi-textalign">
-          <option value="left"   ${(w.textAlign||'left')==='left'?'selected':''}>Left</option>
-          <option value="center" ${w.textAlign==='center'?'selected':''}>Centre</option>
-          <option value="right"  ${w.textAlign==='right'?'selected':''}>Right</option>
-        </select></div>
-      <div class="pr"><span class="pl">V-Align</span>
-        <select class="pi" id="pi-textvalign">
-          <option value="top"    ${(w.textValign||'top')==='top'?'selected':''}>Top</option>
-          <option value="middle" ${w.textValign==='middle'?'selected':''}>Middle</option>
-          <option value="bottom" ${w.textValign==='bottom'?'selected':''}>Bottom</option>
-        </select></div>
-      <div class="pr"><span class="pl">Uppercase</span>
-        <input type="checkbox" id="pi-uppercase" ${w.uppercase?'checked':''}></div>
-      <div class="pr"><span class="pl">Tracking</span>
-        <input type="number" class="pi" id="pi-tracking" value="${w.letterSpacing||0}" min="0" max="1" step="0.01"></div>
+    <div class="pr col" style="margin-bottom:4px"><span class="pl">URL</span>
+      <input type="text" class="pi" id="pi-bgimg-url"
+        value="${w.bgImage && !w.bgImage.startsWith('data:') && !w.bgImage.startsWith('blob:') ? w.bgImage : ''}"
+        placeholder="${isVid ? 'https://…/video.mp4' : 'https://…'}"></div>
+    <div class="pr" style="margin-bottom:4px">
+      <button class="tb-btn" id="pi-bgimg-pick" style="font-size:10px;padding:3px 8px">📁 Local file</button>
+      <button class="tb-btn danger" id="pi-bgimg-clear" style="font-size:10px;padding:3px 8px">✕ Clear</button>
     </div>
-    <div class="ps"><div class="ps-title">Background</div>
-      <div class="pr"><span class="pl">Fill</span>
-        <input type="color" class="pi" id="pi-bgcolor" value="${w.bgColor||'#000000'}"></div>
-      <div class="pr"><span class="pl">Opacity</span>
-        <input type="number" class="pi" id="pi-bgopacity" value="${w.bgOpacity??0}" min="0" max="1" step="0.05"></div>
-    </div>
-    <div class="ps"><div class="ps-title">Border</div>
-      <div class="pr"><span class="pl">Style</span>
-        <select class="pi" id="pi-borderstyle">
-          <option value="none"   ${(w.borderStyle||'none')==='none'?'selected':''}>None</option>
-          <option value="solid"  ${w.borderStyle==='solid'?'selected':''}>Solid</option>
-          <option value="dashed" ${w.borderStyle==='dashed'?'selected':''}>Dashed</option>
-          <option value="dotted" ${w.borderStyle==='dotted'?'selected':''}>Dotted</option>
-        </select></div>
-      <div class="pr"><span class="pl">Color</span>
-        <input type="color" class="pi" id="pi-bordercolor" value="${w.borderColor||'#444444'}"></div>
-      <div class="pr"><span class="pl">Width (px)</span>
-        <input type="number" class="pi" id="pi-borderwidth" value="${w.borderWidth||1}" min="1" max="8" step="1"></div>
-      <div class="pr"><span class="pl">Radius (px)</span>
-        <input type="number" class="pi" id="pi-borderradius" value="${w.borderRadius??5}" min="0" max="40" step="1"></div>
-    </div>` : '';
+    ${w.bgImage && w.bgImage.startsWith('blob:') ? '<div class="local-warn">⚠ Local file — reselect after reload</div>' : ''}
+    <div class="pr"><span class="pl">Size</span>
+      <select class="pi" id="pi-bgimg-size" style="width:100px">
+        <option value="cover"     ${(w.bgImageSize||'cover')==='cover'     ? 'selected':''}>Cover</option>
+        <option value="contain"   ${w.bgImageSize==='contain'              ? 'selected':''}>Contain</option>
+        <option value="100% 100%" ${w.bgImageSize==='100% 100%'            ? 'selected':''}>Stretch</option>
+        <option value="auto"      ${w.bgImageSize==='auto'                 ? 'selected':''}>Actual size</option>
+      </select></div>
+    <div class="pr"><span class="pl">Position</span>
+      <select class="pi" id="pi-bgimg-pos" style="width:100px">
+        <option value="center"        ${(w.bgImagePosition||'center')==='center'       ?'selected':''}>Centre</option>
+        <option value="top left"      ${w.bgImagePosition==='top left'                ?'selected':''}>Top left</option>
+        <option value="top center"    ${w.bgImagePosition==='top center'              ?'selected':''}>Top centre</option>
+        <option value="top right"     ${w.bgImagePosition==='top right'               ?'selected':''}>Top right</option>
+        <option value="center left"   ${w.bgImagePosition==='center left'             ?'selected':''}>Mid left</option>
+        <option value="center right"  ${w.bgImagePosition==='center right'            ?'selected':''}>Mid right</option>
+        <option value="bottom left"   ${w.bgImagePosition==='bottom left'             ?'selected':''}>Bot left</option>
+        <option value="bottom center" ${w.bgImagePosition==='bottom center'           ?'selected':''}>Bot centre</option>
+        <option value="bottom right"  ${w.bgImagePosition==='bottom right'            ?'selected':''}>Bot right</option>
+      </select></div>
+    <div class="pr"><span class="pl">Opacity</span>
+      <input type="number" class="pi" id="pi-bgimg-opacity"
+        value="${w.bgImageOpacity??1}" min="0" max="1" step="0.05"></div>
+  </div>`;
+}
 
-  // Video source & playback section
-  const videoSection = isVideo ? `
-    <div class="ps"><div class="ps-title">Video Source</div>
-      <div class="img-preview ${w.src?'has-img':''}" id="pi-vid-preview">
-        ${w.src ? `<video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"><source src="${w.src}" type="video/mp4"></video>` : ''}
-        <span>No video</span>
-      </div>
-      <div class="pr col" style="margin-bottom:4px">
-        <span class="pl">URL</span>
-        <input type="text" class="pi" id="pi-vid-url"
-          value="${w.src && !w.src.startsWith('blob:') ? w.src : ''}"
-          placeholder="https://…/video.mp4">
-      </div>
-      <div class="pr" style="margin-bottom:4px">
-        <button class="tb-btn" id="pi-vid-pick" style="font-size:10px;padding:3px 8px">📁 Local file</button>
-        <button class="tb-btn danger" id="pi-vid-clear" style="font-size:10px;padding:3px 8px">✕ Clear</button>
-      </div>
-      ${w.src && w.src.startsWith('blob:') ? '<div class="local-warn">⚠ Local file — reselect after reload</div>' : ''}
-    </div>
-    <div class="ps"><div class="ps-title">Playback</div>
-      <div class="pr"><span class="pl">Autoplay</span>
-        <input type="checkbox" id="pi-vid-autoplay" ${w.autoplay?'checked':''}></div>
-      <div class="pr"><span class="pl">Loop</span>
-        <input type="checkbox" id="pi-vid-loop" ${w.loop?'checked':''}></div>
-      <div class="pr"><span class="pl">Muted</span>
-        <input type="checkbox" id="pi-vid-muted" ${w.muted!==false?'checked':''}></div>
-      <div class="pr"><span class="pl">Controls</span>
-        <input type="checkbox" id="pi-vid-controls" ${w.controls?'checked':''}></div>
-      <div class="pr"><span class="pl">Fit</span>
-        <select class="pi" id="pi-vid-fit" style="width:100px">
-          <option value="cover"   ${(w.objectFit||'cover')==='cover'?'selected':''}>Cover</option>
-          <option value="contain" ${w.objectFit==='contain'?'selected':''}>Contain</option>
-          <option value="fill"    ${w.objectFit==='fill'?'selected':''}>Stretch</option>
-          <option value="none"    ${w.objectFit==='none'?'selected':''}>Actual size</option>
-        </select></div>
-      <div class="pr"><span class="pl">Opacity</span>
-        <input type="number" class="pi" id="pi-vid-opacity"
-          value="${w.opacity??1}" min="0" max="1" step="0.05"></div>
-    </div>
-    <div class="ps"><div class="ps-title">Border</div>
-      <div class="pr"><span class="pl">Style</span>
-        <select class="pi" id="pi-vid-borderstyle">
-          <option value="none"   ${(w.borderStyle||'none')==='none'?'selected':''}>None</option>
-          <option value="solid"  ${w.borderStyle==='solid'?'selected':''}>Solid</option>
-          <option value="dashed" ${w.borderStyle==='dashed'?'selected':''}>Dashed</option>
-        </select></div>
-      <div class="pr"><span class="pl">Color</span>
-        <input type="color" class="pi" id="pi-vid-bordercolor" value="${w.borderColor||'#444444'}"></div>
-      <div class="pr"><span class="pl">Width (px)</span>
-        <input type="number" class="pi" id="pi-vid-borderwidth"
-          value="${w.borderWidth||1}" min="1" max="12" step="1"></div>
-      <div class="pr"><span class="pl">Radius (px)</span>
-        <input type="number" class="pi" id="pi-vid-borderradius"
-          value="${w.borderRadius??5}" min="0" max="100" step="1"></div>
-    </div>` : '';
-
-  $('props-body').innerHTML = `
-    <div class="ps">
-      <div class="ps-title">Identity</div>
-      ${(isText || isVideo || isTransport || isEncoder) ? '' : `<div class="pr col"><span class="pl">Label</span>
-        <input type="text" class="pi" id="pi-label" value="${esc(w.label)}"></div>`}
-      ${isEncoder ? `<div class="pr col"><span class="pl">Label</span>
-        <input type="text" class="pi" id="pi-label" value="${esc(w.label)}"></div>` : ''}
-      ${oscRow}
-      ${encOscRow}
-      ${rxRow}
-    </div>
-    ${rangeSection}
-    <div class="ps">
-      <div class="ps-title">${isText ? 'Text Colour' : 'Appearance'}</div>
-      ${(!isVideo && !isTransport) ? `<div class="pr"><span class="pl">Color</span>
-        <input type="color" class="pi" id="pi-color" value="${w.color}"></div>` : ''}
-      ${isTransport ? `<div class="pr"><span class="pl">Button colour</span>
-        <input type="color" class="pi" id="pi-color" value="${w.color}"></div>` : ''}
-    </div>
-    ${(!isText && !isVideo && !isTransport) ? `<div class="ps">
-      <div class="ps-title">Background Media</div>
-      <div class="pr">
-        <span class="pl">Type</span>
-        <select class="pi" id="pi-bgmediatype" style="width:100px">
-          <option value="image" ${(w.bgMediaType||'image')==='image'?'selected':''}>Image</option>
-          <option value="video" ${w.bgMediaType==='video'?'selected':''}>Video (MP4)</option>
-        </select>
-      </div>
-      <div class="img-preview ${w.bgImage?'has-img':''}" id="pi-bg-preview">
-        ${w.bgImage && w.bgMediaType==='video'
-          ? `<video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"><source src="${w.bgImage}" type="video/mp4"></video>`
-          : ''}
-        <span>${(w.bgMediaType||'image')==='video'?'No video':'No image'}</span>
-      </div>
-      <div class="pr col" style="margin-bottom:4px"><span class="pl">URL</span>
-        <input type="text" class="pi" id="pi-bgimg-url"
-               value="${w.bgImage&&!w.bgImage.startsWith('data:')&&!w.bgImage.startsWith('blob:')?w.bgImage:''}"
-               placeholder="${(w.bgMediaType||'image')==='video'?'https://…/video.mp4':'https://… or leave blank'}"></div>
-      <div class="pr" style="margin-bottom:4px">
-        <button class="tb-btn" id="pi-bgimg-pick" style="font-size:10px;padding:3px 8px">📁 Local file</button>
-        <button class="tb-btn danger" id="pi-bgimg-clear" style="font-size:10px;padding:3px 8px">✕ Clear</button>
-      </div>
-      ${w.bgImage && w.bgImage.startsWith('blob:') ? '<div class="local-warn">⚠ Local file — reselect after reload</div>' : ''}
-      <div class="pr"><span class="pl">Size</span>
-        <select class="pi" id="pi-bgimg-size" style="width:100px">
-          <option value="cover"     ${(w.bgImageSize||'cover')==='cover'?'selected':''}>Cover</option>
-          <option value="contain"   ${w.bgImageSize==='contain'?'selected':''}>Contain</option>
-          <option value="100% 100%" ${w.bgImageSize==='100% 100%'?'selected':''}>Stretch</option>
-          <option value="auto"      ${w.bgImageSize==='auto'?'selected':''}>Actual size</option>
-        </select></div>
-      <div class="pr"><span class="pl">Position</span>
-        <select class="pi" id="pi-bgimg-pos" style="width:100px">
-          <option value="center"       ${(w.bgImagePosition||'center')==='center'?'selected':''}>Centre</option>
-          <option value="top left"     ${w.bgImagePosition==='top left'?'selected':''}>Top left</option>
-          <option value="top center"   ${w.bgImagePosition==='top center'?'selected':''}>Top centre</option>
-          <option value="top right"    ${w.bgImagePosition==='top right'?'selected':''}>Top right</option>
-          <option value="center left"  ${w.bgImagePosition==='center left'?'selected':''}>Mid left</option>
-          <option value="center right" ${w.bgImagePosition==='center right'?'selected':''}>Mid right</option>
-          <option value="bottom left"  ${w.bgImagePosition==='bottom left'?'selected':''}>Bot left</option>
-          <option value="bottom center"${w.bgImagePosition==='bottom center'?'selected':''}>Bot centre</option>
-          <option value="bottom right" ${w.bgImagePosition==='bottom right'?'selected':''}>Bot right</option>
-        </select></div>
-      <div class="pr"><span class="pl">Opacity</span>
-        <input type="number" class="pi" id="pi-bgimg-opacity"
-               value="${w.bgImageOpacity??1}" min="0" max="1" step="0.05"></div>
-    </div>` : ''}
-    <div class="ps">
-      <div class="ps-title">Position &amp; Size</div>
+function propsHTML_posSize(w) {
+  const minH = (w.type === 'label' || w.type === 'text') ? 20 : 40;
+  return `<div class="ps">
+    <div class="ps-title">Position &amp; Size</div>
+    <div class="pr"><span class="pl">Locked</span>
+      <input type="checkbox" id="pi-locked" ${w.locked ? 'checked' : ''}
+        title="Prevent this widget from being moved or resized in edit mode"></div>
+    <div id="pi-possize-fields" ${w.locked ? 'style="opacity:0.4;pointer-events:none"' : ''}>
       <div class="pr"><span class="pl">X</span>
         <input type="number" class="pi" id="pi-x" value="${w.x}" step="${S.gridSize}"></div>
       <div class="pr"><span class="pl">Y</span>
@@ -3582,392 +4352,924 @@ function buildProps(id) {
       <div class="pr"><span class="pl">W</span>
         <input type="number" class="pi" id="pi-w" value="${w.w}" step="${S.gridSize}" min="40"></div>
       <div class="pr"><span class="pl">H</span>
-        <input type="number" class="pi" id="pi-h" value="${w.h}" step="${S.gridSize}" min="20"></div>
+        <input type="number" class="pi" id="pi-h" value="${w.h}" step="${S.gridSize}" min="${minH}"></div>
     </div>
-    ${textSection}
-    ${videoSection}
-    ${springSection}
-    ${extra}
-    <div class="ps">
-      <button class="btn-del" id="btn-del-w">🗑  Delete Widget</button>
+  </div>`;
+}
+
+function propsHTML_button(w) {
+  return `<div class="ps"><div class="ps-title">Button Options</div>
+    <div class="pr"><span class="pl">Mode</span>
+      <select class="pi" id="pi-toggle" style="width:110px">
+        <option value="1" ${w.toggle  ? 'selected':''}>Toggle</option>
+        <option value="0" ${!w.toggle ? 'selected':''}>Momentary</option>
+      </select></div>
+    <div class="pr"><span class="pl">On value</span>
+      <input type="number" class="pi" id="pi-onval"  value="${w.onVal}"  step="any"></div>
+    <div class="pr"><span class="pl">Off value</span>
+      <input type="number" class="pi" id="pi-offval" value="${w.offVal}" step="any"></div>
+  </div>`;
+}
+
+function propsHTML_xypad(w) {
+  return `
+  <div class="ps"><div class="ps-title">OSC Addresses</div>
+    <div class="pr col"><span class="pl">X Address</span>
+      <input type="text" class="pi" id="pi-oscx" value="${esc(w.oscX)}" placeholder="/xy/x"></div>
+    <div class="pr col"><span class="pl">Y Address</span>
+      <input type="text" class="pi" id="pi-oscy" value="${esc(w.oscY)}" placeholder="/xy/y"></div>
+  </div>
+  <div class="ps"><div class="ps-title">X Axis Range</div>
+    <div class="pr"><span class="pl">Min X</span>
+      <input type="number" class="pi" id="pi-minx" value="${w.minX}" step="any"></div>
+    <div class="pr"><span class="pl">Max X</span>
+      <input type="number" class="pi" id="pi-maxx" value="${w.maxX}" step="any"></div>
+    <div class="pr col"><span class="pl">Preset</span>
+      <select class="pi" id="pi-range-preset-x">${rangeOpts(w.minX, w.maxX)}</select></div>
+  </div>
+  <div class="ps"><div class="ps-title">Y Axis Range</div>
+    <div class="pr"><span class="pl">Min Y</span>
+      <input type="number" class="pi" id="pi-miny" value="${w.minY}" step="any"></div>
+    <div class="pr"><span class="pl">Max Y</span>
+      <input type="number" class="pi" id="pi-maxy" value="${w.maxY}" step="any"></div>
+    <div class="pr col"><span class="pl">Preset</span>
+      <select class="pi" id="pi-range-preset-y">${rangeOpts(w.minY, w.maxY)}</select></div>
+  </div>`;
+}
+
+function propsHTML_colorpicker(w) {
+  return `
+  <div class="ps"><div class="ps-title">OSC Addresses</div>
+    <div class="pr col"><span class="pl">Red address</span>
+      <input type="text" class="pi" id="cp-oscr" value="${esc(w.oscR||'')}" placeholder="/color/1/r"></div>
+    <div class="pr col"><span class="pl">Green address</span>
+      <input type="text" class="pi" id="cp-oscg" value="${esc(w.oscG||'')}" placeholder="/color/1/g"></div>
+    <div class="pr col"><span class="pl">Blue address</span>
+      <input type="text" class="pi" id="cp-oscb" value="${esc(w.oscB||'')}" placeholder="/color/1/b"></div>
+    <div class="pr"><span class="pl">Output range</span>
+      <select class="pi" id="cp-range" style="width:110px">
+        <option value="255" ${(w.outputRange||'255')==='255' ? 'selected':''}>0–255 (int)</option>
+        <option value="1"   ${w.outputRange==='1'            ? 'selected':''}>0–1 (float)</option>
+      </select></div>
+  </div>
+  <div class="ps"><div class="ps-title">Current Colour</div>
+    <div class="pr"><span class="pl">R</span>
+      <input type="number" class="pi" id="cp-r" value="${w.r??255}" min="0" max="255" step="1" style="width:60px"></div>
+    <div class="pr"><span class="pl">G</span>
+      <input type="number" class="pi" id="cp-g" value="${w.g??0}"   min="0" max="255" step="1" style="width:60px"></div>
+    <div class="pr"><span class="pl">B</span>
+      <input type="number" class="pi" id="cp-b" value="${w.b??0}"   min="0" max="255" step="1" style="width:60px"></div>
+    <div class="pr"><span class="pl">Hex (quick pick)</span>
+      <input type="color" class="pi" id="cp-hex" value="${rgbToHex(w.r??255, w.g??0, w.b??0)}"></div>
+  </div>`;
+}
+
+function propsHTML_text(w) {
+  return `
+  <div class="ps"><div class="ps-title">Text Content</div>
+    <div class="pr col">
+      <textarea class="pi" id="pi-text" rows="4"
+        style="resize:vertical;line-height:1.5">${esc(w.text||'')}</textarea>
     </div>
-  `;
+  </div>
+  <div class="ps"><div class="ps-title">Typography</div>
+    <div class="pr"><span class="pl">Size (px)</span>
+      <input type="number" class="pi" id="pi-fontsize" value="${w.fontSize||14}" min="6" max="120" step="1"></div>
+    <div class="pr"><span class="pl">Weight</span>
+      <select class="pi" id="pi-fontweight">
+        <option value="normal" ${(w.fontWeight||'normal')==='normal'?'selected':''}>Normal</option>
+        <option value="bold"   ${w.fontWeight==='bold'  ?'selected':''}>Bold</option>
+        <option value="300"    ${w.fontWeight==='300'   ?'selected':''}>Light</option>
+      </select></div>
+    <div class="pr"><span class="pl">Align</span>
+      <select class="pi" id="pi-textalign">
+        <option value="left"   ${(w.textAlign||'left')==='left'  ?'selected':''}>Left</option>
+        <option value="center" ${w.textAlign==='center'          ?'selected':''}>Centre</option>
+        <option value="right"  ${w.textAlign==='right'           ?'selected':''}>Right</option>
+      </select></div>
+    <div class="pr"><span class="pl">V-Align</span>
+      <select class="pi" id="pi-textvalign">
+        <option value="top"    ${(w.textValign||'top')==='top'   ?'selected':''}>Top</option>
+        <option value="middle" ${w.textValign==='middle'         ?'selected':''}>Middle</option>
+        <option value="bottom" ${w.textValign==='bottom'         ?'selected':''}>Bottom</option>
+      </select></div>
+    <div class="pr"><span class="pl">Uppercase</span>
+      <input type="checkbox" id="pi-uppercase" ${w.uppercase?'checked':''}></div>
+    <div class="pr"><span class="pl">Tracking</span>
+      <input type="number" class="pi" id="pi-tracking" value="${w.letterSpacing||0}" min="0" max="1" step="0.01"></div>
+  </div>
+  <div class="ps"><div class="ps-title">Background</div>
+    <div class="pr"><span class="pl">Fill</span>
+      <input type="color" class="pi" id="pi-bgcolor" value="${w.bgColor||'#000000'}"></div>
+    <div class="pr"><span class="pl">Opacity</span>
+      <input type="number" class="pi" id="pi-bgopacity" value="${w.bgOpacity??0}" min="0" max="1" step="0.05"></div>
+  </div>
+  <div class="ps"><div class="ps-title">Border</div>
+    <div class="pr"><span class="pl">Style</span>
+      <select class="pi" id="pi-borderstyle">
+        <option value="none"   ${(w.borderStyle||'none')==='none'  ?'selected':''}>None</option>
+        <option value="solid"  ${w.borderStyle==='solid'           ?'selected':''}>Solid</option>
+        <option value="dashed" ${w.borderStyle==='dashed'          ?'selected':''}>Dashed</option>
+        <option value="dotted" ${w.borderStyle==='dotted'          ?'selected':''}>Dotted</option>
+      </select></div>
+    <div class="pr"><span class="pl">Color</span>
+      <input type="color" class="pi" id="pi-bordercolor" value="${w.borderColor||'#444444'}"></div>
+    <div class="pr"><span class="pl">Width (px)</span>
+      <input type="number" class="pi" id="pi-borderwidth" value="${w.borderWidth||1}" min="1" max="8" step="1"></div>
+    <div class="pr"><span class="pl">Radius (px)</span>
+      <input type="number" class="pi" id="pi-borderradius" value="${w.borderRadius??5}" min="0" max="40" step="1"></div>
+  </div>`;
+}
 
-  // Bind each field
-  let _propHistTimer = null;
-  function bind(elId, key, coerce) {
-    const el = $(elId);
-    if (!el) return;
-    const apply = (val) => {
-      const v = coerce ? coerce(val) : val;
-      if (v === undefined || v === null || (typeof v === 'number' && isNaN(v))) return;
-      w[key] = v;
-      refreshWidget(w);
-      // Debounced snapshot — pushes 600ms after last change
-      clearTimeout(_propHistTimer);
-      _propHistTimer = setTimeout(histPush, 600);
-    };
-    el.addEventListener('input', e => apply(e.target.value));
-    el.addEventListener('change', e => apply(e.target.value));
-  }
+function propsHTML_video(w) {
+  return `
+  <div class="ps"><div class="ps-title">Video Source</div>
+    <div class="img-preview ${w.src?'has-img':''}" id="pi-vid-preview">
+      ${w.src?`<video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain"><source src="${w.src}" type="video/mp4"></video>`:''}
+      <span>No video</span>
+    </div>
+    <div class="pr col" style="margin-bottom:4px"><span class="pl">URL</span>
+      <input type="text" class="pi" id="pi-vid-url"
+        value="${w.src&&!w.src.startsWith('blob:')?w.src:''}"
+        placeholder="https://…/video.mp4"></div>
+    <div class="pr" style="margin-bottom:4px">
+      <button class="tb-btn" id="pi-vid-pick" style="font-size:10px;padding:3px 8px">📁 Local file</button>
+      <button class="tb-btn danger" id="pi-vid-clear" style="font-size:10px;padding:3px 8px">✕ Clear</button>
+    </div>
+    ${w.src&&w.src.startsWith('blob:')?'<div class="local-warn">⚠ Local file — reselect after reload</div>':''}
+  </div>
+  <div class="ps"><div class="ps-title">Playback</div>
+    <div class="pr"><span class="pl">Autoplay</span>
+      <input type="checkbox" id="pi-vid-autoplay" ${w.autoplay       ?'checked':''}></div>
+    <div class="pr"><span class="pl">Loop</span>
+      <input type="checkbox" id="pi-vid-loop"     ${w.loop           ?'checked':''}></div>
+    <div class="pr"><span class="pl">Muted</span>
+      <input type="checkbox" id="pi-vid-muted"    ${w.muted!==false  ?'checked':''}></div>
+    <div class="pr"><span class="pl">Controls</span>
+      <input type="checkbox" id="pi-vid-controls" ${w.controls       ?'checked':''}></div>
+    <div class="pr"><span class="pl">Fit</span>
+      <select class="pi" id="pi-vid-fit" style="width:100px">
+        <option value="cover"   ${(w.objectFit||'cover')==='cover'?'selected':''}>Cover</option>
+        <option value="contain" ${w.objectFit==='contain'         ?'selected':''}>Contain</option>
+        <option value="fill"    ${w.objectFit==='fill'            ?'selected':''}>Stretch</option>
+        <option value="none"    ${w.objectFit==='none'            ?'selected':''}>Actual size</option>
+      </select></div>
+    <div class="pr"><span class="pl">Opacity</span>
+      <input type="number" class="pi" id="pi-vid-opacity" value="${w.opacity??1}" min="0" max="1" step="0.05"></div>
+  </div>
+  <div class="ps"><div class="ps-title">Border</div>
+    <div class="pr"><span class="pl">Style</span>
+      <select class="pi" id="pi-vid-borderstyle">
+        <option value="none"   ${(w.borderStyle||'none')==='none'?'selected':''}>None</option>
+        <option value="solid"  ${w.borderStyle==='solid'         ?'selected':''}>Solid</option>
+        <option value="dashed" ${w.borderStyle==='dashed'        ?'selected':''}>Dashed</option>
+      </select></div>
+    <div class="pr"><span class="pl">Color</span>
+      <input type="color" class="pi" id="pi-vid-bordercolor" value="${w.borderColor||'#444444'}"></div>
+    <div class="pr"><span class="pl">Width (px)</span>
+      <input type="number" class="pi" id="pi-vid-borderwidth" value="${w.borderWidth||1}" min="1" max="12" step="1"></div>
+    <div class="pr"><span class="pl">Radius (px)</span>
+      <input type="number" class="pi" id="pi-vid-borderradius" value="${w.borderRadius??5}" min="0" max="100" step="1"></div>
+  </div>`;
+}
 
+function propsHTML_encoder(w) {
+  return `<div class="ps"><div class="ps-title">Encoder Settings</div>
+    <div class="pr"><span class="pl">Mode</span>
+      <select class="pi" id="enc-mode">
+        <option value="relative" ${(w.mode||'relative')==='relative'?'selected':''}>Relative (±step)</option>
+        <option value="absolute" ${w.mode==='absolute'              ?'selected':''}>Absolute (count)</option>
+      </select></div>
+    <div class="pr"><span class="pl">CW value</span>
+      <input type="number" class="pi" id="enc-up"     value="${w.sendUp??1}"   step="any" style="width:70px"></div>
+    <div class="pr"><span class="pl">CCW value</span>
+      <input type="number" class="pi" id="enc-down"   value="${w.sendDown??-1}" step="any" style="width:70px"></div>
+    <div class="pr"><span class="pl">Px / tick</span>
+      <input type="number" class="pi" id="enc-pxtick" value="${w.pxPerTick??8}" min="1" max="50" step="1" style="width:70px"></div>
+    <div class="pr"><span class="pl">Acceleration</span>
+      <input type="checkbox" id="enc-accel" ${w.acceleration!==false?'checked':''}></div>
+    <div class="pr">
+      <button class="tb-btn" id="enc-reset" style="font-size:10px;padding:3px 8px;width:100%">↺ Reset count to 0</button>
+    </div>
+  </div>`;
+}
+
+function propsHTML_jogwheel(w) {
+  return `<div class="ps"><div class="ps-title">OSC Addresses</div>
+    <div class="pr col"><span class="pl">Rotation address</span>
+      <input type="text" class="pi" id="jw-osc" value="${esc(w.osc||'')}" placeholder="/jog/1"></div>
+    <div class="pr col"><span class="pl">Touch address</span>
+      <input type="text" class="pi" id="jw-osctouch" value="${esc(w.oscTouch||'')}" placeholder="/jog/1/touch"></div>
+    <div style="font-size:9px;color:var(--text-dim);padding:0 2px 4px;line-height:1.4">
+      Sends 1 on touch-down, 0 on release — leave blank to disable</div>
+    <div class="pr col"><span class="pl">Position feedback (optional)</span>
+      <input type="text" class="pi" id="jw-oscpos" value="${esc(w.oscPos||'')}" placeholder="/jog/1/pos"></div>
+    <div style="font-size:9px;color:var(--text-dim);padding:0 2px 4px;line-height:1.4">
+      Receive an absolute angle (degrees) to sync the visual platter while not touched</div>
+  </div>
+  <div class="ps"><div class="ps-title">Rotation Output</div>
+    <div class="pr"><span class="pl">Unit</span>
+      <select class="pi" id="jw-unit" style="width:120px">
+        <option value="deg" ${(w.sendUnit||'deg')==='deg' ? 'selected':''}>Degrees moved</option>
+        <option value="rev" ${w.sendUnit==='rev'           ? 'selected':''}>Revolutions (±1.0)</option>
+      </select></div>
+    <div class="pr"><span class="pl">Sensitivity</span>
+      <input type="number" class="pi" id="jw-sens" value="${w.sensitivity??1}" min="0.01" max="20" step="0.1" style="width:70px"></div>
+  </div>
+  <div class="ps"><div class="ps-title">Idle Animation <span style="font-size:9px;color:var(--text-dim);font-weight:normal">(decorative only)</span></div>
+    <div class="pr"><span class="pl">Auto-spin while idle</span>
+      <input type="checkbox" id="jw-autospin" ${w.autoSpin ? 'checked' : ''}></div>
+    <div class="pr"><span class="pl">Seconds / revolution</span>
+      <input type="number" class="pi" id="jw-spinspeed" value="${w.autoSpinSpeed??4}" min="0.5" max="30" step="0.5" style="width:70px"></div>
+  </div>`;
+}
+
+function propsHTML_transport(w) {
+  const btnsHTML = (w.buttons||[]).map((b,i) => `
+    <div class="pr" style="gap:5px;align-items:center;margin-bottom:4px">
+      <span style="font-size:15px;width:22px;text-align:center;flex-shrink:0">${esc(b.label)}</span>
+      <input type="text" class="pi" id="tp-name-${i}" value="${esc(b.name)}"
+        placeholder="Name" style="width:60px;flex-shrink:0">
+      <input type="text" class="pi" id="tp-osc-${i}"  value="${esc(b.osc)}"
+        placeholder="/transport/play" style="flex:1;min-width:0;font-size:10px">
+      <input type="checkbox" id="tp-en-${i}" ${b.enabled!==false?'checked':''}
+        title="Show / hide this button" style="flex-shrink:0;cursor:pointer">
+    </div>`).join('');
+  return `
+  <div class="ps"><div class="ps-title">Buttons</div>
+    <div style="display:flex;gap:5px;font-size:8px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;padding:0 2px">
+      <span style="width:22px"></span>
+      <span style="width:60px;flex-shrink:0">Name</span>
+      <span style="flex:1">OSC Address</span>
+      <span style="flex-shrink:0;padding-right:1px">On</span>
+    </div>
+    ${btnsHTML}
+  </div>
+  <div class="ps"><div class="ps-title">Appearance</div>
+    <div class="pr"><span class="pl">Icon scale</span>
+      <input type="range" id="tp-iconscale" min="0.4" max="2.5" step="0.05"
+        value="${w.iconScale??1}" style="flex:1;accent-color:var(--accent)">
+      <span id="tp-iconscale-val" style="font-size:10px;color:var(--text-mid);width:28px;text-align:right">
+        ${Math.round((w.iconScale??1)*100)}%</span>
+    </div>
+    <div class="pr"><span class="pl">Show labels</span>
+      <input type="checkbox" id="tp-showlabel" ${w.showLabel!==false?'checked':''}></div>
+  </div>
+  <div class="ps"><div class="ps-title">Settings</div>
+    <div class="pr"><span class="pl">Send value</span>
+      <input type="number" class="pi" id="tp-sendval" value="${w.sendValue??1}" min="0" step="any" style="width:70px"></div>
+  </div>`;
+}
+
+function propsHTML_spring(w) {
+  const sp   = w.spring || {};
+  const isXY = w.type === 'xypad';
+  return `<div class="ps"><div class="ps-title">Spring Return</div>
+    <div class="pr"><span class="pl">Enable</span>
+      <input type="checkbox" id="spr-enabled" ${sp.enabled?'checked':''}></div>
+    <div id="spr-fields" ${sp.enabled?'':'style="opacity:0.4;pointer-events:none"'}>
+      ${isXY ? `
+      <div class="pr"><span class="pl">Target X</span>
+        <input type="number" class="pi" id="spr-targetx" value="${sp.targetX??sp.target??0}" step="any" style="width:80px"></div>
+      <div class="pr"><span class="pl">Target Y</span>
+        <input type="number" class="pi" id="spr-targety" value="${sp.targetY??sp.target??0}" step="any" style="width:80px"></div>
+      ` : `
+      <div class="pr"><span class="pl">Target value</span>
+        <input type="number" class="pi" id="spr-target" value="${sp.target??0}" step="any" style="width:80px"></div>
+      `}
+      <div class="pr"><span class="pl">Duration (ms)</span>
+        <input type="number" class="pi" id="spr-dur" value="${sp.duration??400}" min="50" max="5000" step="50" style="width:80px"></div>
+      <div class="pr"><span class="pl">Easing</span>
+        <select class="pi" id="spr-ease">
+          <option value="linear"  ${(sp.easing||'bounce')==='linear' ?'selected':''}>Linear</option>
+          <option value="ease"    ${sp.easing==='ease'               ?'selected':''}>Ease in-out</option>
+          <option value="bounce"  ${(sp.easing||'bounce')==='bounce' ?'selected':''}>Bounce</option>
+          <option value="elastic" ${sp.easing==='elastic'            ?'selected':''}>Elastic</option>
+        </select></div>
+    </div>
+  </div>`;
+}
+
+// ── Bind wiring functions ────────────────────────────────
+
+function propsBinds_common(w, bind) {
   bind('pi-color', 'color');
   bind('pi-x', 'x', v => snap(parseFloat(v)));
   bind('pi-y', 'y', v => snap(parseFloat(v)));
   bind('pi-w', 'w', v => Math.max(40, snap(parseFloat(v))));
-  bind('pi-h', 'h', v => Math.max(isText ? 20 : 40, snap(parseFloat(v))));
+  const minH = (w.type === 'label' || w.type === 'text') ? 20 : 40;
+  bind('pi-h', 'h', v => Math.max(minH, snap(parseFloat(v))));
 
-  if (!isText && !isVideo && !isTransport && !isEncoder) {
-    // bg-media bindings
-    bind('pi-label', 'label');
-    const rxEl = $('pi-rxonly');
-    if (rxEl) rxEl.addEventListener('change', e => { w.receiveOnly = e.target.checked; refreshWidget(w); });
-  }
+  const lockEl = $('pi-locked');
+  const fldsEl = $('pi-possize-fields');
+  if (lockEl) lockEl.addEventListener('change', e => {
+    w.locked = e.target.checked;
+    if (fldsEl) { fldsEl.style.opacity = e.target.checked ? '0.4' : ''; fldsEl.style.pointerEvents = e.target.checked ? 'none' : ''; }
+    refreshWidget(w);
+    histPush();
+  });
+}
 
-  if (!isText && !isVideo && !isTransport && !isEncoder && w.type !== 'xypad') {
-    bind('pi-osc', 'osc');
-    bind('pi-min', 'min', parseFloat);
-    bind('pi-max', 'max', parseFloat);
-    $('pi-range-preset').addEventListener('change', e => {
-      if (!e.target.value) return;
-      const [mn, mx] = e.target.value.split(',').map(Number);
-      w.min = mn; w.max = mx;
-      $('pi-min').value = mn; $('pi-max').value = mx;
-      refreshWidget(w);
+function propsBinds_identity(w, bind) {
+  bind('pi-label', 'label');
+  const rxEl = $('pi-rxonly');
+  if (rxEl) rxEl.addEventListener('change', e => {
+    w.receiveOnly = e.target.checked; refreshWidget(w); histPush();
+  });
+}
+
+function propsBinds_range(w, bind) {
+  bind('pi-osc', 'osc');
+  bind('pi-min', 'min', parseFloat);
+  bind('pi-max', 'max', parseFloat);
+  $('pi-range-preset').addEventListener('change', e => {
+    if (!e.target.value) return;
+    const [mn, mx] = e.target.value.split(',').map(Number);
+    w.min = mn; w.max = mx;
+    $('pi-min').value = mn; $('pi-max').value = mx;
+    refreshWidget(w); histPush();
+  });
+}
+
+function propsBinds_button(w, bind) {
+  bind('pi-toggle', 'toggle', v => v === '1');
+  bind('pi-onval',  'onVal',  parseFloat);
+  bind('pi-offval', 'offVal', parseFloat);
+}
+
+function propsBinds_xypad(w, bind) {
+  bind('pi-oscx', 'oscX'); bind('pi-oscy', 'oscY');
+  bind('pi-minx', 'minX', parseFloat); bind('pi-maxx', 'maxX', parseFloat);
+  bind('pi-miny', 'minY', parseFloat); bind('pi-maxy', 'maxY', parseFloat);
+  $('pi-range-preset-x').addEventListener('change', e => {
+    if (!e.target.value) return;
+    const [mn, mx] = e.target.value.split(',').map(Number);
+    w.minX = mn; w.maxX = mx; $('pi-minx').value = mn; $('pi-maxx').value = mx;
+    refreshWidget(w); histPush();
+  });
+  $('pi-range-preset-y').addEventListener('change', e => {
+    if (!e.target.value) return;
+    const [mn, mx] = e.target.value.split(',').map(Number);
+    w.minY = mn; w.maxY = mx; $('pi-miny').value = mn; $('pi-maxy').value = mx;
+    refreshWidget(w); histPush();
+  });
+}
+
+function propsBinds_colorpicker(w, bind) {
+  bind('cp-oscr', 'oscR');
+  bind('cp-oscg', 'oscG');
+  bind('cp-oscb', 'oscB');
+  bind('cp-range', 'outputRange');
+
+  // Re-derive HSV (for the SV-pad dot / hue marker) whenever R/G/B changes
+  // via the numeric fields or the hex quick-pick, then push the new colour.
+  const syncFromRGB = () => {
+    const [h, s, v] = rgbToHsv(w.r ?? 255, w.g ?? 0, w.b ?? 0);
+    w.hue = h; w.sat = s; w.val = v;
+    refreshWidget(w);
+    cpSendAll(w);
+  };
+
+  const bindRGB = (id, key) => {
+    const el = $(id); if (!el) return;
+    const apply = e => {
+      w[key] = clamp(parseInt(e.target.value) || 0, 0, 255);
+      syncFromRGB();
+      clearTimeout(el._ht); el._ht = setTimeout(histPush, 600);
+    };
+    el.addEventListener('input',  apply);
+    el.addEventListener('change', apply);
+  };
+  bindRGB('cp-r', 'r'); bindRGB('cp-g', 'g'); bindRGB('cp-b', 'b');
+
+  const hexEl = $('cp-hex');
+  if (hexEl) {
+    hexEl.addEventListener('input', e => {
+      const [r, g, b] = hexToRgb(e.target.value);
+      w.r = r; w.g = g; w.b = b;
+      const rE = $('cp-r'), gE = $('cp-g'), bE = $('cp-b');
+      if (rE) rE.value = r; if (gE) gE.value = g; if (bE) bE.value = b;
+      syncFromRGB();
     });
+    hexEl.addEventListener('change', () => histPush());
   }
+}
 
-  if (w.type === 'button') {
-    bind('pi-toggle', 'toggle', v => v === '1');
-    bind('pi-onval', 'onVal', parseFloat);
-    bind('pi-offval', 'offVal', parseFloat);
-  }
+function propsBinds_text(w, bind) {
+  bind('pi-osc',         'osc');   // receive address
+  bind('pi-text',        'text');
+  bind('pi-fontsize',    'fontSize',      parseFloat);
+  bind('pi-fontweight',  'fontWeight');
+  bind('pi-textalign',   'textAlign');
+  bind('pi-textvalign',  'textValign');
+  bind('pi-tracking',    'letterSpacing', parseFloat);
+  bind('pi-bgcolor',     'bgColor');
+  bind('pi-bgopacity',   'bgOpacity',     parseFloat);
+  bind('pi-borderstyle', 'borderStyle');
+  bind('pi-bordercolor', 'borderColor');
+  bind('pi-borderwidth', 'borderWidth',   v => Math.max(1, parseInt(v)));
+  bind('pi-borderradius','borderRadius',  v => Math.max(0, parseInt(v)));
+  $('pi-uppercase').addEventListener('change', e => {
+    w.uppercase = e.target.checked; refreshWidget(w); histPush();
+  });
+}
 
-  if (w.type === 'xypad') {
-    bind('pi-oscx', 'oscX');
-    bind('pi-oscy', 'oscY');
-    bind('pi-minx', 'minX', parseFloat);
-    bind('pi-maxx', 'maxX', parseFloat);
-    bind('pi-miny', 'minY', parseFloat);
-    bind('pi-maxy', 'maxY', parseFloat);
-    $('pi-range-preset-x').addEventListener('change', e => {
-      if (!e.target.value) return;
-      const [mn, mx] = e.target.value.split(',').map(Number);
-      w.minX = mn; w.maxX = mx;
-      $('pi-minx').value = mn; $('pi-maxx').value = mx;
-      refreshWidget(w);
-    });
-    $('pi-range-preset-y').addEventListener('change', e => {
-      if (!e.target.value) return;
-      const [mn, mx] = e.target.value.split(',').map(Number);
-      w.minY = mn; w.maxY = mx;
-      $('pi-miny').value = mn; $('pi-maxy').value = mx;
-      refreshWidget(w);
-    });
-  }
-
-  if (isText) {
-    bind('pi-text', 'text');
-    bind('pi-fontsize',     'fontSize',      parseFloat);
-    bind('pi-fontweight',   'fontWeight');
-    bind('pi-textalign',    'textAlign');
-    bind('pi-textvalign',   'textValign');
-    bind('pi-tracking',     'letterSpacing', parseFloat);
-    bind('pi-bgcolor',      'bgColor');
-    bind('pi-bgopacity',    'bgOpacity',     parseFloat);
-    bind('pi-borderstyle',  'borderStyle');
-    bind('pi-bordercolor',  'borderColor');
-    bind('pi-borderwidth',  'borderWidth',   v => Math.max(1, parseInt(v)));
-    bind('pi-borderradius', 'borderRadius',  v => Math.max(0, parseInt(v)));
-    $('pi-uppercase').addEventListener('change', e => { w.uppercase = e.target.checked; refreshWidget(w); });
-  }
-
-  if (isVideo) {
-    // ── Helper: update the live <video> element inside the widget without full re-render
-    function applyVidSrc(src) {
-      w.src = src;
-      const preview = $('pi-vid-preview');
-      if (preview) {
-        preview.classList.toggle('has-img', !!src);
-        const old = preview.querySelector('video');
-        if (old) old.remove();
-        const span = preview.querySelector('span');
-        if (span) span.style.display = src ? 'none' : '';
-        if (src) {
-          const v = document.createElement('video');
-          v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
-          v.style.cssText = 'width:100%;height:100%;object-fit:contain';
-          const s = document.createElement('source'); s.src = src; s.type = 'video/mp4';
-          v.appendChild(s); preview.appendChild(v);
-          v.load(); v.play().catch(()=>{});
-        }
-      }
-      refreshWidget(w);
-      // After refresh the widget DOM has a new <video> — play it
-      const wEl = gel(w.id);
-      if (wEl) {
-        const vid = wEl.querySelector('video');
-        if (vid) { vid.load(); vid.play().catch(()=>{}); }
-      }
-    }
-
-    // URL input
-    const urlEl = $('pi-vid-url');
-    if (urlEl) {
-      const commit = () => { const v = urlEl.value.trim(); applyVidSrc(v); };
-      urlEl.addEventListener('change', commit);
-      urlEl.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
-    }
-
-    // Local file picker — blob URL
-    $('pi-vid-pick').addEventListener('click', () => {
-      const inp = document.createElement('input');
-      inp.type = 'file'; inp.accept = 'video/mp4,video/*';
-      inp.onchange = () => {
-        const file = inp.files[0];
-        if (!file) return;
-        const blobUrl = URL.createObjectURL(file);
-        applyVidSrc(blobUrl);
-        let warn = $('pi-vid-blob-warn');
-        if (!warn) {
-          warn = document.createElement('div');
-          warn.id = 'pi-vid-blob-warn'; warn.className = 'local-warn';
-          $('pi-vid-pick').parentNode.after(warn);
-        }
-        warn.textContent = `⚠ "${file.name}" — local only, reselect after reload`;
-      };
-      inp.click();
-    });
-
-    $('pi-vid-clear').addEventListener('click', () => {
-      applyVidSrc('');
-      const warn = $('pi-vid-blob-warn');
-      if (warn) warn.remove();
-    });
-
-    // Playback checkboxes
-    function bindCheck(elId, key) {
-      const el = $(elId);
-      if (!el) return;
-      el.addEventListener('change', e => {
-        w[key] = e.target.checked;
-        const wEl = gel(w.id);
-        const vid = wEl?.querySelector('video');
-        if (vid) {
-          if (key === 'autoplay') { if (e.target.checked) vid.play().catch(()=>{}); else vid.pause(); }
-          if (key === 'loop')     vid.loop     = e.target.checked;
-          if (key === 'muted')    vid.muted    = e.target.checked;
-          if (key === 'controls') vid.controls = e.target.checked;
-        }
-        refreshWidget(w);
-      });
-    }
-    bindCheck('pi-vid-autoplay', 'autoplay');
-    bindCheck('pi-vid-loop',     'loop');
-    bindCheck('pi-vid-muted',    'muted');
-    bindCheck('pi-vid-controls', 'controls');
-
-    bind('pi-vid-fit',         'objectFit');
-    bind('pi-vid-opacity',     'opacity',      parseFloat);
-    bind('pi-vid-borderstyle', 'borderStyle');
-    bind('pi-vid-bordercolor', 'borderColor');
-    bind('pi-vid-borderwidth', 'borderWidth',  v => Math.max(1, parseInt(v)));
-    bind('pi-vid-borderradius','borderRadius', v => Math.max(0, parseInt(v)));
-  }
-
-  // ── Background media bindings (interactive widgets only — not text/video/transport/encoder) ──
-  if (!isText && !isVideo && !isTransport && !isEncoder) {
-    const urlInp  = $('pi-bgimg-url');
-    const preview = $('pi-bg-preview');
-
-    const setWidgetPreview = (src, type) => {
-      if (!preview) return;
-      preview.classList.toggle('has-img', !!src);
-      preview.style.backgroundImage = '';
-      preview.style.backgroundColor = '';
-      const existVid = preview.querySelector('video');
-      if (existVid) existVid.remove();
-      const existSpan = preview.querySelector('span');
-      if (existSpan) existSpan.style.display = src ? 'none' : '';
-      if (src && type === 'video') {
+function propsBinds_video(w, bind) {
+  const applyVidSrc = src => {
+    w.src = src;
+    const prev = $('pi-vid-preview');
+    if (prev) {
+      prev.classList.toggle('has-img', !!src);
+      prev.querySelector('video')?.remove();
+      const sp = prev.querySelector('span'); if (sp) sp.style.display = src ? 'none' : '';
+      if (src) {
         const v = document.createElement('video');
-        v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
-        v.style.cssText = 'width:100%;height:100%;object-fit:contain';
-        const s = document.createElement('source'); s.src = src; s.type = 'video/mp4';
-        v.appendChild(s); preview.appendChild(v);
-        v.load(); v.play().catch(()=>{});
-      } else if (src) {
-        preview.style.backgroundImage = `url('${src}')`;
-        preview.style.backgroundSize  = 'contain';
-        preview.style.backgroundColor = '#000';
+        v.autoplay=true; v.loop=true; v.muted=true; v.playsInline=true;
+        v.style.cssText='width:100%;height:100%;object-fit:contain';
+        const s = document.createElement('source'); s.src=src; s.type='video/mp4';
+        v.appendChild(s); prev.appendChild(v); v.load(); v.play().catch(()=>{});
       }
-    };
-
-    const applyBgMedia = (src, type) => {
-      w.bgImage     = src;
-      w.bgMediaType = type || w.bgMediaType || 'image';
-      if (urlInp && src && !src.startsWith('data:') && !src.startsWith('blob:')) urlInp.value = src;
-      setWidgetPreview(src, w.bgMediaType);
+    }
+    refreshWidget(w);
+    const vid = gel(w.id)?.querySelector('video');
+    if (vid) { vid.load(); vid.play().catch(()=>{}); }
+  };
+  const urlEl = $('pi-vid-url');
+  if (urlEl) {
+    const go = () => applyVidSrc(urlEl.value.trim());
+    urlEl.addEventListener('change', go);
+    urlEl.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  }
+  $('pi-vid-pick').addEventListener('click', () => {
+    const inp = document.createElement('input'); inp.type='file'; inp.accept='video/mp4,video/*';
+    inp.onchange = () => {
+      const file = inp.files[0]; if (!file) return;
+      const blob = URL.createObjectURL(file); applyVidSrc(blob);
+      let w2 = $('pi-vid-blob-warn');
+      if (!w2) { w2=document.createElement('div'); w2.id='pi-vid-blob-warn'; w2.className='local-warn'; $('pi-vid-pick').parentNode.after(w2); }
+      w2.textContent = `⚠ "${file.name}" — local only, reselect after reload`;
+    }; inp.click();
+  });
+  $('pi-vid-clear').addEventListener('click', () => { applyVidSrc(''); $('pi-vid-blob-warn')?.remove(); });
+  const bc = (id, key) => {
+    const el=$(id); if(!el) return;
+    el.addEventListener('change', e => {
+      w[key] = e.target.checked;
+      const vid = gel(w.id)?.querySelector('video');
+      if (vid) {
+        if (key==='autoplay') { e.target.checked ? vid.play().catch(()=>{}) : vid.pause(); }
+        if (key==='loop')     vid.loop     = e.target.checked;
+        if (key==='muted')    vid.muted    = e.target.checked;
+        if (key==='controls') vid.controls = e.target.checked;
+      }
       refreshWidget(w);
+    });
+  };
+  bc('pi-vid-autoplay','autoplay'); bc('pi-vid-loop','loop');
+  bc('pi-vid-muted','muted');       bc('pi-vid-controls','controls');
+  bind('pi-vid-fit',         'objectFit');
+  bind('pi-vid-opacity',     'opacity',      parseFloat);
+  bind('pi-vid-borderstyle', 'borderStyle');
+  bind('pi-vid-bordercolor', 'borderColor');
+  bind('pi-vid-borderwidth', 'borderWidth',  v => Math.max(1, parseInt(v)));
+  bind('pi-vid-borderradius','borderRadius', v => Math.max(0, parseInt(v)));
+}
+
+function propsBinds_encoder(w, bind) {
+  bind('pi-label','label'); bind('pi-osc','osc'); bind('enc-mode','mode');
+  bind('enc-up',    'sendUp',    parseFloat);
+  bind('enc-down',  'sendDown',  parseFloat);
+  bind('enc-pxtick','pxPerTick', parseFloat);
+  $('enc-accel').addEventListener('change', e => { w.acceleration = e.target.checked; histPush(); });
+  $('enc-reset').addEventListener('click',  () => { w._encSteps=0; w._encAngle=-90; w._encDir=0; refreshWidget(w); histPush(); });
+}
+
+function propsBinds_jogwheel(w, bind) {
+  bind('jw-osc',      'osc');
+  bind('jw-osctouch', 'oscTouch');
+  bind('jw-oscpos',   'oscPos');
+  bind('jw-unit',     'sendUnit');
+  bind('jw-sens',     'sensitivity', parseFloat);
+  bind('jw-spinspeed','autoSpinSpeed', v => Math.max(0.5, parseFloat(v)));
+  const asEl = $('jw-autospin');
+  if (asEl) asEl.addEventListener('change', e => {
+    w.autoSpin = e.target.checked;
+    refreshWidget(w); histPush();
+  });
+}
+
+function propsHTML_sequencer(w) {
+  const cols = w.cols || 16, rows = w.rows || 4;
+  const PRESETS = [[4,4],[8,8],[16,4],[8,16],[16,8],[32,8],[8,32],[64,4],[16,16],[32,32],[64,64],[128,128]];
+  const presetOpts = PRESETS.map(([c,r]) =>
+    `<option value="${c},${r}" ${cols===c&&rows===r?'selected':''}>${c}×${r}</option>`).join('');
+  const total = cols * rows;
+  const active = (w.steps||[]).filter(Boolean).length;
+  return `<div class="ps"><div class="ps-title">Grid</div>
+    <div class="pr col"><span class="pl">Preset size</span>
+      <select class="pi" id="seq-preset">${presetOpts}
+        <option value="custom" ${!PRESETS.some(([c,r])=>c===cols&&r===rows)?'selected':''}>Custom…</option>
+      </select></div>
+    <div class="pr"><span class="pl">Columns</span>
+      <input type="number" class="pi" id="seq-cols" value="${cols}" min="1" max="128" step="1" style="width:70px"></div>
+    <div class="pr"><span class="pl">Rows</span>
+      <input type="number" class="pi" id="seq-rows" value="${rows}" min="1" max="128" step="1" style="width:70px"></div>
+    <div style="font-size:9px;color:var(--text-dim);padding:0 2px 2px;line-height:1.4">
+      ${total} pads · ${active} active</div>
+    <div class="pr">
+      <button class="tb-btn danger" id="seq-clear" style="font-size:10px;padding:3px 8px;flex:1">✕ Clear all</button>
+      <button class="tb-btn" id="seq-fill" style="font-size:10px;padding:3px 8px;flex:1">■ Fill all</button>
+    </div>
+  </div>
+  <div class="ps"><div class="ps-title">OSC</div>
+    <div class="pr col"><span class="pl">Base address</span>
+      <input type="text" class="pi" id="seq-osc" value="${esc(w.osc||'')}" placeholder="/seq/1"></div>
+    <div style="font-size:9px;color:var(--text-dim);padding:0 2px 4px;line-height:1.4">
+      Pad at row R, col C sends to <em>{base}/{R}/{C}</em></div>
+    <div class="pr"><span class="pl">On value</span>
+      <input type="number" class="pi" id="seq-onval"  value="${w.onVal??1}"  step="any" style="width:70px"></div>
+    <div class="pr"><span class="pl">Off value</span>
+      <input type="number" class="pi" id="seq-offval" value="${w.offVal??0}" step="any" style="width:70px"></div>
+    <div class="pr"><span class="pl">Mode</span>
+      <select class="pi" id="seq-toggle" style="width:110px">
+        <option value="1" ${w.toggle!==false?'selected':''}>Toggle</option>
+        <option value="0" ${w.toggle===false?'selected':''}>Momentary</option>
+      </select></div>
+  </div>`;
+}
+
+function propsBinds_sequencer(w, bind) {
+  bind('seq-osc',    'osc');
+  bind('seq-onval',  'onVal',  parseFloat);
+  bind('seq-offval', 'offVal', parseFloat);
+  bind('seq-toggle', 'toggle', v => v === '1');
+
+  const rebuildSteps = (newCols, newRows) => {
+    const old = w.steps || [];
+    const oc  = w.cols || 16, or_ = w.rows || 4;
+    const ns  = new Array(newCols * newRows).fill(false);
+    // Preserve existing pad states that fit in the new grid
+    for (let r = 0; r < Math.min(or_, newRows); r++) {
+      for (let c = 0; c < Math.min(oc, newCols); c++) {
+        ns[r * newCols + c] = !!old[r * oc + c];
+      }
+    }
+    w.cols = newCols; w.rows = newRows; w.steps = ns;
+    const colEl = $('seq-cols'), rowEl = $('seq-rows');
+    if (colEl) colEl.value = newCols; if (rowEl) rowEl.value = newRows;
+    refreshWidget(w); histPush();
+  };
+
+  const presetEl = $('seq-preset');
+  if (presetEl) presetEl.addEventListener('change', e => {
+    if (e.target.value === 'custom') return;
+    const [c, r] = e.target.value.split(',').map(Number);
+    rebuildSteps(c, r);
+  });
+
+  const applyDims = () => {
+    const c = clamp(parseInt($('seq-cols')?.value)||16, 1, 128);
+    const r = clamp(parseInt($('seq-rows')?.value)||4,  1, 128);
+    rebuildSteps(c, r);
+  };
+  ['seq-cols','seq-rows'].forEach(id => {
+    const el = $(id); if (!el) return;
+    el.addEventListener('change', applyDims);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') applyDims(); });
+  });
+
+  $('seq-clear').addEventListener('click', () => {
+    w.steps = new Array((w.rows||4) * (w.cols||16)).fill(false);
+    refreshWidget(w); histPush();
+  });
+  $('seq-fill').addEventListener('click', () => {
+    w.steps = new Array((w.rows||4) * (w.cols||16)).fill(true);
+    refreshWidget(w); histPush();
+  });
+}
+
+function propsBinds_transport(w, bind) {
+  (w.buttons||[]).forEach((b,i) => {
+    const n=$(`tp-name-${i}`), o=$(`tp-osc-${i}`), en=$(`tp-en-${i}`);
+    if (n) n.addEventListener('input',  e => { b.name=e.target.value; refreshWidget(w); clearTimeout(n._ht); n._ht=setTimeout(histPush,600); });
+    if (o) o.addEventListener('input',  e => { b.osc=e.target.value;                   clearTimeout(o._ht); o._ht=setTimeout(histPush,600); });
+    if (en)en.addEventListener('change',e => { b.enabled=e.target.checked; refreshWidget(w); histPush(); });
+  });
+  const sv=$('tp-sendval');
+  if (sv) sv.addEventListener('input', e => { w.sendValue=parseFloat(e.target.value)||1; clearTimeout(sv._ht); sv._ht=setTimeout(histPush,600); });
+  const sc=$('tp-iconscale'), scv=$('tp-iconscale-val');
+  if (sc) {
+    sc.addEventListener('input', e => { w.iconScale=parseFloat(e.target.value); if(scv) scv.textContent=Math.round(w.iconScale*100)+'%'; refreshWidget(w); });
+    sc.addEventListener('change', () => histPush());
+  }
+  $('tp-showlabel').addEventListener('change', e => { w.showLabel=e.target.checked; refreshWidget(w); histPush(); });
+}
+
+function propsBinds_bgMedia(w, bind) {
+  const urlInp=$('pi-bgimg-url'), prev=$('pi-bg-preview');
+  const setPrev = (src, type) => {
+    if (!prev) return;
+    prev.classList.toggle('has-img', !!src);
+    prev.style.backgroundImage=''; prev.style.backgroundColor='';
+    prev.querySelector('video')?.remove();
+    const sp=prev.querySelector('span'); if(sp) sp.style.display=src?'none':'';
+    if (src && type==='video') {
+      const v=document.createElement('video'); v.autoplay=true; v.loop=true; v.muted=true; v.playsInline=true;
+      v.style.cssText='width:100%;height:100%;object-fit:contain';
+      const s=document.createElement('source'); s.src=src; s.type='video/mp4';
+      v.appendChild(s); prev.appendChild(v); v.load(); v.play().catch(()=>{});
+    } else if (src) { prev.style.backgroundImage=`url('${src}')`; prev.style.backgroundSize='contain'; prev.style.backgroundColor='#000'; }
+  };
+  const applyBg = (src, type) => {
+    w.bgImage=src; w.bgMediaType=type||w.bgMediaType||'image';
+    if (urlInp && src && !src.startsWith('data:') && !src.startsWith('blob:')) urlInp.value=src;
+    setPrev(src, w.bgMediaType); refreshWidget(w);
+  };
+  if (w.bgImage) setPrev(w.bgImage, w.bgMediaType||'image');
+  $('pi-bgmediatype').addEventListener('change', e => { w.bgMediaType=e.target.value; applyBg('', e.target.value); if(urlInp) urlInp.value=''; });
+  if (urlInp) {
+    const go=()=>{const v=urlInp.value.trim(); if(v) applyBg(v,w.bgMediaType);};
+    urlInp.addEventListener('change',go); urlInp.addEventListener('keydown',e=>{if(e.key==='Enter')go();});
+  }
+  $('pi-bgimg-pick').addEventListener('click', () => {
+    const inp=document.createElement('input'); inp.type='file';
+    const isV=(w.bgMediaType||'image')==='video'; inp.accept=isV?'video/mp4,video/*':'image/*';
+    inp.onchange=()=>{
+      const file=inp.files[0]; if(!file) return;
+      if (isV) {
+        const b=URL.createObjectURL(file); w.bgImage=b; w.bgMediaType='video'; setPrev(b,'video'); refreshWidget(w);
+        let wn=$('pi-blob-warn'); if(!wn){wn=document.createElement('div');wn.id='pi-blob-warn';wn.className='local-warn';$('pi-bgimg-pick').parentNode.after(wn);}
+        wn.textContent=`⚠ "${file.name}" — local only, reselect after reload`;
+      } else { const r=new FileReader(); r.onload=ev=>applyBg(ev.target.result,'image'); r.readAsDataURL(file); }
+    }; inp.click();
+  });
+  $('pi-bgimg-clear').addEventListener('click', () => { applyBg('',w.bgMediaType); $('pi-blob-warn')?.remove(); });
+  bind('pi-bgimg-size',    'bgImageSize');
+  bind('pi-bgimg-pos',     'bgImagePosition');
+  bind('pi-bgimg-opacity', 'bgImageOpacity', parseFloat);
+}
+
+function propsBinds_spring(w) {
+  const en=$('spr-enabled'), flds=$('spr-fields');
+  if (en) en.addEventListener('change', e => {
+    w.spring=w.spring||{}; w.spring.enabled=e.target.checked;
+    if(flds){flds.style.opacity=e.target.checked?'1':'0.4'; flds.style.pointerEvents=e.target.checked?'':'none';}
+    histPush();
+  });
+  const bs=(id,key,coerce)=>{
+    const el=$(id); if(!el) return;
+    const apply=e=>{
+      w.spring=w.spring||{};
+      const v=coerce?coerce(e.target.value):e.target.value;
+      // Only reject when v is an invalid NUMBER — string values (e.g. easing
+      // mode) must not be rejected by isNaN, which coerces any non-numeric
+      // string to NaN and would otherwise silently block the assignment.
+      if (v===undefined) return;
+      if (typeof v==='number' && isNaN(v)) return;
+      w.spring[key]=v;
+      clearTimeout(el._ht);el._ht=setTimeout(histPush,600);
     };
+    el.addEventListener('input',apply); el.addEventListener('change',apply);
+  };
+  if (w.type==='xypad'){bs('spr-targetx','targetX',parseFloat);bs('spr-targety','targetY',parseFloat);}
+  else bs('spr-target','target',parseFloat);
+  bs('spr-dur','duration',v=>Math.max(50,parseInt(v)));
+  bs('spr-ease','easing');
+}
 
-    // Init preview for existing media
-    if (w.bgImage) setWidgetPreview(w.bgImage, w.bgMediaType || 'image');
+function propsHTML_shadow(w) {
+  const sh = w.shadow || {};
+  return `<div class="ps">
+    <div class="ps-title">Drop Shadow <span style="font-size:9px;color:var(--text-dim);font-weight:normal">(optional)</span></div>
+    <div class="pr"><span class="pl">Enable</span>
+      <input type="checkbox" id="sh-enabled" ${sh.enabled ? 'checked' : ''}></div>
+    <div id="sh-fields" ${sh.enabled ? '' : 'style="opacity:0.4;pointer-events:none"'}>
+      <div class="pr"><span class="pl">Color</span>
+        <input type="color" class="pi" id="sh-color" value="${sh.color || '#000000'}"></div>
+      <div class="pr"><span class="pl">Opacity</span>
+        <input type="number" class="pi" id="sh-opacity"
+          value="${sh.opacity ?? 0.55}" min="0" max="1" step="0.05" style="width:70px"></div>
+      <div class="pr"><span class="pl">X offset</span>
+        <input type="number" class="pi" id="sh-x"
+          value="${sh.x ?? 0}" min="-50" max="50" step="1" style="width:70px"></div>
+      <div class="pr"><span class="pl">Y offset</span>
+        <input type="number" class="pi" id="sh-y"
+          value="${sh.y ?? 6}" min="-50" max="50" step="1" style="width:70px"></div>
+      <div class="pr"><span class="pl">Blur</span>
+        <input type="number" class="pi" id="sh-blur"
+          value="${sh.blur ?? 18}" min="0" max="80" step="1" style="width:70px"></div>
+      <div class="pr"><span class="pl">Spread</span>
+        <input type="number" class="pi" id="sh-spread"
+          value="${sh.spread ?? 0}" min="-20" max="40" step="1" style="width:70px"></div>
+    </div>
+  </div>`;
+}
 
-    // Media type toggle
-    const typeEl = $('pi-bgmediatype');
-    if (typeEl) typeEl.addEventListener('change', e => {
-      w.bgMediaType = e.target.value;
-      applyBgMedia('', w.bgMediaType);
-      if (urlInp) { urlInp.value = ''; urlInp.placeholder = w.bgMediaType === 'video' ? 'https://…/video.mp4' : 'https://…'; }
-    });
+function propsBinds_shadow(w, bind) {
+  const enEl  = $('sh-enabled');
+  const flds  = $('sh-fields');
+  if (enEl) enEl.addEventListener('change', e => {
+    w.shadow = w.shadow || {};
+    w.shadow.enabled = e.target.checked;
+    if (flds) { flds.style.opacity = e.target.checked ? '1' : '0.4'; flds.style.pointerEvents = e.target.checked ? '' : 'none'; }
+    refreshWidget(w); histPush();
+  });
+  const bs = (id, key, coerce) => {
+    const el = $(id); if (!el) return;
+    el.addEventListener('input',  e => { w.shadow = w.shadow||{}; const v = coerce ? coerce(e.target.value) : e.target.value; w.shadow[key] = v; refreshWidget(w); clearTimeout(el._ht); el._ht = setTimeout(histPush, 600); });
+    el.addEventListener('change', e => { w.shadow = w.shadow||{}; const v = coerce ? coerce(e.target.value) : e.target.value; w.shadow[key] = v; refreshWidget(w); });
+  };
+  bs('sh-color',   'color');
+  bs('sh-opacity', 'opacity', parseFloat);
+  bs('sh-x',       'x',       parseFloat);
+  bs('sh-y',       'y',       parseFloat);
+  bs('sh-blur',    'blur',    parseFloat);
+  bs('sh-spread',  'spread',  parseFloat);
+}
 
-    // URL input
-    if (urlInp) {
-      const commit = () => { const v = urlInp.value.trim(); if (v) applyBgMedia(v, w.bgMediaType); };
-      urlInp.addEventListener('change', commit);
-      urlInp.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
-    }
+function propsHTML_bgColor2(w) {
+  const bg2 = w.bg2 || {};
+  return `<div class="ps">
+    <div class="ps-title">Background Colour <span style="font-size:9px;color:var(--text-dim);font-weight:normal">(optional)</span></div>
+    <div class="pr"><span class="pl">Enable</span>
+      <input type="checkbox" id="bg2-enabled" ${bg2.enabled ? 'checked' : ''}></div>
+    <div id="bg2-fields" ${bg2.enabled ? '' : 'style="opacity:0.4;pointer-events:none"'}>
+      <div class="pr"><span class="pl">Color</span>
+        <input type="color" class="pi" id="bg2-color" value="${bg2.color || '#1a1a1a'}"></div>
+      <div class="pr"><span class="pl">Opacity</span>
+        <input type="number" class="pi" id="bg2-opacity"
+          value="${bg2.opacity ?? 1}" min="0" max="1" step="0.05" style="width:70px"></div>
+    </div>
+  </div>`;
+}
 
-    // Local file picker
-    const pickBtn = $('pi-bgimg-pick');
-    if (pickBtn) {
-      pickBtn.addEventListener('click', () => {
-        const inp = document.createElement('input');
-        inp.type = 'file';
-        const isVid = (w.bgMediaType || 'image') === 'video';
-        inp.accept = isVid ? 'video/mp4,video/*' : 'image/*';
-        inp.onchange = () => {
-          const file = inp.files[0];
-          if (!file) return;
-          if (isVid) {
-            const blobUrl = URL.createObjectURL(file);
-            w.bgImage = blobUrl; w.bgMediaType = 'video';
-            setWidgetPreview(blobUrl, 'video');
-            refreshWidget(w);
-            let warn = $('pi-blob-warn');
-            if (!warn) {
-              warn = document.createElement('div');
-              warn.id = 'pi-blob-warn'; warn.className = 'local-warn';
-              pickBtn.parentNode.after(warn);
-            }
-            warn.textContent = `⚠ "${file.name}" — local only, reselect after reload`;
-          } else {
-            const reader = new FileReader();
-            reader.onload = ev => applyBgMedia(ev.target.result, 'image');
-            reader.readAsDataURL(file);
-          }
-        };
-        inp.click();
-      });
-    }
+function propsBinds_bgColor2(w, bind) {
+  const enEl = $('bg2-enabled');
+  const flds = $('bg2-fields');
+  if (enEl) enEl.addEventListener('change', e => {
+    w.bg2 = w.bg2 || {};
+    w.bg2.enabled = e.target.checked;
+    if (flds) { flds.style.opacity = e.target.checked ? '1' : '0.4'; flds.style.pointerEvents = e.target.checked ? '' : 'none'; }
+    refreshWidget(w); histPush();
+  });
+  const bs = (id, key, coerce) => {
+    const el = $(id); if (!el) return;
+    el.addEventListener('input',  e => { w.bg2 = w.bg2||{}; const v = coerce ? coerce(e.target.value) : e.target.value; w.bg2[key] = v; refreshWidget(w); clearTimeout(el._ht); el._ht = setTimeout(histPush, 600); });
+    el.addEventListener('change', e => { w.bg2 = w.bg2||{}; const v = coerce ? coerce(e.target.value) : e.target.value; w.bg2[key] = v; refreshWidget(w); });
+  };
+  bs('bg2-color',   'color');
+  bs('bg2-opacity', 'opacity', parseFloat);
+}
 
-    // Clear
-    const clearBtn = $('pi-bgimg-clear');
-    if (clearBtn) clearBtn.addEventListener('click', () => {
-      applyBgMedia('', w.bgMediaType);
-      const warn = $('pi-blob-warn');
-      if (warn) warn.remove();
-    });
+function propsHTML_activeColor(w) {
+  const ac = w.activeColor || {};
+  return `<div class="ps">
+    <div class="ps-title">Active Colour <span style="font-size:9px;color:var(--text-dim);font-weight:normal">(optional)</span></div>
+    <div class="pr"><span class="pl">Enable</span>
+      <input type="checkbox" id="ac-enabled" ${ac.enabled ? 'checked' : ''}></div>
+    <div id="ac-fields" ${ac.enabled ? '' : 'style="opacity:0.4;pointer-events:none"'}>
+      <div class="pr"><span class="pl">Colour</span>
+        <input type="color" class="pi" id="ac-color" value="${ac.color || '#ffffff'}"></div>
+    </div>
+    <div style="font-size:9px;color:var(--text-dim);padding:0 2px 2px;line-height:1.4">
+      Swaps to this colour the instant you touch or drag the control, and back
+      to the normal colour the moment you release.</div>
+  </div>`;
+}
 
-    bind('pi-bgimg-size',    'bgImageSize');
-    bind('pi-bgimg-pos',     'bgImagePosition');
-    bind('pi-bgimg-opacity', 'bgImageOpacity', parseFloat);
+function propsBinds_activeColor(w, bind) {
+  const enEl = $('ac-enabled');
+  const flds = $('ac-fields');
+  if (enEl) enEl.addEventListener('change', e => {
+    w.activeColor = w.activeColor || {};
+    w.activeColor.enabled = e.target.checked;
+    if (flds) { flds.style.opacity = e.target.checked ? '1' : '0.4'; flds.style.pointerEvents = e.target.checked ? '' : 'none'; }
+    refreshWidget(w); histPush();
+  });
+  const colEl = $('ac-color');
+  if (colEl) {
+    const apply = e => { w.activeColor = w.activeColor || {}; w.activeColor.color = e.target.value; refreshWidget(w); };
+    colEl.addEventListener('input',  e => { apply(e); clearTimeout(colEl._ht); colEl._ht = setTimeout(histPush, 600); });
+    colEl.addEventListener('change', apply);
   }
+}
 
-  // ── Encoder bindings ──
-  if (isEncoder) {
-    bind('pi-label', 'label');
-    bind('pi-osc',   'osc');
-    const bindNum = (id, key) => {
-      const el = $(id); if (!el) return;
-      el.addEventListener('input', e => {
-        const v = parseFloat(e.target.value);
-        if (!isNaN(v)) { w[key] = v; clearTimeout(el._ht); el._ht = setTimeout(histPush, 600); }
-      });
-    };
-    bind('enc-mode',   'mode');
-    bindNum('enc-up',    'sendUp');
-    bindNum('enc-down',  'sendDown');
-    bindNum('enc-pxtick','pxPerTick');
-    const accelEl = $('enc-accel');
-    if (accelEl) accelEl.addEventListener('change', e => { w.acceleration = e.target.checked; histPush(); });
-    const resetEl = $('enc-reset');
-    if (resetEl) resetEl.addEventListener('click', () => {
-      w._encSteps = 0; w._encAngle = -90; w._encDir = 0;
-      refreshWidget(w); histPush();
-    });
-  }
+function propsHTML_switch3(w) {
+  return `<div class="ps"><div class="ps-title">Switch Labels</div>
+    <div class="pr"><span class="pl">Widget label</span>
+      <input type="text" class="pi" id="sw3-label" value="${esc(w.label||'')}"></div>
+    <div class="pr"><span class="pl">Top label</span>
+      <input type="text" class="pi" id="sw3-toplabel" value="${esc(w.topLabel||'HOLD')}"></div>
+    <div class="pr"><span class="pl">Mid label</span>
+      <input type="text" class="pi" id="sw3-midlabel" value="${esc(w.midLabel||'OFF')}"></div>
+    <div class="pr"><span class="pl">Bot label</span>
+      <input type="text" class="pi" id="sw3-botlabel" value="${esc(w.botLabel||'MOM')}"></div>
+    <div class="pr"><span class="pl">Show labels</span>
+      <input type="checkbox" id="sw3-showlabel" ${w.showLabel!==false?'checked':''}></div>
+  </div>
+  <div class="ps"><div class="ps-title">OSC</div>
+    <div class="pr col"><span class="pl">Address</span>
+      <input type="text" class="pi" id="sw3-osc" value="${esc(w.osc||'')}" placeholder="/switch/1"></div>
+    <div class="pr"><span class="pl">Hold value</span>
+      <input type="number" class="pi" id="sw3-holdval"  value="${w.holdValue??1}"  step="any" style="width:70px"></div>
+    <div class="pr"><span class="pl">Off value</span>
+      <input type="number" class="pi" id="sw3-offval"   value="${w.offValue??0}"   step="any" style="width:70px"></div>
+    <div class="pr"><span class="pl">Mom value</span>
+      <input type="number" class="pi" id="sw3-momval"   value="${w.momValue??1}"   step="any" style="width:70px"></div>
+  </div>`;
+}
 
-  // ── Transport bindings ──
-  if (isTransport) {
-    (w.buttons || []).forEach((b, i) => {
-      const nameEl = $(`tp-name-${i}`);
-      const oscEl  = $(`tp-osc-${i}`);
-      const enEl   = $(`tp-en-${i}`);
-      if (nameEl) nameEl.addEventListener('input', e => {
-        b.name = e.target.value; refreshWidget(w);
-        clearTimeout(nameEl._ht); nameEl._ht = setTimeout(histPush, 600);
-      });
-      if (oscEl)  oscEl.addEventListener('input', e => {
-        b.osc = e.target.value;
-        clearTimeout(oscEl._ht); oscEl._ht = setTimeout(histPush, 600);
-      });
-      if (enEl)   enEl.addEventListener('change', e => {
-        b.enabled = e.target.checked; refreshWidget(w); histPush();
-      });
-    });
-    const svEl = $('tp-sendval');
-    if (svEl) svEl.addEventListener('input', e => {
-      w.sendValue = parseFloat(e.target.value) || 1;
-      clearTimeout(svEl._ht); svEl._ht = setTimeout(histPush, 600);
-    });
-    // Icon scale slider — live feedback
-    const scaleEl    = $('tp-iconscale');
-    const scaleValEl = $('tp-iconscale-val');
-    if (scaleEl) {
-      scaleEl.addEventListener('input', e => {
-        w.iconScale = parseFloat(e.target.value);
-        if (scaleValEl) scaleValEl.textContent = Math.round(w.iconScale * 100) + '%';
-        refreshWidget(w);
-      });
-      scaleEl.addEventListener('change', () => histPush());
-    }
-    // Show labels toggle
-    const lblEl = $('tp-showlabel');
-    if (lblEl) lblEl.addEventListener('change', e => {
-      w.showLabel = e.target.checked; refreshWidget(w); histPush();
-    });
-  }
+function propsBinds_switch3(w, bind) {
+  bind('sw3-label',     'label');
+  bind('sw3-toplabel',  'topLabel');
+  bind('sw3-midlabel',  'midLabel');
+  bind('sw3-botlabel',  'botLabel');
+  bind('sw3-osc',       'osc');
+  bind('sw3-holdval',   'holdValue',  parseFloat);
+  bind('sw3-offval',    'offValue',   parseFloat);
+  bind('sw3-momval',    'momValue',   parseFloat);
+  const sl = $('sw3-showlabel');
+  if (sl) sl.addEventListener('change', e => { w.showLabel = e.target.checked; refreshWidget(w); histPush(); });
+}
 
-  // ── Spring bindings ──
-  if (hasSpring) {
-    const sprEn   = $('spr-enabled');
-    const sprFlds = $('spr-fields');
-    if (sprEn) sprEn.addEventListener('change', e => {
-      w.spring = w.spring || {};
-      w.spring.enabled = e.target.checked;
-      if (sprFlds) { sprFlds.style.opacity = e.target.checked ? '1' : '0.4'; sprFlds.style.pointerEvents = e.target.checked ? '' : 'none'; }
-      histPush();
-    });
-    const bindSpr = (id, key, coerce) => {
-      const el = $(id); if (!el) return;
-      el.addEventListener('input',  e => { w.spring = w.spring||{}; const v = coerce ? coerce(e.target.value) : e.target.value; if (!isNaN(v)) { w.spring[key] = v; clearTimeout(el._ht); el._ht = setTimeout(histPush, 600); }});
-      el.addEventListener('change', e => { w.spring = w.spring||{}; const v = coerce ? coerce(e.target.value) : e.target.value; if (!isNaN(v)) w.spring[key] = v; });
-    };
-    if (w.type === 'xypad') {
-      bindSpr('spr-targetx', 'targetX', parseFloat);
-      bindSpr('spr-targety', 'targetY', parseFloat);
-    } else {
-      bindSpr('spr-target', 'target', parseFloat);
-    }
-    bindSpr('spr-dur',  'duration', v => Math.max(50, parseInt(v)));
-    bindSpr('spr-ease', 'easing');
-  }
+// ── Coordinator (~55 lines) ──────────────────────────────
+function buildProps(id) {
+  const w = gw(id);
+  if (!w) return;
+  $('props').classList.remove('hidden');
+  $('props-type').textContent = w.type.toUpperCase();
+
+  const isText        = w.type === 'label' || w.type === 'text';
+  const isVideo       = w.type === 'video';
+  const isTransport   = w.type === 'transport';
+  const isEncoder     = w.type === 'encoder';
+  const isSwitch3     = w.type === 'switch3';
+  const isXYPad       = w.type === 'xypad';
+  const isColorPicker = w.type === 'colorpicker';
+  const isJogwheel    = w.type === 'jogwheel';
+  const isSequencer   = w.type === 'sequencer';
+  const isButton      = w.type === 'button';
+  const hasRange      = !isText && !isVideo && !isTransport && !isEncoder && !isXYPad && !isSwitch3 && !isColorPicker && !isJogwheel && !isSequencer;
+  const hasSpring     = ['hslider','vslider','knob','xypad'].includes(w.type);
+  const hasBgMedia    = !isText && !isVideo && !isTransport && !isEncoder && !isSwitch3 && !isColorPicker && !isJogwheel && !isSequencer;
+  const hasBgColor2   = ['button','hslider','vslider','knob','xypad','encoder','transport','switch3','colorpicker','jogwheel'].includes(w.type);
+  const hasActiveColor = ['button','hslider','vslider','knob','xypad','encoder','switch3','jogwheel'].includes(w.type);
+
+  const oscRow    = hasRange
+    ? `<div class="pr col"><span class="pl">OSC Address</span><input type="text" class="pi" id="pi-osc" value="${esc(w.osc)}" placeholder="/control/1"></div>`
+    : '';
+  const encOscRow = isEncoder
+    ? `<div class="pr col"><span class="pl">OSC Address</span><input type="text" class="pi" id="pi-osc" value="${esc(w.osc)}" placeholder="/encoder/1"></div>`
+    : '';
+  const rxRow = (!isText && !isVideo && !isTransport && !isEncoder && !isSwitch3 && !isSequencer)
+    ? `<div class="pr"><span class="pl">Receive only</span><input type="checkbox" id="pi-rxonly" ${w.receiveOnly?'checked':''}></div>`
+    : '';
+
+  $('props-body').innerHTML = [
+    propsHTML_identity(w, oscRow, rxRow, encOscRow),
+    hasRange      ? propsHTML_range(w)        : '',
+    propsHTML_appearance(w),
+    hasBgMedia    ? propsHTML_bgMedia(w)      : '',
+    propsHTML_posSize(w),
+    isText        ? propsHTML_text(w)         : '',
+    isVideo       ? propsHTML_video(w)        : '',
+    hasSpring     ? propsHTML_spring(w)       : '',
+    propsHTML_shadow(w),
+    hasBgColor2   ? propsHTML_bgColor2(w)     : '',
+    hasActiveColor ? propsHTML_activeColor(w) : '',
+    isButton      ? propsHTML_button(w)       : '',
+    isXYPad       ? propsHTML_xypad(w)        : '',
+    isColorPicker ? propsHTML_colorpicker(w)  : '',
+    isEncoder     ? propsHTML_encoder(w)      : '',
+    isJogwheel    ? propsHTML_jogwheel(w)     : '',
+    isSequencer   ? propsHTML_sequencer(w)    : '',
+    isTransport   ? propsHTML_transport(w)    : '',
+    isSwitch3     ? propsHTML_switch3(w)      : '',
+    `<div class="ps"><button class="btn-del" id="btn-del-w">🗑  Delete Widget</button></div>`,
+  ].join('');
+
+  const { bind } = makeBindHelper(w);
+  propsBinds_common(w, bind);
+  if (!isText && !isVideo && !isTransport && !isEncoder && !isSwitch3 && !isSequencer) propsBinds_identity(w, bind);
+  if (hasRange)      propsBinds_range(w, bind);
+  if (isButton)      propsBinds_button(w, bind);
+  if (isXYPad)       propsBinds_xypad(w, bind);
+  if (isColorPicker) propsBinds_colorpicker(w, bind);
+  if (isText)        propsBinds_text(w, bind);
+  if (isVideo)       propsBinds_video(w, bind);
+  if (isEncoder)     propsBinds_encoder(w, bind);
+  if (isJogwheel)    propsBinds_jogwheel(w, bind);
+  if (isSequencer)   propsBinds_sequencer(w, bind);
+  if (isTransport)   propsBinds_transport(w, bind);
+  if (isSwitch3)     propsBinds_switch3(w, bind);
+  if (hasBgMedia)    propsBinds_bgMedia(w, bind);
+  if (hasSpring)     propsBinds_spring(w);
+  propsBinds_shadow(w, bind);
+  if (hasBgColor2)   propsBinds_bgColor2(w, bind);
+  if (hasActiveColor) propsBinds_activeColor(w, bind);
 
   $('btn-del-w').addEventListener('click', () => deleteWidget(w.id));
 }
-
 // ═══════════════════════════════════════════════════════════
 //  SPRING RETURN ENGINE
 // ═══════════════════════════════════════════════════════════
@@ -4061,6 +5363,33 @@ document.addEventListener('keydown', e => {
     e.preventDefault(); histRedo(); return;
   }
 
+  // Duplicate selected widget
+  if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+    e.preventDefault();
+    if (S.mode === 'edit') {
+      if (S.selIds.size > 1) {
+        // Multi-select duplicate — same as the panel button
+        $('ms-dup')?.click();
+      } else if (S.sel) {
+        const src = gw(S.sel);
+        if (src) {
+          const copy = JSON.parse(JSON.stringify(src));
+          copy.id = uid();
+          copy.x  = snap(src.x + S.gridSize);
+          copy.y  = snap(src.y + S.gridSize);
+          histPush();
+          S.widgets.push(copy);
+          mountWidget(copy);
+          select(copy.id);
+          histPush();
+          markDirty();
+          toast('Duplicated', 'ok');
+        }
+      }
+    }
+    return;
+  }
+
   if ((e.key === 'Delete' || e.key === 'Backspace') && S.mode === 'edit') {
     if (S.selIds.size > 1) {
       // Delete all multi-selected
@@ -4085,7 +5414,7 @@ document.addEventListener('keydown', e => {
   if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key) && S.sel && S.mode === 'edit') {
     e.preventDefault();
     const w = gw(S.sel);
-    if (!w) return;
+    if (!w || w.locked) return;
     const step = e.shiftKey ? 1 : S.gridSize;
     if (e.key === 'ArrowLeft')  w.x = Math.max(0, w.x - step);
     if (e.key === 'ArrowRight') w.x += step;
@@ -4192,8 +5521,23 @@ function sendOSC(address, value) {
   } catch(err) { /* ignore */ }
 }
 
+let wsReconnectTimer = null;
+let wsWasConnected    = false; // tracks whether we've had a real connection, for the "lost" toast
+
 function connectWS(url) {
-  if (S.ws) { try { S.ws.close(); } catch(e) {} S.ws = null; }
+  // Cancel any pending auto-reconnect attempt — we're connecting fresh now,
+  // whether that's the user clicking Connect again or a scheduled retry.
+  clearTimeout(wsReconnectTimer);
+  wsReconnectTimer = null;
+
+  if (S.ws) {
+    // Detach handlers first so the old socket's close/error events don't
+    // also trigger reconnect logic — we're deliberately replacing it.
+    S.ws.onclose = null;
+    S.ws.onerror = null;
+    try { S.ws.close(); } catch(e) {}
+    S.ws = null;
+  }
 
   // Warn clearly when ws:// is used from an HTTPS page — it will be blocked
   if (location.protocol === 'https:' && url.startsWith('ws://')) {
@@ -4205,13 +5549,45 @@ function connectWS(url) {
   setWsSt('connecting', 'Connecting…');
   try {
     S.ws = new WebSocket(url);
-    S.ws.onopen  = () => { setWsSt('connected', url.replace('ws://','').replace('wss://','').split('/')[0]); };
-    S.ws.onclose = () => { setWsSt('disconnected', 'Disconnected'); S.ws = null; };
+    S.ws.onopen  = () => {
+      wsWasConnected = true;
+      setWsSt('connected', url.replace('ws://','').replace('wss://','').split('/')[0]);
+      toast('Connected — syncing state…', 'ok');
+      sendOnConnect();
+    };
+    S.ws.onclose = () => {
+      S.ws = null;
+      if (S.wsAutoReconnect) {
+        if (wsWasConnected) {
+          toast('Connection lost — reconnecting…', 'err');
+          wsWasConnected = false; // only show this once per drop, not per retry
+        }
+        setWsSt('disconnected', 'Reconnecting…');
+        wsReconnectTimer = setTimeout(() => connectWS(url), 3000);
+      } else {
+        setWsSt('disconnected', 'Disconnected');
+      }
+    };
     S.ws.onerror = () => { setWsSt('error', 'Error'); };
     S.ws.onmessage = e => { handleOSCReceive(e.data); };
   } catch(err) {
     setWsSt('error', 'Invalid URL');
   }
+}
+
+// Manually stop trying to reconnect (e.g. exposed for a future disconnect
+// button) — cancels any pending retry and marks the connection as deliberately closed.
+function disconnectWS() {
+  clearTimeout(wsReconnectTimer);
+  wsReconnectTimer = null;
+  wsWasConnected = false;
+  if (S.ws) {
+    S.ws.onclose = null;
+    S.ws.onerror = null;
+    try { S.ws.close(); } catch(e) {}
+    S.ws = null;
+  }
+  setWsSt('disconnected', 'Disconnected');
 }
 
 function parseIncoming(raw) {
@@ -4255,6 +5631,51 @@ function rxFlash(id) {
   el._rxTimer = setTimeout(() => el.classList.remove('rx-flash'), 400);
 }
 
+// Broadcast all current widget values on (re)connect so target software
+// is always in sync with the UI state — not just the active page.
+function sendOnConnect() {
+  // Small delay to let the handshake complete
+  setTimeout(() => {
+    for (const page of S.pages) {
+      for (const w of page.widgets) {
+        if (w.receiveOnly) continue;
+        switch (w.type) {
+          case 'hslider':
+          case 'vslider':
+          case 'knob':
+            sendOSC(w.osc, w.value);
+            break;
+          case 'button':
+            sendOSC(w.osc, w.value);
+            break;
+          case 'xypad':
+            sendOSC(w.oscX, w.valueX);
+            sendOSC(w.oscY, w.valueY);
+            break;
+          case 'colorpicker':
+            cpSendAll(w);
+            break;
+          case 'encoder':
+            if (w.mode === 'absolute') sendOSC(w.osc, w._encSteps ?? 0);
+            break;
+          case 'transport':
+            // Send active state for each enabled button
+            if (w.buttons) {
+              for (const b of w.buttons) {
+                if (b.enabled !== false && b.active) {
+                  sendOSC(b.osc, w.sendValue ?? 1);
+                }
+              }
+            }
+            break;
+          // label, text, video — display only, nothing to send
+        }
+      }
+    }
+    monLog('out', '/sys/connected', 1);
+  }, 80);
+}
+
 function handleOSCReceive(raw) {
   const msgs = parseIncoming(raw);
   for (const { address, value } of msgs) {
@@ -4266,33 +5687,139 @@ function handleOSCReceive(raw) {
     // Log every incoming message to the monitor
     monLog('in', address, value);
 
-    // Match against every widget — multiple widgets can share an address
+    // Match against every widget on the active page
     for (const w of S.widgets) {
       let matched = false;
 
-      if (w.type === 'xypad') {
-        if (w.oscX && w.oscX === address) {
-          w.valueX = clamp(value, w.minX, w.maxX);
-          matched = true;
+      switch (w.type) {
+        case 'xypad':
+          if (w.oscX && w.oscX === address) { w.valueX = clamp(value, w.minX, w.maxX); matched = true; }
+          if (w.oscY && w.oscY === address) { w.valueY = clamp(value, w.minY, w.maxY); matched = true; }
+          break;
+
+        case 'colorpicker': {
+          // Three independent channel addresses — incoming value may be
+          // 0-255 int or 0-1 float depending on the widget's output range.
+          const norm = w.outputRange === '1';
+          const toByte = v => clamp(Math.round(norm ? v * 255 : v), 0, 255);
+          if (w.oscR && w.oscR === address) { w.r = toByte(value); matched = true; }
+          if (w.oscG && w.oscG === address) { w.g = toByte(value); matched = true; }
+          if (w.oscB && w.oscB === address) { w.b = toByte(value); matched = true; }
+          if (matched) {
+            // Re-derive HSV so the SV-pad dot and hue marker stay in sync
+            const [h, s, v] = rgbToHsv(w.r ?? 0, w.g ?? 0, w.b ?? 0);
+            w.hue = h; w.sat = s; w.val = v;
+          }
+          break;
         }
-        if (w.oscY && w.oscY === address) {
-          w.valueY = clamp(value, w.minY, w.maxY);
-          matched = true;
-        }
-      } else if (w.osc === address) {
-        if (w.type === 'button') {
-          // Snap to onVal/offVal based on threshold
-          w.value = value >= w.onVal ? w.onVal : w.offVal;
-        } else {
-          w.value = clamp(value, w.min, w.max);
-        }
-        matched = true;
+
+        case 'jogwheel':
+          // Optional absolute-angle feedback — only applied while the user
+          // isn't actively dragging, so it never fights a live scratch gesture.
+          if (w.oscPos && w.oscPos === address && !w._touched) {
+            w._rotation = ((value % 360) + 360) % 360;
+            matched = true;
+          }
+          break;
+
+        case 'button':
+          if (w.osc === address) {
+            w.value = value >= w.onVal ? w.onVal : w.offVal;
+            matched = true;
+          }
+          break;
+
+        case 'encoder':
+          if (w.osc === address) {
+            // Incoming value updates the accumulated step counter and visual angle
+            w._encSteps = (w._encSteps ?? 0) + value;
+            w._encAngle = ((w._encAngle ?? -90) + value * 15) % 360;
+            w._encDir   = value > 0 ? 1 : value < 0 ? -1 : 0;
+            matched = true;
+          }
+          break;
+
+        case 'transport':
+          // Incoming OSC can light/unlight individual transport buttons
+          if (w.buttons) {
+            for (const b of w.buttons) {
+              if (b.osc === address) {
+                b.active = value !== 0;
+                matched  = true;
+              }
+            }
+          }
+          break;
+
+        case 'label':
+        case 'text':
+          // Labels can receive a numeric value and display it
+          if (w.osc === address) {
+            const decimals = Number.isInteger(value) ? 0 : 2;
+            w.text = value.toFixed(decimals);
+            matched = true;
+          }
+          break;
+
+        default:
+          // hslider, vslider, knob, video (ignored)
+          if (w.osc === address) {
+            w.value = clamp(value, w.min, w.max);
+            matched = true;
+          }
       }
 
       if (matched) {
         refreshWidget(w);
         rxFlash(w.id);
+        // If this widget is open in the props panel, refresh live values
+        if (S.sel === w.id) rxUpdateProps(w);
       }
+    }
+  }
+}
+
+// Surgically update props panel inputs when a selected widget receives OSC
+// — avoids full buildProps rebuild which would lose focus/cursor position
+function rxUpdateProps(w) {
+  switch (w.type) {
+    case 'hslider':
+    case 'vslider':
+    case 'knob': {
+      const mn = $('pi-min'), mx = $('pi-max');
+      // Only update value display — min/max inputs left alone
+      if (mn && document.activeElement !== mn) mn.value = w.min;
+      if (mx && document.activeElement !== mx) mx.value = w.max;
+      break;
+    }
+    case 'xypad': {
+      const xn = $('pi-minx'), xx = $('pi-maxx');
+      const yn = $('pi-miny'), yx = $('pi-maxy');
+      if (xn && document.activeElement !== xn) xn.value = w.minX;
+      if (xx && document.activeElement !== xx) xx.value = w.maxX;
+      if (yn && document.activeElement !== yn) yn.value = w.minY;
+      if (yx && document.activeElement !== yx) yx.value = w.maxY;
+      break;
+    }
+    case 'encoder': {
+      const sc = $('enc-reset');
+      // Update the reset button label with current count
+      if (sc) sc.textContent = `↺ Reset (now: ${w._encSteps ?? 0})`;
+      break;
+    }
+    case 'text':
+    case 'label': {
+      const ta = $('pi-text');
+      if (ta && document.activeElement !== ta) ta.value = w.text ?? '';
+      break;
+    }
+    case 'colorpicker': {
+      const rE = $('cp-r'), gE = $('cp-g'), bE = $('cp-b'), hexE = $('cp-hex');
+      if (rE   && document.activeElement !== rE)   rE.value   = w.r ?? 0;
+      if (gE   && document.activeElement !== gE)   gE.value   = w.g ?? 0;
+      if (bE   && document.activeElement !== bE)   bE.value   = w.b ?? 0;
+      if (hexE && document.activeElement !== hexE) hexE.value = rgbToHex(w.r ?? 0, w.g ?? 0, w.b ?? 0);
+      break;
     }
   }
 }
@@ -4688,9 +6215,24 @@ function initKioskModal() {
   $('btn-kiosk-url').addEventListener('click', () => {
     $('kiosk-theme-sel').value = '';
     $('kiosk-embed').checked   = false;
+    // Populate PIN field with current setting
+    const pinEl = $('kiosk-pin');
+    if (pinEl) pinEl.value = S.pin || '0000';
     updateKioskModal();
     $('modal-kiosk').classList.remove('hidden');
   });
+
+  // Save PIN on change — digits only, pad/truncate to 4
+  const pinEl = $('kiosk-pin');
+  if (pinEl) {
+    pinEl.addEventListener('input', e => {
+      // Strip non-digits
+      let v = e.target.value.replace(/\D/g, '').slice(0, 4);
+      e.target.value = v;
+      S.pin = v.padEnd(4, '0');
+      markDirty();
+    });
+  }
 
   $('kiosk-theme-sel').addEventListener('change', updateKioskModal);
   $('kiosk-embed').addEventListener('change', updateKioskModal);
@@ -4701,7 +6243,6 @@ function initKioskModal() {
       $('btn-kiosk-copy').textContent = '✓ Copied';
       setTimeout(() => { $('btn-kiosk-copy').textContent = 'Copy'; }, 2000);
     }).catch(() => {
-      // Fallback for http / older browsers
       $('kiosk-url-display').select();
       document.execCommand('copy');
       $('btn-kiosk-copy').textContent = '✓ Copied';
@@ -4837,6 +6378,7 @@ function initToolbar() {
   });
 
   $('btn-save').addEventListener('click', saveJSON);
+  $('btn-download-standalone').addEventListener('click', downloadStandalone);
 
   $('btn-load').addEventListener('click', () => $('file-inp').click());
   $('file-inp').addEventListener('change', e => {
@@ -4849,6 +6391,7 @@ function initToolbar() {
   $('btn-osc-cfg').addEventListener('click', () => {
     $('inp-ws-url').value = S.wsUrl;
     $('inp-ws-fmt').value = S.wsFmt;
+    $('inp-ws-autoreconnect').checked = S.wsAutoReconnect;
     // Show mixed-content warning and update placeholder when served over HTTPS
     const isHttps = location.protocol === 'https:';
     const warnEl  = $('https-ws-warn');
@@ -4870,8 +6413,10 @@ function initToolbar() {
   $('btn-modal-save').addEventListener('click', () => {
     S.wsUrl = $('inp-ws-url').value.trim();
     S.wsFmt = $('inp-ws-fmt').value;
+    S.wsAutoReconnect = $('inp-ws-autoreconnect').checked;
     localStorage.setItem('osc_ws_url', S.wsUrl);
     localStorage.setItem('osc_ws_fmt', S.wsFmt);
+    localStorage.setItem('osc_ws_autoreconnect', String(S.wsAutoReconnect));
     $('modal-osc').classList.add('hidden');
     markDirty();
     connectWS(S.wsUrl);
@@ -5184,6 +6729,7 @@ function addPage(name) {
 }
 
 function deletePage(id) {
+  if (S.kiosk) { toast('Page deletion is disabled in kiosk mode', 'err'); return; }
   if (S.pages.length <= 1) { toast('Cannot delete the last page', 'err'); return; }
   const idx = S.pages.findIndex(p => p.id === id);
   if (idx < 0) return;
@@ -5569,6 +7115,80 @@ function initResModal() {
 }
 
 // ═══════════════════════════════════════════════════════════
+//  STANDALONE DOWNLOAD
+//  Bakes the current layout into a self-contained copy of this
+//  HTML file. The downloaded file opens in any browser with no
+//  server, no localStorage dependency, and no URL required.
+// ═══════════════════════════════════════════════════════════
+async function downloadStandalone() {
+  toast('Preparing standalone file…', 'ok');
+  try {
+    // 1. Fetch the source HTML of this page
+    const resp = await fetch(location.href);
+    if (!resp.ok) throw new Error('Could not fetch page source');
+    let src = await resp.text();
+
+    // 2. Serialise the current layout (same format as autosave, blob URLs stripped)
+    function safePageForExport(p) {
+      const cbg = { ...p.canvasBg };
+      if (cbg.image?.startsWith('blob:')) cbg.image = '';
+      const ws = p.widgets.map(w => {
+        const c = { ...w };
+        if (c.bgImage?.startsWith('blob:')) c.bgImage = '';
+        if (c.src?.startsWith('blob:'))     c.src     = '';
+        return c;
+      });
+      return { ...p, canvasBg: cbg, widgets: ws };
+    }
+
+    const layout = JSON.stringify({
+      _version: 3,
+      gridSize: S.gridSize, showGrid: S.showGrid, snap: S.snap,
+      idCtr: S.idCtr, pageCtr,
+      wsUrl: S.wsUrl, wsFmt: S.wsFmt,
+      res: { locked: S.res.locked, w: S.res.w, h: S.res.h, fit: S.res.fit },
+      pages:  S.pages.map(safePageForExport),
+      pageId: S.pageId,
+    });
+
+    // 3. Inject a bootstrap <script> that pre-seeds localStorage before the
+    //    app initialises — so the layout loads automatically on file:// open.
+    const seed = `<script id="layout-seed">
+/* Standalone layout pre-seeded by OSC Touch Editor — do not edit manually */
+(function(){
+  try {
+    localStorage.setItem('osc_layout', ${JSON.stringify(layout)});
+  } catch(e) {}
+})();
+<\/script>`;
+
+    // Insert immediately before the closing </body>
+    src = src.replace('</body>', seed + '\n</body>');
+
+    // 4. Remove the seed script tag if this file already has one (re-export)
+    src = src.replace(/<script id="layout-seed">[\s\S]*?<\/script>\n?(<script id="layout-seed">)/, '$1');
+
+    // 5. Trigger download
+    const blob = new Blob([src], { type: 'text/html; charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'osc-touch-editor.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    toast('Downloaded — open the file in any browser', 'ok');
+  } catch (err) {
+    // Fallback when fetch() is blocked (e.g. some local servers)
+    // Build minimal redirect-based download pointing at current layout
+    toast('⚠ Direct fetch blocked — use ↓ Save to export layout JSON instead', 'err');
+    console.warn('downloadStandalone fetch failed:', err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 //  AUTO-SAVE / RESTORE
 // ═══════════════════════════════════════════════════════════
 function autosave() {
@@ -5597,11 +7217,11 @@ function autosave() {
   } catch(e) {}
 }
 
-function autorestore() {
+function autorestore(urlParams) {
   // 1. Check for an embedded layout in the URL (?layout=<base64url>)
   //    This makes kiosk URLs self-contained — no localStorage needed.
-  const urlParams = new URLSearchParams(window.location.search);
-  const layoutB64 = urlParams.get('layout');
+  const params = urlParams || new URLSearchParams(window.location.search);
+  const layoutB64 = params.get('layout');
   if (layoutB64) {
     try {
       const json = decodeURIComponent(escape(atob(
@@ -5673,15 +7293,20 @@ window.addEventListener('beforeunload', () => {
 //  INIT
 // ═══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  // Read URL params once — used by theme, kiosk, and layout restore
+  const _urlParams = new URLSearchParams(window.location.search);
+  S.kiosk = _urlParams.has('kiosk');
+
   initTheme();
   initToolbar();
   initCanvasMenu();
   initKioskModal();
+  initPinOverlay();
   initPageSettings();
   initResModal();
   initMonitor();
   applyGrid();
-  autorestore();
+  autorestore(_urlParams);
   // Ensure at least one page exists (fresh start)
   if (S.pages.length === 0) {
     const p = makeBlankPage('Page 1');
@@ -5704,7 +7329,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (el.webkitRequestFullscreen)  el.webkitRequestFullscreen();
     else if (el.mozRequestFullScreen)     el.mozRequestFullScreen();
 
-    // Show "Press Ctrl+K to exit" hint briefly, then fade
+    // Show "Press Shift+Q or Esc to exit" hint briefly, then fade
     const hint = $('kiosk-hint');
     if (hint) {
       hint.classList.add('visible');
@@ -5718,11 +7343,95 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// ── Ctrl+K — exit kiosk from anywhere ──────────────────────
+// ── PIN overlay system ───────────────────────────────────
+let _pinEntry = '';
+
+function pinOpen() {
+  _pinEntry = '';
+  pinUpdateDots();
+  $('pin-error').textContent = '';
+  $('pin-overlay').classList.add('open');
+  // Prevent background scroll/interaction
+  document.body.style.overflow = 'hidden';
+}
+
+function pinClose() {
+  $('pin-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  _pinEntry = '';
+  pinUpdateDots();
+}
+
+function pinUpdateDots() {
+  for (let i = 0; i < 4; i++) {
+    $(`pd${i}`)?.classList.toggle('filled', i < _pinEntry.length);
+  }
+}
+
+function pinDigit(d) {
+  if (_pinEntry.length >= 4) return;
+  _pinEntry += d;
+  pinUpdateDots();
+  if (_pinEntry.length === 4) pinSubmit();
+}
+
+function pinBack() {
+  _pinEntry = _pinEntry.slice(0, -1);
+  pinUpdateDots();
+  $('pin-error').textContent = '';
+}
+
+function pinSubmit() {
+  const correct = S.kioskPin || '0000';
+  if (_pinEntry === correct) {
+    pinClose();
+    exitKiosk();
+  } else {
+    // Wrong PIN — shake and clear
+    const dots = $('pin-dots');
+    dots.classList.remove('shake');
+    void dots.offsetWidth; // reflow to restart animation
+    dots.classList.add('shake');
+    $('pin-error').textContent = 'Incorrect PIN';
+    setTimeout(() => {
+      _pinEntry = '';
+      pinUpdateDots();
+      dots.classList.remove('shake');
+    }, 400);
+  }
+}
+
+function initPinOverlay() {
+  // Number pad buttons
+  document.querySelectorAll('.pin-key[data-d]').forEach(btn => {
+    btn.addEventListener('click', () => pinDigit(btn.dataset.d));
+  });
+  $('pin-back').addEventListener('click', pinBack);
+  $('pin-cancel').addEventListener('click', pinClose);
+
+  // Keyboard input while overlay is open
+  document.addEventListener('keydown', e => {
+    if (!$('pin-overlay').classList.contains('open')) return;
+    e.stopPropagation(); // don't let other handlers fire
+    if (e.key >= '0' && e.key <= '9') { e.preventDefault(); pinDigit(e.key); }
+    else if (e.key === 'Backspace')    { e.preventDefault(); pinBack(); }
+    else if (e.key === 'Escape')       { e.preventDefault(); pinClose(); }
+  }, { capture: true });
+}
+
+// ── Shift+Q or Escape — prompt PIN, then exit ────────────
 document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+  if (!S.kiosk) return;
+  if ($('pin-overlay').classList.contains('open')) return; // handled by pin listener
+  const isShiftQ = e.shiftKey && (e.key === 'Q' || e.key === 'q');
+  const isEscape = e.key === 'Escape';
+  if (isShiftQ || isEscape) {
     e.preventDefault();
-    if (S.kiosk) exitKiosk();
+    if (S.kioskPin && S.kioskPin !== '0000') {
+      pinOpen();   // PIN required — show overlay
+    } else {
+      exitKiosk(); // no PIN — exit immediately
+    }
   }
 }, { capture: true });
 
