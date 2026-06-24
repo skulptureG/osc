@@ -397,7 +397,7 @@ body.kiosk .page-tab      { cursor: default; }
 /* Layout fills remaining space above the page-bar */
 body.kiosk #layout        { top: 0 !important; }
 /* No cursor for dedicated touch screens */
-body.kiosk *              { cursor: none !important; }
+body.kiosk:not(.kiosk-show-cursor) * { cursor: none !important; }
 
 /* ---- TRANSPORT WIDGET ---- */
 .wt-transport {
@@ -779,6 +779,40 @@ body.performing .lock-badge { display: none !important; }
 }
 .wt-button.btn-on  { }
 .wt-button.btn-off { background: var(--ctrl-bg2, rgba(0,0,0,0.5)); }
+
+/* ---- ARCADE BUTTON — always a perfect circle, glossy plastic dome ---- */
+.wt-arcade-wrap {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+}
+.wt-button.arcade {
+  border-radius: 50%;
+  border-width: 4px;
+  flex-shrink: 0;
+  /* Deeper dome shadow than the standard button's flat bevel — top rim
+     catches light, bottom rim falls into shadow, plus a drop shadow to
+     lift the whole button off the panel like a real moulded plastic cap */
+  box-shadow:
+    inset 0 -7px 12px rgba(0,0,0,0.40),
+    inset 0 5px 10px rgba(255,255,255,0.30),
+    0 3px 8px rgba(0,0,0,0.55),
+    0 0 0 2px rgba(0,0,0,0.30);
+}
+/* Rounder, more concentrated specular highlight than the standard
+   button's rectangular gloss bar — suits a domed circular cap */
+.wt-button.arcade::after {
+  top: 8%; left: 18%; right: 18%; height: 32%;
+  border-radius: 50%;
+  background: linear-gradient(rgba(255,255,255,0.55), transparent 80%);
+}
+/* Pressed-in feel — shallower shadow while actively held.
+   .pt-active lives on the parent .w element, not on .wt-button itself. */
+.w.pt-active .wt-button.arcade {
+  box-shadow:
+    inset 0 -3px 6px rgba(0,0,0,0.35),
+    inset 0 2px 5px rgba(255,255,255,0.15),
+    0 1px 3px rgba(0,0,0,0.4);
+}
 
 /* ---- TRANSPORT WIDGET ---- */
 .wt-slider {
@@ -1345,6 +1379,66 @@ body:not(.performing) .wt-video.vid-empty {
 }
 .wt-video .vid-placeholder .vid-icon { font-size: 24px; opacity: 0.4; }
 .wt-video .vid-placeholder .vid-hint { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.4; }
+
+/* ---- NDI / STREAM VIEWER WIDGET ---- */
+.wt-ndiviewer {
+  width: 100%; height: 100%;
+  position: relative;
+  background: #000;
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.wt-ndiviewer video, .wt-ndiviewer img.ndi-mjpeg {
+  width: 100%; height: 100%;
+  display: block;
+}
+body:not(.performing) .wt-ndiviewer.ndi-empty {
+  outline: 1px dashed rgba(255,255,255,0.15);
+  outline-offset: -1px;
+  background: rgba(0,0,0,0.4);
+}
+.wt-ndiviewer .ndi-placeholder {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 6px; width: 100%; height: 100%;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 8px;
+}
+.wt-ndiviewer .ndi-placeholder .ndi-icon { font-size: 24px; opacity: 0.4; }
+.wt-ndiviewer .ndi-placeholder .ndi-hint { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.4; max-width: 90%; line-height: 1.5; }
+/* Live status badge — top-left, only meaningful once a source is configured */
+.ndi-status {
+  position: absolute;
+  top: 5px; left: 5px;
+  z-index: 5;
+  display: flex; align-items: center; gap: 4px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.65);
+  font-family: var(--mono);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.ndi-status::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+.ndi-status.ndi-connecting::before { background: var(--accent); animation: blink 0.8s ease-in-out infinite; }
+.ndi-status.ndi-connecting { color: var(--accent); }
+.ndi-status.ndi-live::before { background: var(--success); }
+.ndi-status.ndi-live { color: var(--success); }
+.ndi-status.ndi-error::before { background: var(--accent2); }
+.ndi-status.ndi-error { color: var(--accent2); }
+/* Hide the status badge in perform mode once live — keeps the feed clean for an audience */
+body.performing .ndi-status.ndi-live { display: none; }
 
 /* ── Canvas background image layer ── */
 #canvas-bg-img {
@@ -2006,6 +2100,9 @@ body.performing #canvas-drop-hint { display: none; }
     <button class="wp-btn" data-add="button">
       <span class="wp-icon">⬛</span><span class="wp-label">Button</span>
     </button>
+    <button class="wp-btn" data-add="arcadebutton">
+      <span class="wp-icon">⭕</span><span class="wp-label">Arcade Button</span>
+    </button>
     <button class="wp-btn" data-add="hslider">
       <span class="wp-icon">▬</span><span class="wp-label">H-Slider</span>
     </button>
@@ -2042,6 +2139,9 @@ body.performing #canvas-drop-hint { display: none; }
     </button>
     <button class="wp-btn" data-add="video">
       <span class="wp-icon">▶</span><span class="wp-label">Video</span>
+    </button>
+    <button class="wp-btn" data-add="ndiviewer">
+      <span class="wp-icon">📡</span><span class="wp-label">NDI / Stream</span>
     </button>
     <div class="wp-section-title" style="margin-top:4px">Controls</div>
     <button class="wp-btn" data-add="transport">
@@ -2169,6 +2269,9 @@ body.performing #canvas-drop-hint { display: none; }
   <button class="cmenu-item" data-add="button">
     <span class="ci-icon">⬛</span> Button
   </button>
+  <button class="cmenu-item" data-add="arcadebutton">
+    <span class="ci-icon">⭕</span> Arcade Button
+  </button>
   <button class="cmenu-item" data-add="hslider">
     <span class="ci-icon">▬</span> H-Slider
   </button>
@@ -2206,6 +2309,9 @@ body.performing #canvas-drop-hint { display: none; }
   </button>
   <button class="cmenu-item" data-add="video">
     <span class="ci-icon">▶</span> Video
+  </button>
+  <button class="cmenu-item" data-add="ndiviewer">
+    <span class="ci-icon">📡</span> NDI / Stream
   </button>
   <div class="cmenu-divider"></div>
   <div class="cmenu-title">Controls</div>
@@ -2259,6 +2365,11 @@ body.performing #canvas-drop-hint { display: none; }
         maxlength="4" pattern="[0-9]{4}" inputmode="numeric"
         value="0000" placeholder="0000"
         style="width:80px;letter-spacing:0.3em;font-family:var(--mono);font-size:16px;text-align:center">
+    </div>
+
+    <div class="modal-row" style="align-items:center">
+      <label>Show mouse cursor <span style="color:var(--text-dim);font-size:10px">(hidden by default — touch screens don't need it)</span></label>
+      <input type="checkbox" id="kiosk-show-cursor" style="width:auto;flex:none">
     </div>
 
     <div class="modal-row">
@@ -2411,6 +2522,7 @@ const S = {
   dirty:    false,
   kiosk:    false,
   pin:      '0000',  // PIN to exit kiosk ('0000' = any PIN accepted)
+  kioskShowCursor: false,  // show the mouse pointer while in kiosk mode
   res: {
     locked: false,
     w:      1920,
@@ -2595,7 +2707,7 @@ function onDown(e) {
   const id = wEl.dataset.id;
   const w  = gw(id);
   if (!w) return;
-  if (w.receiveOnly || w.type === 'label' || w.type === 'text' || w.type === 'video') return;
+  if (w.receiveOnly || w.type === 'label' || w.type === 'text' || w.type === 'video' || w.type === 'ndiviewer') return;
 
   // Transport: each sub-button handles its own press independently
   if (w.type === 'transport') {
@@ -2628,7 +2740,7 @@ function onDown(e) {
 
   const t = { type: w.type, id };
 
-  if (w.type === 'button') {
+  if (w.type === 'button' || w.type === 'arcadebutton') {
     t.momentary = !w.toggle;
     if (w.toggle) {
       w.value = w.value >= w.onVal ? w.offVal : w.onVal;
@@ -2939,7 +3051,7 @@ function onUp(e) {
   if (!t) return;
 
   // Release momentary button
-  if (t.type === 'button' && t.momentary) {
+  if ((t.type === 'button' || t.type === 'arcadebutton') && t.momentary) {
     const w = gw(t.id);
     if (w) {
       w.value = w.offVal;
@@ -3181,6 +3293,11 @@ function makeWidget(type, x, y) {
   switch(type) {
     case 'button':
       return { ...base, w:140, h:70, toggle:true, onVal:1, offVal:0 };
+    case 'arcadebutton':
+      // Momentary by default (press-to-fire feel) — square default size so
+      // it starts life as a true circle; same toggle/momentary options as
+      // the standard button are available in its props panel.
+      return { ...base, w:90, h:90, toggle:false, onVal:1, offVal:0 };
     case 'hslider':
       return { ...base, w:220, h:60 };
     case 'vslider':
@@ -3317,6 +3434,19 @@ function makeWidget(type, x, y) {
                borderRadius: 5,
                borderStyle: 'none', borderColor: '#444', borderWidth: 1,
                opacity: 1 };
+    case 'ndiviewer':
+      return { id, type, x, y, w: 320, h: 200,
+               label: 'NDI Input',
+               sourceMode: 'camera',   // 'camera' (NDI Virtual Input / webcam) | 'url' (network bridge)
+               deviceId: '',           // selected video input device id (camera mode)
+               deviceLabel: '',        // cached human-readable label for the selected device
+               streamUrl: '',          // bridge URL (url mode)
+               streamFormat: 'mjpeg',  // 'mjpeg' | 'hls' | 'direct'
+               objectFit: 'contain',
+               borderRadius: 5,
+               borderStyle: 'none', borderColor: '#444', borderWidth: 1,
+               opacity: 1,
+               _status: 'idle' };      // runtime: 'idle' | 'connecting' | 'live' | 'error'
   }
   return base;
 }
@@ -3585,11 +3715,33 @@ function wHTML(w) {
       const on = w.value >= w.onVal;
       const lc = liveColor(w);
       return `<div class="wt-button ${on?'btn-on':'btn-off'}"
-        style="background:${on ? lc : 'rgba(0,0,0,0.5)'};
+        style="background-color:${on ? lc : 'rgba(0,0,0,0.5)'};
                border-color:${lc};
                color:${on ? '#000' : lc};
                font-size:${Math.max(9, Math.min(16, w.h * 0.22))}px">
         ${bgLayer}<span style="position:relative;z-index:1">${esc(w.label)}</span>
+      </div>${rxBadge}`;
+    }
+    case 'arcadebutton': {
+      const on   = w.value >= w.onVal;
+      const lc   = liveColor(w);
+      // Always a perfect circle — fixed pixel size, centred in the widget's
+      // bounding box, independent of how the box itself is resized.
+      const size = Math.max(30, Math.min(w.w, w.h));
+      // Set inline (not just via CSS) so the glossy highlight survives any
+      // theme override that uses the `background` shorthand on .btn-off/.btn-on
+      // — those would otherwise silently reset background-image to none.
+      const gloss = 'radial-gradient(circle at 32% 24%, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.18) 22%, transparent 50%), radial-gradient(circle at 68% 80%, rgba(0,0,0,0.30) 0%, transparent 60%)';
+      return `<div class="wt-arcade-wrap">
+        <div class="wt-button arcade ${on?'btn-on':'btn-off'}"
+          style="width:${size}px;height:${size}px;
+                 background-color:${on ? lc : 'rgba(0,0,0,0.5)'};
+                 background-image:${gloss};
+                 border-color:${lc};
+                 color:${on ? '#000' : lc};
+                 font-size:${Math.max(9, Math.min(16, size * 0.18))}px">
+          ${bgLayer}<span style="position:relative;z-index:2">${esc(w.label)}</span>
+        </div>
       </div>${rxBadge}`;
     }
     case 'hslider': {
@@ -3783,6 +3935,30 @@ function wHTML(w) {
         </video>
       </div>`;
     }
+    case 'ndiviewer': {
+      const bdr = w.borderStyle && w.borderStyle !== 'none'
+        ? `border:${w.borderWidth||1}px ${w.borderStyle} ${w.borderColor};` : '';
+      const hasSource = w.sourceMode === 'camera' ? !!w.deviceId : !!w.streamUrl;
+      const statusCls = { idle:'', connecting:'ndi-connecting', live:'ndi-live', error:'ndi-error' }[w._status||'idle'];
+      const statusTxt = { idle:'No source', connecting:'Connecting…', live:'Live', error:'Connection failed' }[w._status||'idle'];
+      if (!hasSource) {
+        return `<div class="wt-ndiviewer ndi-empty" style="${bdr}border-radius:${w.borderRadius??5}px;opacity:${w.opacity??1}">
+          <div class="ndi-placeholder">
+            <div class="ndi-icon">📡</div>
+            <div class="ndi-hint">Configure an NDI / stream source in properties</div>
+          </div>
+        </div>`;
+      }
+      // The actual <video>/<img> element is attached imperatively by ndiAttach()
+      // right after mount — this initial render is just the empty shell + badge.
+      const mediaEl = (w.sourceMode === 'url' && w.streamFormat === 'mjpeg')
+        ? `<img class="ndi-mjpeg" style="object-fit:${w.objectFit||'contain'};border-radius:inherit">`
+        : `<video class="ndi-video" style="object-fit:${w.objectFit||'contain'};border-radius:inherit" playsinline autoplay muted></video>`;
+      return `<div class="wt-ndiviewer" style="${bdr}border-radius:${w.borderRadius??5}px;opacity:${w.opacity??1}">
+        ${mediaEl}
+        <div class="ndi-status ${statusCls}">${statusTxt}</div>
+      </div>`;
+    }
     case 'label':
     case 'text': {
       const VALIGN = { top:'flex-start', middle:'center', bottom:'flex-end' };
@@ -3843,6 +4019,7 @@ function mountWidget(w) {
   $('canvas').appendChild(el);
   // Apply shadow / secondary background colour immediately (not just after an edit)
   refreshWidget(w);
+  if (w.type === 'ndiviewer') ndiAttach(w); // fire-and-forget; updates DOM async once ready
   updateHint();
 }
 
@@ -3875,10 +4052,19 @@ function refreshButtonState(el, w) {
   if (!btn) return;
   const on = w.value >= w.onVal;
   const lc = liveColor(w);
-  btn.className = `wt-button ${on ? 'btn-on' : 'btn-off'}`;
-  btn.style.background   = on ? lc : 'rgba(0,0,0,0.5)';
-  btn.style.borderColor  = lc;
-  btn.style.color        = on ? '#000' : lc;
+  const isArcade = w.type === 'arcadebutton';
+  btn.className = `wt-button ${isArcade ? 'arcade ' : ''}${on ? 'btn-on' : 'btn-off'}`;
+  btn.style.backgroundColor = on ? lc : 'rgba(0,0,0,0.5)';
+  btn.style.borderColor     = lc;
+  btn.style.color           = on ? '#000' : lc;
+  if (isArcade) {
+    const size = Math.max(30, Math.min(w.w, w.h));
+    btn.style.width  = size + 'px';
+    btn.style.height = size + 'px';
+    // Set inline — survives theme overrides that use the `background`
+    // shorthand on .btn-off/.btn-on, which would otherwise reset this to none.
+    btn.style.backgroundImage = 'radial-gradient(circle at 32% 24%, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.18) 22%, transparent 50%), radial-gradient(circle at 68% 80%, rgba(0,0,0,0.30) 0%, transparent 60%)';
+  }
 }
 
 function refreshXYDot(el, w) {
@@ -3900,6 +4086,24 @@ function refreshXYDot(el, w) {
 function refreshEncoderSVG(el, w) {
   const wrap = el.querySelector('.encoder-svg-wrap');
   if (wrap) wrap.innerHTML = encoderSVG(w);
+}
+
+// Updates only cosmetic CSS on an already-live NDI/stream element —
+// never touches srcObject/src, so the active camera or stream survives
+// unrelated prop edits (shadow, position, opacity, border, etc.)
+function refreshNdiViewer(el, w) {
+  const bdr = w.borderStyle && w.borderStyle !== 'none'
+    ? `${w.borderWidth || 1}px ${w.borderStyle} ${w.borderColor}` : 'none';
+  const wrap = el.querySelector('.wt-ndiviewer');
+  if (wrap) {
+    wrap.style.border       = bdr;
+    wrap.style.borderRadius = (w.borderRadius ?? 5) + 'px';
+    wrap.style.opacity      = w.opacity ?? 1;
+  }
+  const vid = el.querySelector('video.ndi-video');
+  if (vid) vid.style.objectFit = w.objectFit || 'contain';
+  const img = el.querySelector('img.ndi-mjpeg');
+  if (img) img.style.objectFit = w.objectFit || 'contain';
 }
 
 // ─── Main refresh ───────────────────────────────────────────────────────────
@@ -3953,9 +4157,18 @@ function refreshWidget(w) {
       case 'vslider': refreshSliderFill(inner, w); return;
       case 'knob':    refreshKnobArc(inner, w);    return;
       case 'encoder': refreshEncoderSVG(inner, w); return;
-      case 'button':  refreshButtonState(inner, w); return;
+      case 'button':
+      case 'arcadebutton': refreshButtonState(inner, w); return;
       case 'xypad':   refreshXYDot(inner, w);       return;
     }
+  }
+
+  // Surgical updater for an already-live NDI/stream source (camera, HLS,
+  // or MJPEG) — never rebuild the innerHTML while a live element exists,
+  // or the attached MediaStream / Hls.js instance would be lost.
+  if (w.type === 'ndiviewer' && inner.querySelector('[data-ndi-live="1"]')) {
+    refreshNdiViewer(inner, w);
+    return;
   }
 
   // Full innerHTML rebuild
@@ -3963,8 +4176,176 @@ function refreshWidget(w) {
 }
 
 function unmountWidget(id) {
+  ndiDetach(id); // release any camera/stream resources before removing the element
   gel(id)?.remove();
   updateHint();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NDI / STREAM VIEWER — lifecycle
+//
+//  IMPORTANT: a browser cannot decode raw NDI packets — there is no web
+//  API for it. This widget works via a bridge, in one of two ways:
+//
+//  1. Camera / Virtual Input mode — if you run NDI Tools' "NDI Virtual
+//     Input" (official, free, NewTek/Vizrt), it turns any NDI source on
+//     your network into a normal system webcam device. This widget then
+//     just uses standard getUserMedia(), exactly like picking a webcam.
+//     This is the most reliable path and needs no network configuration.
+//
+//  2. Network Stream URL mode — for an NDI-to-web bridge that outputs
+//     MJPEG (multipart HTTP, natively decoded by <img>), HLS (needs
+//     hls.js, loaded on demand below), or a direct progressive video URL.
+// ═══════════════════════════════════════════════════════════
+const NDI_STREAMS = new Map(); // widget id -> active MediaStream (camera mode)
+const NDI_HLS     = new Map(); // widget id -> active Hls.js instance
+let   _hlsJsPromise = null;    // cached CDN-load promise, fetched at most once
+
+function loadHlsJs() {
+  if (window.Hls) return Promise.resolve();
+  if (_hlsJsPromise) return _hlsJsPromise;
+  _hlsJsPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js';
+    s.onload  = () => resolve();
+    s.onerror = () => reject(new Error('Failed to load hls.js from CDN'));
+    document.head.appendChild(s);
+  });
+  return _hlsJsPromise;
+}
+
+function ndiSetStatus(w, status) {
+  w._status = status;
+  const inner = gel(w.id)?.querySelector('.w-inner');
+  const badge = inner?.querySelector('.ndi-status');
+  if (badge) {
+    const cls = { idle:'', connecting:'ndi-connecting', live:'ndi-live', error:'ndi-error' }[status] || '';
+    const txt = { idle:'No source', connecting:'Connecting…', live:'Live', error:'Connection failed' }[status] || status;
+    badge.className = 'ndi-status ' + cls;
+    badge.textContent = txt;
+  }
+}
+
+// Release whatever this widget is currently using — camera tracks, Hls.js
+// instance, or just a plain <img>/<video> src. Always safe to call even if
+// nothing is attached. Called on unmount, on source-change, and before
+// re-attaching to a new source.
+function ndiDetach(id) {
+  const stream = NDI_STREAMS.get(id);
+  if (stream) { stream.getTracks().forEach(t => t.stop()); NDI_STREAMS.delete(id); }
+  const hls = NDI_HLS.get(id);
+  if (hls) { try { hls.destroy(); } catch(e) {} NDI_HLS.delete(id); }
+  const inner = gel(id)?.querySelector('.w-inner');
+  const vid = inner?.querySelector('video.ndi-video');
+  if (vid) { vid.removeAttribute('data-ndi-live'); try { vid.srcObject = null; vid.src = ''; } catch(e) {} }
+  const img = inner?.querySelector('img.ndi-mjpeg');
+  if (img) { img.removeAttribute('data-ndi-live'); img.src = ''; }
+}
+
+// Connect (or reconnect) this widget to its currently configured source.
+// Always detaches first so switching modes/devices/URLs never leaks a
+// previous camera or stream.
+async function ndiAttach(w) {
+  if (w.type !== 'ndiviewer') return;
+  ndiDetach(w.id);
+
+  const hasSource = w.sourceMode === 'camera' ? !!w.deviceId : !!w.streamUrl;
+  if (!hasSource) { ndiSetStatus(w, 'idle'); refreshWidget(w); return; }
+
+  // Rebuild the widget's DOM BEFORE looking for the live element. ndiDetach()
+  // just cleared any data-ndi-live marker, so refreshWidget() takes the full
+  // rebuild path here (not the surgical one) — this is what actually swaps
+  // the empty-state placeholder out for a real <video>/<img> element the
+  // first time a source is configured, and recreates it fresh when
+  // switching devices/URLs. Skipping this was the root cause of "detected
+  // but nothing displays" — the code was querying for an element that
+  // the placeholder markup never contained.
+  ndiSetStatus(w, 'connecting');
+  refreshWidget(w);
+
+  const inner = gel(w.id)?.querySelector('.w-inner');
+  if (!inner) return; // widget not mounted (e.g. on a different page) — nothing to attach to
+
+  try {
+    if (w.sourceMode === 'camera') {
+      const vid = inner.querySelector('video.ndi-video');
+      if (!vid) return;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: w.deviceId } },
+        audio: false,
+      });
+      NDI_STREAMS.set(w.id, stream);
+      vid.srcObject = stream;
+      vid.dataset.ndiLive = '1';
+      await vid.play().catch(() => {}); // autoplay can be blocked silently — not fatal
+      ndiSetStatus(w, 'live');
+
+    } else if (w.streamFormat === 'mjpeg') {
+      const img = inner.querySelector('img.ndi-mjpeg');
+      if (!img) return;
+      img.onerror = () => ndiSetStatus(w, 'error');
+      img.onload  = () => ndiSetStatus(w, 'live');
+      img.dataset.ndiLive = '1';
+      img.src = w.streamUrl;
+
+    } else if (w.streamFormat === 'hls') {
+      const vid = inner.querySelector('video.ndi-video');
+      if (!vid) return;
+      await loadHlsJs();
+      if (window.Hls && window.Hls.isSupported()) {
+        const hls = new window.Hls();
+        NDI_HLS.set(w.id, hls);
+        hls.on(window.Hls.Events.ERROR, (_evt, data) => { if (data?.fatal) ndiSetStatus(w, 'error'); });
+        hls.on(window.Hls.Events.MANIFEST_PARSED, () => ndiSetStatus(w, 'live'));
+        hls.loadSource(w.streamUrl);
+        hls.attachMedia(vid);
+        vid.dataset.ndiLive = '1';
+      } else if (vid.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari has native HLS — no library needed
+        vid.src = w.streamUrl;
+        vid.dataset.ndiLive = '1';
+        vid.addEventListener('loadeddata', () => ndiSetStatus(w, 'live'), { once: true });
+        vid.addEventListener('error',      () => ndiSetStatus(w, 'error'), { once: true });
+      } else {
+        ndiSetStatus(w, 'error');
+      }
+
+    } else { // 'direct' — plain progressive video URL
+      const vid = inner.querySelector('video.ndi-video');
+      if (!vid) return;
+      vid.dataset.ndiLive = '1';
+      vid.addEventListener('loadeddata', () => ndiSetStatus(w, 'live'),  { once: true });
+      vid.addEventListener('error',      () => ndiSetStatus(w, 'error'), { once: true });
+      vid.src = w.streamUrl;
+      await vid.play().catch(() => {});
+    }
+  } catch (err) {
+    console.warn('NDI/stream attach failed:', err);
+    ndiSetStatus(w, 'error');
+  }
+}
+
+// Unlock real device labels (blank until permission is granted at least
+// once), then populate the device <select> in the props panel.
+async function ndiRefreshDevices(w) {
+  const sel = $('ndi-device');
+  if (sel) sel.innerHTML = '<option value="">Detecting…</option>';
+  try {
+    // Briefly request any camera just to unlock labels — stop it immediately
+    const probe = await navigator.mediaDevices.getUserMedia({ video: true });
+    probe.getTracks().forEach(t => t.stop());
+  } catch (err) {
+    // Permission denied or no camera at all — still try enumerateDevices,
+    // labels will just be blank in that case.
+  }
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const cams = devices.filter(d => d.kind === 'videoinput');
+  if (!sel) return cams;
+  if (!cams.length) { sel.innerHTML = '<option value="">No video input devices found</option>'; return cams; }
+  sel.innerHTML = cams.map((d, i) =>
+    `<option value="${esc(d.deviceId)}" ${d.deviceId === w.deviceId ? 'selected' : ''}>${esc(d.label || 'Camera ' + (i + 1))}</option>`
+  ).join('');
+  return cams;
 }
 
 function updateHint() {
@@ -4249,9 +4630,9 @@ function makeBindHelper(w) {
 
 function propsHTML_identity(w, oscRow, rxRow, encOscRow) {
   const isText      = w.type === 'label' || w.type === 'text';
-  const isVideo     = w.type === 'video';
+  const isVideo     = w.type === 'video' || w.type === 'ndiviewer';
   const isTransport = w.type === 'transport';
-  const isEncoder   = w.type === 'encoder';
+  const isEncoder    = w.type === 'encoder';
   const showLabel   = (!isText && !isVideo && !isTransport) || isEncoder;
   // Text/label show an OSC address for receive-only feedback (e.g. display a numeric value)
   const textOscRow  = isText ? `
@@ -4530,6 +4911,86 @@ function propsHTML_video(w) {
       <input type="number" class="pi" id="pi-vid-borderwidth" value="${w.borderWidth||1}" min="1" max="12" step="1"></div>
     <div class="pr"><span class="pl">Radius (px)</span>
       <input type="number" class="pi" id="pi-vid-borderradius" value="${w.borderRadius??5}" min="0" max="100" step="1"></div>
+  </div>`;
+}
+
+function propsHTML_ndiviewer(w) {
+  const isCamera = w.sourceMode !== 'url';
+  const statusTxt = { idle:'No source configured', connecting:'Connecting…', live:'🟢 Live', error:'🔴 Connection failed' }[w._status || 'idle'];
+  return `
+  <div class="ps"><div class="ps-title">📡 How NDI Input Works</div>
+    <div style="font-size:9px;color:var(--text-dim);line-height:1.5;padding:0 2px">
+      A browser can't decode raw NDI directly — there's no web API for it.
+      This widget works through a bridge:<br><br>
+      <strong>Camera / Virtual Input</strong> — run NDI Tools' free
+      "NDI Virtual Input" app on this machine. It turns any NDI source on
+      your network into a normal system camera, which this widget then
+      picks up exactly like a webcam.<br><br>
+      <strong>Network Stream URL</strong> — if you have an NDI-to-web bridge
+      that outputs MJPEG, HLS, or a direct video URL, point this widget at it.
+    </div>
+  </div>
+  <div class="ps"><div class="ps-title">Source</div>
+    <div class="pr"><span class="pl">Status</span>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--text-mid)">${statusTxt}</span></div>
+    <div class="pr"><span class="pl">Mode</span>
+      <select class="pi" id="ndi-mode" style="width:140px">
+        <option value="camera" ${isCamera ? 'selected' : ''}>Camera / Virtual Input</option>
+        <option value="url"    ${!isCamera ? 'selected' : ''}>Network Stream URL</option>
+      </select></div>
+    ${isCamera ? `
+    <div class="pr col"><span class="pl">Device</span>
+      <select class="pi" id="ndi-device">
+        ${w.deviceId
+          ? `<option value="${esc(w.deviceId)}" selected>${esc(w.deviceLabel || 'Selected device')}</option>`
+          : '<option value="">— click Detect Devices —</option>'}
+      </select></div>
+    <div class="pr">
+      <button class="tb-btn" id="ndi-detect" style="font-size:10px;padding:3px 8px;width:100%">🔓 Detect Devices</button>
+    </div>
+    <div style="font-size:9px;color:var(--text-dim);padding:0 2px;line-height:1.4">
+      Browsers hide device names until you grant camera permission once —
+      click Detect Devices and allow access to see real names (including
+      "NDI Video" if Virtual Input is running).</div>
+    ` : `
+    <div class="pr col"><span class="pl">Stream URL</span>
+      <input type="text" class="pi" id="ndi-url" value="${esc(w.streamUrl || '')}"
+        placeholder="http://host:port/stream"></div>
+    <div class="pr"><span class="pl">Format</span>
+      <select class="pi" id="ndi-format" style="width:120px">
+        <option value="mjpeg"  ${(w.streamFormat||'mjpeg')==='mjpeg' ? 'selected':''}>MJPEG (HTTP)</option>
+        <option value="hls"    ${w.streamFormat==='hls'              ? 'selected':''}>HLS (.m3u8)</option>
+        <option value="direct" ${w.streamFormat==='direct'           ? 'selected':''}>Direct video URL</option>
+      </select></div>
+    `}
+    <div class="pr">
+      <button class="tb-btn" id="ndi-reconnect" style="font-size:10px;padding:3px 8px;width:100%">↺ Reconnect</button>
+    </div>
+  </div>
+  <div class="ps"><div class="ps-title">Display</div>
+    <div class="pr"><span class="pl">Fit</span>
+      <select class="pi" id="ndi-fit" style="width:100px">
+        <option value="cover"   ${w.objectFit==='cover'             ? 'selected':''}>Cover</option>
+        <option value="contain" ${(w.objectFit||'contain')==='contain' ? 'selected':''}>Contain</option>
+        <option value="fill"    ${w.objectFit==='fill'              ? 'selected':''}>Stretch</option>
+        <option value="none"    ${w.objectFit==='none'              ? 'selected':''}>Actual size</option>
+      </select></div>
+    <div class="pr"><span class="pl">Opacity</span>
+      <input type="number" class="pi" id="ndi-opacity" value="${w.opacity??1}" min="0" max="1" step="0.05"></div>
+  </div>
+  <div class="ps"><div class="ps-title">Border</div>
+    <div class="pr"><span class="pl">Style</span>
+      <select class="pi" id="ndi-borderstyle">
+        <option value="none"   ${(w.borderStyle||'none')==='none' ? 'selected':''}>None</option>
+        <option value="solid"  ${w.borderStyle==='solid'          ? 'selected':''}>Solid</option>
+        <option value="dashed" ${w.borderStyle==='dashed'         ? 'selected':''}>Dashed</option>
+      </select></div>
+    <div class="pr"><span class="pl">Color</span>
+      <input type="color" class="pi" id="ndi-bordercolor" value="${w.borderColor||'#444444'}"></div>
+    <div class="pr"><span class="pl">Width (px)</span>
+      <input type="number" class="pi" id="ndi-borderwidth" value="${w.borderWidth||1}" min="1" max="12" step="1"></div>
+    <div class="pr"><span class="pl">Radius (px)</span>
+      <input type="number" class="pi" id="ndi-borderradius" value="${w.borderRadius??5}" min="0" max="100" step="1"></div>
   </div>`;
 }
 
@@ -4833,6 +5294,70 @@ function propsBinds_video(w, bind) {
   bind('pi-vid-bordercolor', 'borderColor');
   bind('pi-vid-borderwidth', 'borderWidth',  v => Math.max(1, parseInt(v)));
   bind('pi-vid-borderradius','borderRadius', v => Math.max(0, parseInt(v)));
+}
+
+function propsBinds_ndiviewer(w, bind) {
+  const modeEl = $('ndi-mode');
+  if (modeEl) modeEl.addEventListener('change', e => {
+    w.sourceMode = e.target.value;
+    ndiAttach(w);
+    histPush();
+    buildProps(w.id); // re-render — camera vs URL fields differ
+  });
+
+  const detectBtn = $('ndi-detect');
+  if (detectBtn) detectBtn.addEventListener('click', async () => {
+    detectBtn.disabled = true;
+    detectBtn.textContent = 'Detecting…';
+    const cams = await ndiRefreshDevices(w);
+    detectBtn.disabled = false;
+    detectBtn.textContent = '🔓 Detect Devices';
+
+    // Setting a <select>'s innerHTML does NOT fire a change event, even
+    // when a new option becomes the default-selected one — so without this,
+    // a freshly detected single device (the common case: one NDI Virtual
+    // Input) would show as selected in the dropdown but w.deviceId would
+    // never actually get set, and nothing would connect. Auto-pick it.
+    if (!w.deviceId && cams && cams.length) {
+      w.deviceId    = cams[0].deviceId;
+      w.deviceLabel = cams[0].label || 'Camera 1';
+      ndiAttach(w);
+      histPush();
+      buildProps(w.id); // refresh panel so the dropdown reflects the auto-picked device
+    }
+  });
+
+  const deviceEl = $('ndi-device');
+  if (deviceEl) deviceEl.addEventListener('change', e => {
+    w.deviceId    = e.target.value;
+    w.deviceLabel = e.target.options[e.target.selectedIndex]?.text || '';
+    ndiAttach(w);
+    histPush();
+  });
+
+  bind('ndi-url',    'streamUrl');
+  const urlEl = $('ndi-url');
+  if (urlEl) urlEl.addEventListener('change', () => { ndiAttach(w); histPush(); });
+
+  const fmtEl = $('ndi-format');
+  if (fmtEl) fmtEl.addEventListener('change', e => {
+    w.streamFormat = e.target.value;
+    ndiAttach(w);
+    histPush();
+  });
+
+  const reconnectBtn = $('ndi-reconnect');
+  if (reconnectBtn) reconnectBtn.addEventListener('click', () => {
+    ndiAttach(w);
+    toast('Reconnecting…', 'ok');
+  });
+
+  bind('ndi-fit',          'objectFit');
+  bind('ndi-opacity',      'opacity',      parseFloat);
+  bind('ndi-borderstyle',  'borderStyle');
+  bind('ndi-bordercolor',  'borderColor');
+  bind('ndi-borderwidth',  'borderWidth',  v => Math.max(1, parseInt(v)));
+  bind('ndi-borderradius', 'borderRadius', v => Math.max(0, parseInt(v)));
 }
 
 function propsBinds_encoder(w, bind) {
@@ -5201,6 +5726,7 @@ function buildProps(id) {
 
   const isText        = w.type === 'label' || w.type === 'text';
   const isVideo       = w.type === 'video';
+  const isNdiViewer   = w.type === 'ndiviewer';
   const isTransport   = w.type === 'transport';
   const isEncoder     = w.type === 'encoder';
   const isSwitch3     = w.type === 'switch3';
@@ -5208,12 +5734,12 @@ function buildProps(id) {
   const isColorPicker = w.type === 'colorpicker';
   const isJogwheel    = w.type === 'jogwheel';
   const isSequencer   = w.type === 'sequencer';
-  const isButton      = w.type === 'button';
-  const hasRange      = !isText && !isVideo && !isTransport && !isEncoder && !isXYPad && !isSwitch3 && !isColorPicker && !isJogwheel && !isSequencer;
+  const isButton      = w.type === 'button' || w.type === 'arcadebutton';
+  const hasRange      = !isText && !isVideo && !isNdiViewer && !isTransport && !isEncoder && !isXYPad && !isSwitch3 && !isColorPicker && !isJogwheel && !isSequencer;
   const hasSpring     = ['hslider','vslider','knob','xypad'].includes(w.type);
-  const hasBgMedia    = !isText && !isVideo && !isTransport && !isEncoder && !isSwitch3 && !isColorPicker && !isJogwheel && !isSequencer;
-  const hasBgColor2   = ['button','hslider','vslider','knob','xypad','encoder','transport','switch3','colorpicker','jogwheel'].includes(w.type);
-  const hasActiveColor = ['button','hslider','vslider','knob','xypad','encoder','switch3','jogwheel'].includes(w.type);
+  const hasBgMedia    = !isText && !isVideo && !isNdiViewer && !isTransport && !isEncoder && !isSwitch3 && !isColorPicker && !isJogwheel && !isSequencer;
+  const hasBgColor2   = ['button','arcadebutton','hslider','vslider','knob','xypad','encoder','transport','switch3','colorpicker','jogwheel'].includes(w.type);
+  const hasActiveColor = ['button','arcadebutton','hslider','vslider','knob','xypad','encoder','switch3','jogwheel'].includes(w.type);
 
   const oscRow    = hasRange
     ? `<div class="pr col"><span class="pl">OSC Address</span><input type="text" class="pi" id="pi-osc" value="${esc(w.osc)}" placeholder="/control/1"></div>`
@@ -5221,7 +5747,7 @@ function buildProps(id) {
   const encOscRow = isEncoder
     ? `<div class="pr col"><span class="pl">OSC Address</span><input type="text" class="pi" id="pi-osc" value="${esc(w.osc)}" placeholder="/encoder/1"></div>`
     : '';
-  const rxRow = (!isText && !isVideo && !isTransport && !isEncoder && !isSwitch3 && !isSequencer)
+  const rxRow = (!isText && !isVideo && !isNdiViewer && !isTransport && !isEncoder && !isSwitch3 && !isSequencer)
     ? `<div class="pr"><span class="pl">Receive only</span><input type="checkbox" id="pi-rxonly" ${w.receiveOnly?'checked':''}></div>`
     : '';
 
@@ -5233,6 +5759,7 @@ function buildProps(id) {
     propsHTML_posSize(w),
     isText        ? propsHTML_text(w)         : '',
     isVideo       ? propsHTML_video(w)        : '',
+    isNdiViewer   ? propsHTML_ndiviewer(w)    : '',
     hasSpring     ? propsHTML_spring(w)       : '',
     propsHTML_shadow(w),
     hasBgColor2   ? propsHTML_bgColor2(w)     : '',
@@ -5250,13 +5777,14 @@ function buildProps(id) {
 
   const { bind } = makeBindHelper(w);
   propsBinds_common(w, bind);
-  if (!isText && !isVideo && !isTransport && !isEncoder && !isSwitch3 && !isSequencer) propsBinds_identity(w, bind);
+  if (!isText && !isVideo && !isNdiViewer && !isTransport && !isEncoder && !isSwitch3 && !isSequencer) propsBinds_identity(w, bind);
   if (hasRange)      propsBinds_range(w, bind);
   if (isButton)      propsBinds_button(w, bind);
   if (isXYPad)       propsBinds_xypad(w, bind);
   if (isColorPicker) propsBinds_colorpicker(w, bind);
   if (isText)        propsBinds_text(w, bind);
   if (isVideo)       propsBinds_video(w, bind);
+  if (isNdiViewer)   propsBinds_ndiviewer(w, bind);
   if (isEncoder)     propsBinds_encoder(w, bind);
   if (isJogwheel)    propsBinds_jogwheel(w, bind);
   if (isSequencer)   propsBinds_sequencer(w, bind);
@@ -5646,6 +6174,7 @@ function sendOnConnect() {
             sendOSC(w.osc, w.value);
             break;
           case 'button':
+          case 'arcadebutton':
             sendOSC(w.osc, w.value);
             break;
           case 'xypad':
@@ -5723,6 +6252,7 @@ function handleOSCReceive(raw) {
           break;
 
         case 'button':
+        case 'arcadebutton':
           if (w.osc === address) {
             w.value = value >= w.onVal ? w.onVal : w.offVal;
             matched = true;
@@ -6181,6 +6711,7 @@ function buildKioskURL(embed) {
       gridSize: S.gridSize, showGrid: S.showGrid, snap: S.snap,
       idCtr: S.idCtr, widgets: S.widgets,
       wsUrl: S.wsUrl, wsFmt: S.wsFmt,
+      kioskShowCursor: S.kioskShowCursor,
     });
     // btoa needs latin-1; encodeURIComponent + escape handles unicode safely
     const b64 = btoa(unescape(encodeURIComponent(payload)))
@@ -6218,6 +6749,8 @@ function initKioskModal() {
     // Populate PIN field with current setting
     const pinEl = $('kiosk-pin');
     if (pinEl) pinEl.value = S.pin || '0000';
+    const cursorEl = $('kiosk-show-cursor');
+    if (cursorEl) cursorEl.checked = !!S.kioskShowCursor;
     updateKioskModal();
     $('modal-kiosk').classList.remove('hidden');
   });
@@ -6230,6 +6763,15 @@ function initKioskModal() {
       let v = e.target.value.replace(/\D/g, '').slice(0, 4);
       e.target.value = v;
       S.pin = v.padEnd(4, '0');
+      markDirty();
+    });
+  }
+
+  const cursorEl = $('kiosk-show-cursor');
+  if (cursorEl) {
+    cursorEl.addEventListener('change', e => {
+      S.kioskShowCursor = e.target.checked;
+      document.body.classList.toggle('kiosk-show-cursor', S.kioskShowCursor);
       markDirty();
     });
   }
@@ -7146,6 +7688,7 @@ async function downloadStandalone() {
       gridSize: S.gridSize, showGrid: S.showGrid, snap: S.snap,
       idCtr: S.idCtr, pageCtr,
       wsUrl: S.wsUrl, wsFmt: S.wsFmt,
+      kioskShowCursor: S.kioskShowCursor,
       res: { locked: S.res.locked, w: S.res.w, h: S.res.h, fit: S.res.fit },
       pages:  S.pages.map(safePageForExport),
       pageId: S.pageId,
@@ -7209,6 +7752,7 @@ function autosave() {
       gridSize: S.gridSize, showGrid: S.showGrid, snap: S.snap,
       idCtr: S.idCtr, pageCtr,
       wsUrl: S.wsUrl, wsFmt: S.wsFmt,
+      kioskShowCursor: S.kioskShowCursor,
       res: { locked: S.res.locked, w: S.res.w, h: S.res.h, fit: S.res.fit },
       pages:  S.pages.map(safePage),
       pageId: S.pageId,
@@ -7249,6 +7793,7 @@ function applyLayoutData(data) {
   if (data.pageCtr) pageCtr = data.pageCtr;
   if (data.wsUrl) S.wsUrl = data.wsUrl;
   if (data.wsFmt) S.wsFmt = data.wsFmt;
+  if (data.kioskShowCursor !== undefined) S.kioskShowCursor = data.kioskShowCursor;
   if (data.res) {
     S.res.locked = data.res.locked ?? false;
     S.res.w      = data.res.w     || 1920;
@@ -7321,6 +7866,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Kiosk init (after pages are loaded) ──────────────────
   if (S.kiosk) {
     document.body.classList.add('kiosk');
+    document.body.classList.toggle('kiosk-show-cursor', !!S.kioskShowCursor);
     setMode('perform');
 
     // Request browser fullscreen
@@ -7438,6 +7984,7 @@ document.addEventListener('keydown', e => {
 function exitKiosk() {
   S.kiosk = false;
   document.body.classList.remove('kiosk');
+  document.body.classList.remove('kiosk-show-cursor');
   setMode('edit');
 
   // Leave fullscreen
