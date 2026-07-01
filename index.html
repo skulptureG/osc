@@ -310,8 +310,22 @@ html, body {
 }
 
 /* ============ LEFT WIDGET PANEL ============ */
+/* Wrapper provides the positioning context for the resize handle below.
+   Crucially it has NO overflow restriction — #widget-panel itself needs
+   overflow-x:hidden to clip its own scrolling button list, but that same
+   clipping would also cut off the resize handle, which deliberately
+   protrudes past the panel's right edge (and sits entirely outside it
+   when collapsed). Keeping the handle as a sibling here, not a child of
+   #widget-panel, means it's never subject to that clipping. */
+#widget-panel-wrap {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
 #widget-panel {
   width: 108px;
+  min-width: 80px;
+  max-width: 220px;
   flex-shrink: 0;
   background: var(--surface);
   border-right: 1px solid var(--border);
@@ -326,6 +340,37 @@ html, body {
 #widget-panel::-webkit-scrollbar-thumb { background: var(--border2); }
 
 #widget-panel.hidden-panel { width: 0; border-right: none; overflow: hidden; }
+
+/* Drag-to-resize handle on the panel's right edge, with a built-in
+   collapse/expand toggle centred on it */
+#wp-resize-handle {
+  position: absolute;
+  top: 0; right: -4px; bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 101;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#wp-resize-handle:hover { background: rgba(255,255,255,0.06); }
+#wp-resize-handle.dragging { background: var(--accent); opacity: 0.35; }
+/* Keep the toggle reachable even when the panel is fully collapsed */
+#widget-panel.hidden-panel #wp-resize-handle { right: -16px; width: 16px; cursor: pointer; }
+#wp-collapse-toggle {
+  width: 14px; height: 30px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  color: var(--text-dim);
+  cursor: pointer;
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+#wp-collapse-toggle:hover { color: var(--text); border-color: var(--accent); }
 
 .wp-section-title {
   font-size: 8px;
@@ -367,7 +412,7 @@ html, body {
 .wp-btn .wp-label { font-size: 10px; flex: 1; }
 
 /* Hide panel in perform/kiosk */
-body.performing #widget-panel { display: none; }
+body.performing #widget-panel-wrap { display: none; }
 
 /* ── Spring return indicator ── */
 @keyframes spring-pulse {
@@ -383,7 +428,7 @@ body.performing #widget-panel { display: none; }
 
 /* ============ KIOSK MODE ============ */
 body.kiosk #toolbar       { display: none; }
-body.kiosk #widget-panel  { display: none; }
+body.kiosk #widget-panel-wrap { display: none; }
 body.kiosk #props         { display: none; }
 body.kiosk #page-settings { display: none !important; }
 body.kiosk #mon           { display: none !important; }
@@ -1159,6 +1204,54 @@ body:not(.performing) .jw-platter { pointer-events: none; }
 /* Disable in edit mode */
 body:not(.performing) .seq-pad { pointer-events: none; cursor: default; }
 
+/* ---- LIST / DROPDOWN WIDGET ---- */
+.wt-dropdown {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+.dd-label {
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.dd-select {
+  width: 100%;
+  background: var(--ctrl-bg2, rgba(0,0,0,0.45));
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 5px 8px;
+  outline: none;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-appearance: none;
+  appearance: none;
+  /* Simple chevron, drawn in CSS so the closed state matches the dark theme
+     even though the open dropdown list itself is rendered natively by the OS */
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-dim) 50%),
+    linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+  background-position: calc(100% - 16px) center, calc(100% - 11px) center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 28px;
+}
+.dd-select:focus { border-color: var(--accent); }
+.dd-select:disabled { opacity: 0.5; cursor: default; }
+/* Disable in edit mode — same pattern as every other interactive sub-element */
+body:not(.performing) .dd-select { pointer-events: none; }
+
 /* ---- XY PAD WIDGET ---- */
 .wt-xypad {
   width: 100%; height: 100%;
@@ -1636,42 +1729,6 @@ body.performing .ndi-status.ndi-live { display: none; }
 /* Page-bar is always visible in kiosk (even with a single page), for
    consistent navigation context. Close (✕) is hidden separately above. */
 
-/* ── Multi-select action bar ── */
-#msel-bar {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
-  display: none;
-  align-items: center;
-  gap: 3px;
-  padding: 5px 8px;
-  z-index: 600;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-  white-space: nowrap;
-  flex-wrap: nowrap;
-}
-#msel-bar.visible { display: flex; }
-#msel-bar .msel-count {
-  font-size: 10px; color: var(--accent); font-weight: 700;
-  letter-spacing: 0.08em; padding: 0 6px; border-right: 1px solid var(--border2);
-  margin-right: 3px;
-}
-#msel-bar .msel-sep {
-  width: 1px; height: 20px; background: var(--border2); margin: 0 3px;
-}
-#msel-bar .tb-btn {
-  padding: 3px 8px; font-size: 10px;
-}
-#msel-color {
-  width: 28px; height: 26px; padding: 1px;
-  background: var(--surface2); border: 1px solid var(--border2);
-  border-radius: 3px; cursor: pointer;
-}
-
 /* ============ PROPS PANEL ============ */
 #props {
   width: 248px;
@@ -2095,10 +2152,11 @@ body.performing #canvas-drop-hint { display: none; }
 <div id="layout">
 
   <!-- Left widget panel (edit mode only) -->
-  <div id="widget-panel">
-    <div class="wp-section-title">Widgets</div>
-    <button class="wp-btn" data-add="button">
-      <span class="wp-icon">⬛</span><span class="wp-label">Button</span>
+  <div id="widget-panel-wrap">
+    <div id="widget-panel">
+      <div class="wp-section-title">Widgets</div>
+      <button class="wp-btn" data-add="button">
+        <span class="wp-icon">⬛</span><span class="wp-label">Button</span>
     </button>
     <button class="wp-btn" data-add="arcadebutton">
       <span class="wp-icon">⭕</span><span class="wp-label">Arcade Button</span>
@@ -2130,6 +2188,9 @@ body.performing #canvas-drop-hint { display: none; }
     <button class="wp-btn" data-add="switch3">
       <span class="wp-icon">⚡</span><span class="wp-label">3-Pole Switch</span>
     </button>
+    <button class="wp-btn" data-add="dropdown">
+      <span class="wp-icon">📋</span><span class="wp-label">List</span>
+    </button>
     <div class="wp-section-title" style="margin-top:4px">Display</div>
     <button class="wp-btn" data-add="label">
       <span class="wp-icon">𝐀</span><span class="wp-label">Label</span>
@@ -2147,6 +2208,14 @@ body.performing #canvas-drop-hint { display: none; }
     <button class="wp-btn" data-add="transport">
       <span class="wp-icon">⏹</span><span class="wp-label">Transport</span>
     </button>
+    </div>
+    <!-- Resize handle lives OUTSIDE #widget-panel, as a sibling within this
+         wrapper — #widget-panel has overflow-x:hidden for its own scrolling
+         content, which would otherwise clip this handle (it intentionally
+         protrudes past the panel's right edge, and fully so when collapsed). -->
+    <div id="wp-resize-handle" title="Drag to resize — click arrow to collapse">
+      <div id="wp-collapse-toggle">‹</div>
+    </div>
   </div>
 
   <!-- Canvas -->
@@ -2298,6 +2367,9 @@ body.performing #canvas-drop-hint { display: none; }
   </button>
   <button class="cmenu-item" data-add="switch3">
     <span class="ci-icon">⚡</span> 3-Pole Switch
+  </button>
+  <button class="cmenu-item" data-add="dropdown">
+    <span class="ci-icon">📋</span> List
   </button>
   <div class="cmenu-divider"></div>
   <div class="cmenu-title">Display</div>
@@ -2702,12 +2774,22 @@ function onDown(e) {
 
   // ── PERFORM MODE ─────────────────────────────────────────
   if (!wEl) return;
-  e.preventDefault();
 
   const id = wEl.dataset.id;
   const w  = gw(id);
   if (!w) return;
-  if (w.receiveOnly || w.type === 'label' || w.type === 'text' || w.type === 'video' || w.type === 'ndiviewer') return;
+
+  // These widget types rely on native browser interaction (a real <select>
+  // dropdown, video controls, etc.) rather than this app's custom touch
+  // pipeline. preventDefault() here would block that native behaviour
+  // before it even has a chance to fire — e.g. clicking a List widget's
+  // dropdown would never open the options, since preventDefault() suppresses
+  // the native "open select" action triggered by the same pointerdown.
+  // Must check this BEFORE calling preventDefault(), not just before the
+  // rest of the interaction logic below.
+  if (w.receiveOnly || w.type === 'label' || w.type === 'text' || w.type === 'video' || w.type === 'ndiviewer' || w.type === 'dropdown') return;
+
+  e.preventDefault();
 
   // Transport: each sub-button handles its own press independently
   if (w.type === 'transport') {
@@ -2795,7 +2877,7 @@ function onDown(e) {
     sendOSC(`${w.osc}/${Math.floor(idx/cols)+1}/${idx%cols+1}`,
             newState ? (w.onVal??1) : (w.offVal??0));
     if (!w.toggle) { t.seqMomIdx = idx; }
-    refreshWidget(w);
+    seqTogglePadDOM(w, idx, newState);
     TOUCHES.set(pid, t);
     try { e.target.setPointerCapture(pid); } catch(_) {}
     if (S.mode === 'perform') gel(id)?.classList.add('pt-active');
@@ -3020,7 +3102,9 @@ function onMove(e) {
         const cols = w.cols || 16;
         sendOSC(`${w.osc}/${Math.floor(idx/cols)+1}/${idx%cols+1}`,
                 t.seqState ? (w.onVal??1) : (w.offVal??0));
-        refreshWidget(w);
+        // Already have the exact element under the finger — toggle it
+        // directly rather than re-querying via seqTogglePadDOM.
+        seqPad.classList.toggle('seq-on', t.seqState);
       }
     }
 
@@ -3093,7 +3177,7 @@ function onUp(e) {
       const cols = wSq.cols || 16;
       sendOSC(`${wSq.osc}/${Math.floor(t.seqMomIdx/cols)+1}/${t.seqMomIdx%cols+1}`,
               wSq.offVal ?? 0);
-      refreshWidget(wSq);
+      seqTogglePadDOM(wSq, t.seqMomIdx, false);
     }
   }
 
@@ -3348,6 +3432,21 @@ function makeWidget(type, x, y) {
                receiveOnly: false,
              };
     }
+    case 'dropdown':
+      return { id, type, x, y, w: 200, h: 56,
+               label: 'List',
+               color: '#e8a020',
+               osc: '/osc/1/list/' + id.slice(1),
+               items: [
+                 { label: 'Item 1', value: '' },
+                 { label: 'Item 2', value: '' },
+                 { label: 'Item 3', value: '' },
+               ],
+               selectedIndex: 0,
+               outputMode: 'value', // 'value' (custom per-item value, else index) | 'label' (always sends label text)
+               receiveOnly: false,
+               bg2: { enabled: false, color: '#1a1a1a', opacity: 1 },
+             };
     case 'switch3':
       return { id, type, x, y, w: 80, h: 140,
                label: 'Switch',
@@ -3849,6 +3948,19 @@ function wHTML(w) {
         </div>
       </div>${rxBadge}`;
     }
+    case 'dropdown': {
+      const items = w.items || [];
+      const sel   = Math.max(0, Math.min(items.length - 1, w.selectedIndex ?? 0));
+      const opts  = items.length
+        ? items.map((it, i) =>
+            `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(it.label || ('Item ' + (i + 1)))}</option>`
+          ).join('')
+        : '<option>No items — add some in properties</option>';
+      return `<div class="wt-dropdown">
+        <div class="dd-label">${esc(w.label)}</div>
+        <select class="dd-select" ${items.length === 0 ? 'disabled' : ''}>${opts}</select>
+      </div>${rxBadge}`;
+    }
     case 'knob': {
       return `<div class="wt-knob" style="position:relative">
         ${bgLayer}
@@ -4067,6 +4179,53 @@ function refreshButtonState(el, w) {
   }
 }
 
+// Lightweight, single-pad visual update for the Step Sequencer. Avoids
+// rebuilding the entire grid's HTML (up to 16,384 nodes at 128×128) on
+// every tap or drag-paint frame — only the one pad that actually changed
+// gets touched. w.steps (the data) is always updated by the caller before
+// this runs; this function is purely the DOM-side reflection of that.
+function seqTogglePadDOM(w, idx, on) {
+  const grid = gel(w.id)?.querySelector('.seq-grid');
+  if (!grid) return; // widget not currently mounted (e.g. different page) — data is still correct, nothing to paint
+  const pad = grid.querySelector(`[data-idx="${idx}"]`);
+  if (pad) pad.classList.toggle('seq-on', on);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LIST / DROPDOWN — interaction is a native <select>, so there is no
+//  custom pointer/touch handling at all (the browser does it natively,
+//  which is far more reliable on touch screens than a hand-built popup).
+//  We just need to wire its 'change' event after every time the element
+//  is created or recreated — see the refreshWidget() hook below.
+// ═══════════════════════════════════════════════════════════
+
+// Resolves what to actually send for the currently-selected item.
+function ddResolveOutput(w, item) {
+  if (!item) return w.selectedIndex ?? 0;
+  if (w.outputMode === 'label') return item.label ?? '';
+  if (item.value !== undefined && item.value !== '') {
+    const num = parseFloat(item.value);
+    return isNaN(num) ? item.value : num; // numeric-looking custom values are sent as numbers
+  }
+  return w.selectedIndex ?? 0;
+}
+
+// Wires the native 'change' event. Must be re-called every time the
+// widget's <select> element is recreated (i.e. after every refreshWidget
+// rebuild) — innerHTML reassignment destroys any previously attached
+// listener along with the old element.
+function dropdownAttach(w) {
+  const sel = gel(w.id)?.querySelector('.dd-select');
+  if (!sel) return;
+  sel.onchange = () => {
+    const idx = parseInt(sel.value);
+    if (isNaN(idx) || !w.items?.[idx]) return;
+    w.selectedIndex = idx;
+    sendOSC(w.osc, ddResolveOutput(w, w.items[idx]));
+    markDirty();
+  };
+}
+
 function refreshXYDot(el, w) {
   const tx = clamp(norm(w.valueX, w.minX, w.maxX), 0, 1);
   const ty = clamp(norm(w.valueY, w.minY, w.maxY), 0, 1);
@@ -4173,6 +4332,11 @@ function refreshWidget(w) {
 
   // Full innerHTML rebuild
   inner.innerHTML = wHTML(w);
+
+  // The dropdown's <select> is a native element with its own 'change'
+  // event handler — innerHTML reassignment just destroyed it along with
+  // the old element, so it must be rewired onto the fresh one every time.
+  if (w.type === 'dropdown') dropdownAttach(w);
 }
 
 function unmountWidget(id) {
@@ -5473,6 +5637,89 @@ function propsBinds_sequencer(w, bind) {
   });
 }
 
+function propsHTML_dropdown(w) {
+  const items = w.items || [];
+  const rows  = items.map((it, i) => `
+    <div class="pr" style="gap:4px;align-items:center;margin-bottom:4px">
+      <input type="text" class="pi" id="dd-label-${i}" value="${esc(it.label)}" placeholder="Label" style="flex:1;min-width:0">
+      <input type="text" class="pi" id="dd-value-${i}" value="${esc(it.value??'')}" placeholder="Value" style="width:56px;flex-shrink:0">
+      <button class="tb-btn danger" id="dd-del-${i}" style="font-size:10px;padding:3px 6px;flex-shrink:0">✕</button>
+    </div>`).join('');
+  return `
+  <div class="ps"><div class="ps-title">OSC</div>
+    <div class="pr col"><span class="pl">Address</span>
+      <input type="text" class="pi" id="dd-osc" value="${esc(w.osc||'')}" placeholder="/list/1"></div>
+    <div class="pr"><span class="pl">Send</span>
+      <select class="pi" id="dd-outmode" style="width:140px">
+        <option value="value" ${(w.outputMode||'value')==='value' ? 'selected':''}>Value (or index)</option>
+        <option value="label" ${w.outputMode==='label' ? 'selected':''}>Label text</option>
+      </select></div>
+  </div>
+  <div class="ps"><div class="ps-title">List Items</div>
+    <div style="display:flex;gap:4px;font-size:8px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;padding:0 2px">
+      <span style="flex:1">Label</span>
+      <span style="width:56px;flex-shrink:0">Value</span>
+      <span style="width:22px;flex-shrink:0"></span>
+    </div>
+    ${rows}
+    <button class="tb-btn" id="dd-item-add" style="font-size:10px;padding:3px 8px;width:100%;margin-top:2px">+ Add Item</button>
+    <div style="font-size:9px;color:var(--text-dim);padding:4px 2px 0;line-height:1.4">
+      Leave Value blank to send the item's position (0, 1, 2…) instead. Ignored entirely when Send is set to Label text.</div>
+  </div>
+  <div class="ps"><div class="ps-title">Default Selection</div>
+    <select class="pi" id="dd-default-sel">
+      ${items.length
+        ? items.map((it,i)=>`<option value="${i}" ${i===(w.selectedIndex??0)?'selected':''}>${esc(it.label||('Item '+(i+1)))}</option>`).join('')
+        : '<option value="0">No items yet</option>'}
+    </select>
+  </div>`;
+}
+
+function propsBinds_dropdown(w, bind) {
+  bind('dd-osc', 'osc');
+
+  const outEl = $('dd-outmode');
+  if (outEl) outEl.addEventListener('change', e => { w.outputMode = e.target.value; histPush(); });
+
+  const defEl = $('dd-default-sel');
+  if (defEl) defEl.addEventListener('change', e => {
+    w.selectedIndex = parseInt(e.target.value) || 0;
+    refreshWidget(w); // rebuilds the canvas <select> to reflect the new default
+    histPush();
+  });
+
+  (w.items || []).forEach((it, i) => {
+    const labelEl = $(`dd-label-${i}`);
+    const valueEl = $(`dd-value-${i}`);
+    const delEl   = $(`dd-del-${i}`);
+    if (labelEl) labelEl.addEventListener('input', e => {
+      it.label = e.target.value;
+      refreshWidget(w);
+      clearTimeout(labelEl._ht); labelEl._ht = setTimeout(histPush, 600);
+    });
+    if (valueEl) valueEl.addEventListener('input', e => {
+      it.value = e.target.value;
+      clearTimeout(valueEl._ht); valueEl._ht = setTimeout(histPush, 600);
+    });
+    if (delEl) delEl.addEventListener('click', () => {
+      w.items.splice(i, 1);
+      if (w.selectedIndex >= w.items.length) w.selectedIndex = Math.max(0, w.items.length - 1);
+      refreshWidget(w);
+      histPush();
+      buildProps(w.id); // re-render panel — the row list changed
+    });
+  });
+
+  const addBtn = $('dd-item-add');
+  if (addBtn) addBtn.addEventListener('click', () => {
+    if (!w.items) w.items = [];
+    w.items.push({ label: 'Item ' + (w.items.length + 1), value: '' });
+    refreshWidget(w);
+    histPush();
+    buildProps(w.id); // re-render panel — show the new row
+  });
+}
+
 function propsBinds_transport(w, bind) {
   (w.buttons||[]).forEach((b,i) => {
     const n=$(`tp-name-${i}`), o=$(`tp-osc-${i}`), en=$(`tp-en-${i}`);
@@ -5734,11 +5981,12 @@ function buildProps(id) {
   const isColorPicker = w.type === 'colorpicker';
   const isJogwheel    = w.type === 'jogwheel';
   const isSequencer   = w.type === 'sequencer';
+  const isDropdown    = w.type === 'dropdown';
   const isButton      = w.type === 'button' || w.type === 'arcadebutton';
-  const hasRange      = !isText && !isVideo && !isNdiViewer && !isTransport && !isEncoder && !isXYPad && !isSwitch3 && !isColorPicker && !isJogwheel && !isSequencer;
+  const hasRange      = !isText && !isVideo && !isNdiViewer && !isTransport && !isEncoder && !isXYPad && !isSwitch3 && !isColorPicker && !isJogwheel && !isSequencer && !isDropdown;
   const hasSpring     = ['hslider','vslider','knob','xypad'].includes(w.type);
-  const hasBgMedia    = !isText && !isVideo && !isNdiViewer && !isTransport && !isEncoder && !isSwitch3 && !isColorPicker && !isJogwheel && !isSequencer;
-  const hasBgColor2   = ['button','arcadebutton','hslider','vslider','knob','xypad','encoder','transport','switch3','colorpicker','jogwheel'].includes(w.type);
+  const hasBgMedia    = !isText && !isVideo && !isNdiViewer && !isTransport && !isEncoder && !isSwitch3 && !isColorPicker && !isJogwheel && !isSequencer && !isDropdown;
+  const hasBgColor2   = ['button','arcadebutton','hslider','vslider','knob','xypad','encoder','transport','switch3','colorpicker','jogwheel','dropdown'].includes(w.type);
   const hasActiveColor = ['button','arcadebutton','hslider','vslider','knob','xypad','encoder','switch3','jogwheel'].includes(w.type);
 
   const oscRow    = hasRange
@@ -5770,6 +6018,7 @@ function buildProps(id) {
     isEncoder     ? propsHTML_encoder(w)      : '',
     isJogwheel    ? propsHTML_jogwheel(w)     : '',
     isSequencer   ? propsHTML_sequencer(w)    : '',
+    isDropdown    ? propsHTML_dropdown(w)     : '',
     isTransport   ? propsHTML_transport(w)    : '',
     isSwitch3     ? propsHTML_switch3(w)      : '',
     `<div class="ps"><button class="btn-del" id="btn-del-w">🗑  Delete Widget</button></div>`,
@@ -5788,6 +6037,7 @@ function buildProps(id) {
   if (isEncoder)     propsBinds_encoder(w, bind);
   if (isJogwheel)    propsBinds_jogwheel(w, bind);
   if (isSequencer)   propsBinds_sequencer(w, bind);
+  if (isDropdown)    propsBinds_dropdown(w, bind);
   if (isTransport)   propsBinds_transport(w, bind);
   if (isSwitch3)     propsBinds_switch3(w, bind);
   if (hasBgMedia)    propsBinds_bgMedia(w, bind);
@@ -6184,6 +6434,9 @@ function sendOnConnect() {
           case 'colorpicker':
             cpSendAll(w);
             break;
+          case 'dropdown':
+            if (w.items?.length) sendOSC(w.osc, ddResolveOutput(w, w.items[w.selectedIndex ?? 0]));
+            break;
           case 'encoder':
             if (w.mode === 'absolute') sendOSC(w.osc, w._encSteps ?? 0);
             break;
@@ -6248,6 +6501,20 @@ function handleOSCReceive(raw) {
           if (w.oscPos && w.oscPos === address && !w._touched) {
             w._rotation = ((value % 360) + 360) % 360;
             matched = true;
+          }
+          break;
+
+        case 'dropdown':
+          // Receive is numeric-only (matches the rest of this pipeline), so
+          // this only works in 'value' output mode — there's no way to select
+          // by label text since incoming non-numeric values are filtered out
+          // before reaching this switch at all.
+          if (w.osc === address && w.outputMode !== 'label' && w.items?.length) {
+            const idx = w.items.findIndex((it, i) => {
+              const resolved = (it.value !== undefined && it.value !== '') ? parseFloat(it.value) : i;
+              return !isNaN(resolved) && resolved === value;
+            });
+            if (idx >= 0) { w.selectedIndex = idx; matched = true; }
           }
           break;
 
@@ -6890,6 +7157,78 @@ function addWidgetAt(type, cx, cy) {
 // ═══════════════════════════════════════════════════════════
 //  TOOLBAR BINDINGS
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+//  WIDGET PANEL — drag-to-resize + collapse/expand
+// ═══════════════════════════════════════════════════════════
+let wpPrevWidth = 108; // remembers the width to restore when expanding from collapsed
+
+function initWidgetPanelResize() {
+  const panel  = $('widget-panel');
+  const handle = $('wp-resize-handle');
+  const toggle = $('wp-collapse-toggle');
+  if (!panel || !handle) return;
+
+  // Restore saved width / collapsed state from a previous session
+  const savedWidth = parseInt(localStorage.getItem('osc_panel_width'));
+  if (savedWidth && savedWidth >= 80 && savedWidth <= 220) {
+    panel.style.width = savedWidth + 'px';
+    wpPrevWidth = savedWidth;
+  }
+  const savedCollapsed = localStorage.getItem('osc_panel_collapsed') === 'true';
+  if (savedCollapsed) {
+    panel.classList.add('hidden-panel');
+    panel.style.width = ''; // let .hidden-panel's width:0 apply — inline width would block it
+    if (toggle) toggle.textContent = '›';
+  }
+
+  let resizing = false, startX = 0, startWidth = 0;
+
+  handle.addEventListener('pointerdown', e => {
+    if (e.target === toggle || e.target.closest('#wp-collapse-toggle')) return; // toggle handles its own click
+    if (panel.classList.contains('hidden-panel')) return; // nothing to drag while collapsed
+    resizing  = true;
+    startX    = e.clientX;
+    startWidth = panel.getBoundingClientRect().width;
+    handle.classList.add('dragging');
+    panel.style.transition = 'none'; // direct 1:1 feel while actively dragging
+    try { handle.setPointerCapture(e.pointerId); } catch(_) {}
+    e.preventDefault();
+  });
+
+  handle.addEventListener('pointermove', e => {
+    if (!resizing) return;
+    const newWidth = Math.max(80, Math.min(220, startWidth + (e.clientX - startX)));
+    panel.style.width = newWidth + 'px';
+  });
+
+  const endResize = () => {
+    if (!resizing) return;
+    resizing = false;
+    handle.classList.remove('dragging');
+    panel.style.transition = '';
+    wpPrevWidth = panel.getBoundingClientRect().width;
+    localStorage.setItem('osc_panel_width', Math.round(wpPrevWidth));
+  };
+  handle.addEventListener('pointerup', endResize);
+  handle.addEventListener('pointercancel', endResize);
+
+  if (toggle) toggle.addEventListener('click', e => {
+    e.stopPropagation();
+    const isCollapsed = panel.classList.contains('hidden-panel');
+    if (isCollapsed) {
+      panel.classList.remove('hidden-panel');
+      panel.style.width = wpPrevWidth + 'px';
+      toggle.textContent = '‹';
+    } else {
+      wpPrevWidth = panel.getBoundingClientRect().width || wpPrevWidth;
+      panel.style.width = ''; // clear inline width — inline always beats the CSS class's width:0 otherwise
+      panel.classList.add('hidden-panel');
+      toggle.textContent = '›';
+    }
+    localStorage.setItem('osc_panel_collapsed', String(!isCollapsed));
+  });
+}
+
 function initToolbar() {
   $('btn-undo').addEventListener('click', histUndo);
   $('btn-redo').addEventListener('click', histRedo);
@@ -7843,6 +8182,7 @@ document.addEventListener('DOMContentLoaded', () => {
   S.kiosk = _urlParams.has('kiosk');
 
   initTheme();
+  initWidgetPanelResize();
   initToolbar();
   initCanvasMenu();
   initKioskModal();
