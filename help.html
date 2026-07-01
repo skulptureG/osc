@@ -255,6 +255,7 @@ footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border
     <a href="#pages">Pages</a>
     <a href="#canvas-bg">Canvas backgrounds</a>
     <a href="#media">Images &amp; video</a>
+    <a href="#ndi">NDI / Stream Viewer</a>
     <a href="#themes">Themes</a>
   </div>
   <div class="nav-group">
@@ -448,6 +449,11 @@ node osc-bridge.js --verbose</code></pre>
     <div class="wc-desc">Toggle or momentary. Sends configurable on/off values. Tap to toggle; hold to send while pressed (momentary).</div>
   </div>
   <div class="widget-card">
+    <div class="wc-icon">⭕</div>
+    <div class="wc-name">Arcade Button</div>
+    <div class="wc-desc">Same toggle/momentary logic as Button, always rendered as a perfect circle with a glossy plastic dome look. Defaults to momentary for that press-to-fire feel.</div>
+  </div>
+  <div class="widget-card">
     <div class="wc-icon">▬</div>
     <div class="wc-name">H-Slider</div>
     <div class="wc-desc">Horizontal fader. Drag or tap anywhere to set value. Good for volume, pan, and continuous parameters.</div>
@@ -483,6 +489,11 @@ node osc-bridge.js --verbose</code></pre>
     <div class="wc-desc">Embedded video player. Supports URL or local file. Autoplay, loop, mute, controls toggles. Can show live camera feeds via URL.</div>
   </div>
   <div class="widget-card">
+    <div class="wc-icon">📡</div>
+    <div class="wc-name">NDI / Stream Viewer</div>
+    <div class="wc-desc">Displays an NDI source via NDI Virtual Input (appears as a system camera) or a network bridge URL (MJPEG, HLS, or direct video). See the dedicated section below — a browser can't decode raw NDI directly.</div>
+  </div>
+  <div class="widget-card">
     <div class="wc-icon">⏹</div>
     <div class="wc-name">Transport</div>
     <div class="wc-desc">Seven playback buttons (⏮⏪⏹▶⏸⏩⏭), each with its own OSC address, enable toggle, and name. Multi-touch — press several at once.</div>
@@ -512,6 +523,11 @@ node osc-bridge.js --verbose</code></pre>
     <div class="wc-name">Step Sequencer</div>
     <div class="wc-desc">N×N grid of trigger pads, up to 128×128. Tap to toggle, drag to paint a run. Multi-touch — play several pads with different fingers at once.</div>
   </div>
+  <div class="widget-card">
+    <div class="wc-icon">📋</div>
+    <div class="wc-name">List</div>
+    <div class="wc-desc">A native dropdown with editable label/value pairs. Send the selected item's custom value, its position, or its label text — picked from properties.</div>
+  </div>
 </div>
 
 <h3>Common widget properties</h3>
@@ -535,13 +551,13 @@ node osc-bridge.js --verbose</code></pre>
       blur, spread, colour and opacity. Off by default.</li>
   <li><strong>Background Colour</strong> — a solid secondary fill behind the control,
       distinct from the accent colour and from Background Media. Available on Button,
-      H-Slider, V-Slider, Knob, XY Pad, Encoder, Transport, 3-Pole Switch, Colour
-      Picker and Jog Wheel.</li>
+      Arcade Button, H-Slider, V-Slider, Knob, XY Pad, Encoder, Transport, 3-Pole
+      Switch, Colour Picker and Jog Wheel.</li>
   <li><strong>Active Colour</strong> — swaps the control's live indicator (fill,
       pointer, dot, lever, notch) to a chosen colour the instant you touch or drag
       it, and back to the normal colour the moment you release. Available on
-      Button, H-Slider, V-Slider, Knob, XY Pad, Encoder, 3-Pole Switch and Jog
-      Wheel — not Transport, Colour Picker, or Step Sequencer.</li>
+      Button, Arcade Button, H-Slider, V-Slider, Knob, XY Pad, Encoder, 3-Pole
+      Switch and Jog Wheel — not Transport, Colour Picker, or Step Sequencer.</li>
   <li><strong>Spring Return</strong> — on release, the widget animates back to a
       target value instead of staying where you left it. Choose Linear, Ease, Bounce,
       or Elastic easing and a duration. Available on H-Slider, V-Slider, Knob and
@@ -669,6 +685,59 @@ node osc-bridge.js --verbose</code></pre>
   It plays back with full Autoplay/Loop/Muted/Controls options, independent of OSC.
 </p>
 
+<!-- ───────────────────────── NDI / STREAM VIEWER ───────────────────────── -->
+<h2 id="ndi">NDI / Stream Viewer</h2>
+<div class="callout warn">
+  <strong>A browser cannot decode raw NDI directly</strong> — there's no web API
+  for it. This widget works through a bridge, in one of two ways below. It is
+  not a way to type in an NDI source name and have it "just work" without one.
+</div>
+<h3>Mode 1 — Camera / Virtual Input (recommended)</h3>
+<p>
+  Install and run NDI Tools' free <strong>NDI Virtual Input</strong> app
+  (official, from NewTek/Vizrt) on the machine running this editor. Point it at
+  your NDI source. It turns that source into a normal system camera device —
+  the browser then picks it up with the same API used for any webcam.
+</p>
+<ol>
+  <li>Add an <strong>NDI / Stream</strong> widget from the Display section.</li>
+  <li>In its properties, leave Mode set to <strong>Camera / Virtual Input</strong>.</li>
+  <li>Click <strong>🔓 Detect Devices</strong> and allow camera permission when prompted —
+      browsers hide real device names until permission is granted at least once.</li>
+  <li>Your NDI Virtual Input device is auto-selected if it's the only camera
+      found. If you have multiple cameras, pick the right one from the dropdown.</li>
+</ol>
+<div class="callout tip">
+  <strong>Only one finger needed:</strong> if exactly one video input device is
+  detected, it connects automatically — you don't need to manually re-select
+  it from the dropdown.
+</div>
+<h3>Mode 2 — Network Stream URL</h3>
+<p>
+  If you have an NDI-to-web bridge that outputs a standard web format instead,
+  switch Mode to <strong>Network Stream URL</strong> and enter the address.
+  Three formats are supported:
+</p>
+<table>
+  <tr><th>Format</th><th>Notes</th></tr>
+  <tr><td>MJPEG</td><td>Decoded natively by the browser — no extra library needed</td></tr>
+  <tr><td>HLS (.m3u8)</td><td>Loads <code>hls.js</code> from a CDN on demand; Safari uses its built-in HLS support instead</td></tr>
+  <tr><td>Direct video URL</td><td>A plain progressive MP4/WebM-style URL</td></tr>
+</table>
+<h3>Status &amp; troubleshooting</h3>
+<p>
+  A small badge in the corner of the widget shows <strong>Connecting…</strong>,
+  <strong>🟢 Live</strong>, or <strong>🔴 Connection failed</strong> (it hides
+  automatically once live in Perform mode, to keep the feed clean for an
+  audience). If a source stops working, use the <strong>↺ Reconnect</strong>
+  button in its properties before assuming the bridge itself is down.
+</p>
+<p>
+  Switching pages away from a widget releases its camera or stream connection
+  automatically, and re-establishes it when you switch back — so an NDI Viewer
+  left on an inactive page doesn't keep holding the camera open.
+</p>
+
 <!-- ───────────────────────── THEMES ───────────────────────── -->
 <h2 id="themes">Themes</h2>
 <p>Select a theme from the <strong>Theme</strong> dropdown at the far right of the toolbar.</p>
@@ -723,6 +792,33 @@ node osc-bridge.js --verbose</code></pre>
   <code>0–1</code> for normalised parameters, <code>-1–1</code> for bipolar
   controls like pan.
 </p>
+
+<h3>Connection &amp; auto-reconnect</h3>
+<p>
+  The WebSocket connection status shows as a small coloured dot near the
+  toolbar — grey for disconnected, amber/pulsing for connecting, green for
+  connected.
+</p>
+<p>
+  <strong>Auto-reconnect</strong> is on by default and found as a checkbox in
+  the OSC Bridge settings modal. If the connection drops unexpectedly — the
+  bridge crashes, the network blips, the bridge process restarts — the editor
+  retries the connection every 3 seconds, indefinitely, without any action
+  needed from you. You'll see a single toast the moment a drop happens
+  ("Connection lost — reconnecting…"), not one per retry attempt, and the
+  status dot shows <strong>Reconnecting…</strong> the whole time.
+</p>
+<p>
+  On every successful (re)connection, the editor automatically re-sends the
+  current value of every widget — see
+  <a href="#osc-receive">Send on connect</a> below — so your target software
+  snaps back in sync without you touching anything after a reconnect.
+</p>
+<div class="callout tip">
+  <strong>Tip:</strong> turn Auto-reconnect off if you're intentionally testing
+  with the bridge offline and don't want the editor repeatedly attempting to
+  reconnect in the background.
+</div>
 
 <!-- ───────────────────────── OSC RECEIVE ───────────────────────── -->
 <h2 id="osc-receive">Receiving OSC</h2>
@@ -780,10 +876,10 @@ node osc-bridge.js --verbose</code></pre>
   touch anything.
 </p>
 <div class="callout info">
-  Currently covers sliders, knobs, buttons, XY pads, encoders, transport, and
-  colour pickers. 3-Pole Switch, Jog Wheel, and Step Sequencer state isn't
-  re-broadcast on connect yet — if you reconnect mid-show, give those a touch
-  to resync them.
+  Currently covers sliders, knobs, buttons, arcade buttons, XY pads, encoders,
+  transport, colour pickers, and lists. 3-Pole Switch, Jog Wheel, and Step
+  Sequencer state isn't re-broadcast on connect yet — if you reconnect
+  mid-show, give those a touch to resync them.
 </div>
 
 <!-- ───────────────────────── MONITOR ───────────────────────── -->
