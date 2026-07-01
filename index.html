@@ -310,22 +310,9 @@ html, body {
 }
 
 /* ============ LEFT WIDGET PANEL ============ */
-/* Wrapper provides the positioning context for the resize handle below.
-   Crucially it has NO overflow restriction — #widget-panel itself needs
-   overflow-x:hidden to clip its own scrolling button list, but that same
-   clipping would also cut off the resize handle, which deliberately
-   protrudes past the panel's right edge (and sits entirely outside it
-   when collapsed). Keeping the handle as a sibling here, not a child of
-   #widget-panel, means it's never subject to that clipping. */
-#widget-panel-wrap {
-  position: relative;
-  display: flex;
-  flex-shrink: 0;
-}
 #widget-panel {
-  width: 108px;
-  min-width: 80px;
-  max-width: 220px;
+  width: 170px; /* fixed — wide enough for the longest label ("Step Sequencer",
+                   "3-Pole Switch") to sit on one line without wrapping or clipping */
   flex-shrink: 0;
   background: var(--surface);
   border-right: 1px solid var(--border);
@@ -334,43 +321,9 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
   z-index: 100;
-  transition: width 0.15s;
 }
 #widget-panel::-webkit-scrollbar { width: 3px; }
 #widget-panel::-webkit-scrollbar-thumb { background: var(--border2); }
-
-#widget-panel.hidden-panel { width: 0; border-right: none; overflow: hidden; }
-
-/* Drag-to-resize handle on the panel's right edge, with a built-in
-   collapse/expand toggle centred on it */
-#wp-resize-handle {
-  position: absolute;
-  top: 0; right: -4px; bottom: 0;
-  width: 8px;
-  cursor: ew-resize;
-  z-index: 101;
-  touch-action: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-#wp-resize-handle:hover { background: rgba(255,255,255,0.06); }
-#wp-resize-handle.dragging { background: var(--accent); opacity: 0.35; }
-/* Keep the toggle reachable even when the panel is fully collapsed */
-#widget-panel.hidden-panel #wp-resize-handle { right: -16px; width: 16px; cursor: pointer; }
-#wp-collapse-toggle {
-  width: 14px; height: 30px;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: 3px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 9px;
-  color: var(--text-dim);
-  cursor: pointer;
-  pointer-events: auto;
-  flex-shrink: 0;
-}
-#wp-collapse-toggle:hover { color: var(--text); border-color: var(--accent); }
 
 .wp-section-title {
   font-size: 8px;
@@ -396,7 +349,6 @@ html, body {
   cursor: pointer;
   text-align: left;
   transition: background 0.1s, color 0.1s;
-  white-space: nowrap;
   border-bottom: 1px solid var(--border);
 }
 .wp-btn:last-child { border-bottom: none; }
@@ -409,10 +361,17 @@ html, body {
   opacity: 0.7;
 }
 .wp-btn:hover .wp-icon { opacity: 1; }
-.wp-btn .wp-label { font-size: 10px; flex: 1; }
+.wp-btn .wp-label {
+  font-size: 10px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* defensive fallback only — 170px is sized to avoid this ever triggering */
+}
 
 /* Hide panel in perform/kiosk */
-body.performing #widget-panel-wrap { display: none; }
+body.performing #widget-panel { display: none; }
 
 /* ── Spring return indicator ── */
 @keyframes spring-pulse {
@@ -428,7 +387,7 @@ body.performing #widget-panel-wrap { display: none; }
 
 /* ============ KIOSK MODE ============ */
 body.kiosk #toolbar       { display: none; }
-body.kiosk #widget-panel-wrap { display: none; }
+body.kiosk #widget-panel { display: none; }
 body.kiosk #props         { display: none; }
 body.kiosk #page-settings { display: none !important; }
 body.kiosk #mon           { display: none !important; }
@@ -2152,11 +2111,10 @@ body.performing #canvas-drop-hint { display: none; }
 <div id="layout">
 
   <!-- Left widget panel (edit mode only) -->
-  <div id="widget-panel-wrap">
-    <div id="widget-panel">
-      <div class="wp-section-title">Widgets</div>
-      <button class="wp-btn" data-add="button">
-        <span class="wp-icon">⬛</span><span class="wp-label">Button</span>
+  <div id="widget-panel">
+    <div class="wp-section-title">Widgets</div>
+    <button class="wp-btn" data-add="button">
+      <span class="wp-icon">⬛</span><span class="wp-label">Button</span>
     </button>
     <button class="wp-btn" data-add="arcadebutton">
       <span class="wp-icon">⭕</span><span class="wp-label">Arcade Button</span>
@@ -2208,14 +2166,6 @@ body.performing #canvas-drop-hint { display: none; }
     <button class="wp-btn" data-add="transport">
       <span class="wp-icon">⏹</span><span class="wp-label">Transport</span>
     </button>
-    </div>
-    <!-- Resize handle lives OUTSIDE #widget-panel, as a sibling within this
-         wrapper — #widget-panel has overflow-x:hidden for its own scrolling
-         content, which would otherwise clip this handle (it intentionally
-         protrudes past the panel's right edge, and fully so when collapsed). -->
-    <div id="wp-resize-handle" title="Drag to resize — click arrow to collapse">
-      <div id="wp-collapse-toggle">‹</div>
-    </div>
   </div>
 
   <!-- Canvas -->
@@ -7157,77 +7107,6 @@ function addWidgetAt(type, cx, cy) {
 // ═══════════════════════════════════════════════════════════
 //  TOOLBAR BINDINGS
 // ═══════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════
-//  WIDGET PANEL — drag-to-resize + collapse/expand
-// ═══════════════════════════════════════════════════════════
-let wpPrevWidth = 108; // remembers the width to restore when expanding from collapsed
-
-function initWidgetPanelResize() {
-  const panel  = $('widget-panel');
-  const handle = $('wp-resize-handle');
-  const toggle = $('wp-collapse-toggle');
-  if (!panel || !handle) return;
-
-  // Restore saved width / collapsed state from a previous session
-  const savedWidth = parseInt(localStorage.getItem('osc_panel_width'));
-  if (savedWidth && savedWidth >= 80 && savedWidth <= 220) {
-    panel.style.width = savedWidth + 'px';
-    wpPrevWidth = savedWidth;
-  }
-  const savedCollapsed = localStorage.getItem('osc_panel_collapsed') === 'true';
-  if (savedCollapsed) {
-    panel.classList.add('hidden-panel');
-    panel.style.width = ''; // let .hidden-panel's width:0 apply — inline width would block it
-    if (toggle) toggle.textContent = '›';
-  }
-
-  let resizing = false, startX = 0, startWidth = 0;
-
-  handle.addEventListener('pointerdown', e => {
-    if (e.target === toggle || e.target.closest('#wp-collapse-toggle')) return; // toggle handles its own click
-    if (panel.classList.contains('hidden-panel')) return; // nothing to drag while collapsed
-    resizing  = true;
-    startX    = e.clientX;
-    startWidth = panel.getBoundingClientRect().width;
-    handle.classList.add('dragging');
-    panel.style.transition = 'none'; // direct 1:1 feel while actively dragging
-    try { handle.setPointerCapture(e.pointerId); } catch(_) {}
-    e.preventDefault();
-  });
-
-  handle.addEventListener('pointermove', e => {
-    if (!resizing) return;
-    const newWidth = Math.max(80, Math.min(220, startWidth + (e.clientX - startX)));
-    panel.style.width = newWidth + 'px';
-  });
-
-  const endResize = () => {
-    if (!resizing) return;
-    resizing = false;
-    handle.classList.remove('dragging');
-    panel.style.transition = '';
-    wpPrevWidth = panel.getBoundingClientRect().width;
-    localStorage.setItem('osc_panel_width', Math.round(wpPrevWidth));
-  };
-  handle.addEventListener('pointerup', endResize);
-  handle.addEventListener('pointercancel', endResize);
-
-  if (toggle) toggle.addEventListener('click', e => {
-    e.stopPropagation();
-    const isCollapsed = panel.classList.contains('hidden-panel');
-    if (isCollapsed) {
-      panel.classList.remove('hidden-panel');
-      panel.style.width = wpPrevWidth + 'px';
-      toggle.textContent = '‹';
-    } else {
-      wpPrevWidth = panel.getBoundingClientRect().width || wpPrevWidth;
-      panel.style.width = ''; // clear inline width — inline always beats the CSS class's width:0 otherwise
-      panel.classList.add('hidden-panel');
-      toggle.textContent = '›';
-    }
-    localStorage.setItem('osc_panel_collapsed', String(!isCollapsed));
-  });
-}
 
 function initToolbar() {
   $('btn-undo').addEventListener('click', histUndo);
@@ -8182,7 +8061,6 @@ document.addEventListener('DOMContentLoaded', () => {
   S.kiosk = _urlParams.has('kiosk');
 
   initTheme();
-  initWidgetPanelResize();
   initToolbar();
   initCanvasMenu();
   initKioskModal();
