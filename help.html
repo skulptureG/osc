@@ -349,8 +349,11 @@ footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border
   </li>
   <li>
     <div>
-      <strong>Start the bridge.</strong> Download and run the Node.js bridge script
-      below. It listens for WebSocket connections and forwards to your target software.
+      <strong>Start the bridge.</strong> This needs a one-time setup the first
+      time — follow the full <a href="#nodejs">Node.js Bridge Script</a> guide
+      below, which walks through installing Node.js and running the script
+      step by step. After that first setup, starting it again for future
+      sessions is just two lines in a terminal.
     </div>
   </li>
   <li>
@@ -392,31 +395,166 @@ footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border
 <!-- ───────────────────────── NODE SCRIPT ───────────────────────── -->
 <h2 id="nodejs">Node.js Bridge Script</h2>
 <p>
-  The bridge script below handles everything: WebSocket server, OSC UDP send/receive,
-  bidirectional feedback, and reconnection. It requires Node.js 16+ and two npm packages.
+  The bridge script handles everything: it opens a WebSocket server the editor
+  connects to, and translates messages to and from real OSC over UDP. It requires
+  <strong>Node.js</strong> — a program that lets JavaScript run outside a browser —
+  plus two small packages it downloads automatically. None of this touches your
+  system beyond one folder you create yourself; nothing is installed globally.
+</p>
+<div class="callout info">
+  <strong>Never done this before?</strong> Every step below is written assuming
+  no prior command-line experience. It looks like a lot of steps, but each one
+  is small, and you only do this setup once — after that, starting the bridge
+  for future sessions is just step 6 and step 8.
+</div>
+
+<h3>Step 1 — Check whether Node.js is already installed</h3>
+<p>
+  Open a terminal:
+</p>
+<ul>
+  <li><strong>Windows</strong> — press the Start key, type <code>cmd</code>, press Enter. A black window opens — that's the terminal, also called Command Prompt.</li>
+  <li><strong>Mac</strong> — press <kbd>Cmd</kbd>+<kbd>Space</kbd>, type <code>Terminal</code>, press Enter.</li>
+</ul>
+<p>Type this and press Enter:</p>
+<pre><code>node --version</code></pre>
+<p>
+  If you see something like <code>v20.11.0</code>, Node.js is already installed —
+  skip to <a href="#nodejs-step2">Step 2</a>. If instead you see an error like
+  <code>'node' is not recognized</code> or <code>command not found</code>, continue below.
 </p>
 
-<h3>Installation</h3>
-<pre><code><span class="comment"># Install Node.js from https://nodejs.org if you haven't already</span>
+<h3>Step 1b — Install Node.js</h3>
+<ol class="steps">
+  <li>
+    <div>
+      Go to <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a>
+      in your browser.
+    </div>
+  </li>
+  <li>
+    <div>
+      Click the big green button — it's labelled <strong>LTS</strong> (this means
+      "Long Term Support", the stable version — always pick this one, not "Current").
+    </div>
+  </li>
+  <li>
+    <div>
+      Run the file that downloads (<code>.msi</code> on Windows, <code>.pkg</code> on Mac).
+      Click Next / Continue through the installer using all the default options —
+      you don't need to change anything.
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Close and reopen your terminal</strong> (this step is easy to miss —
+      the terminal needs to restart to pick up the new installation). Run
+      <code>node --version</code> again to confirm it now shows a version number.
+    </div>
+  </li>
+</ol>
 
-<span class="comment"># Create a folder and install dependencies</span>
-mkdir osc-bridge &amp;&amp; cd osc-bridge
-npm init -y
+<h3 id="nodejs-step2">Step 2 — Create a folder for the bridge</h3>
+<p>
+  Still in the terminal, run these two lines one at a time (press Enter after each).
+  This creates a new folder called <code>osc-bridge</code> in your home folder
+  (Documents on Windows, or your user folder on Mac) and moves into it:
+</p>
+<pre><code>mkdir osc-bridge
+cd osc-bridge</code></pre>
+<div class="callout tip">
+  <strong>What does <code>cd</code> do?</strong> It means "change directory" —
+  it moves your terminal into that folder, so every command you type next
+  happens inside it. You can always check where you are by typing
+  <code>pwd</code> (Mac) or <code>cd</code> with nothing after it (Windows).
+</div>
+
+<h3>Step 3 — Download the bridge script into that folder</h3>
+<p>
+  Click the download button below. Your browser will save
+  <code>osc-bridge.js</code> to its default downloads location — move that file
+  into the <code>osc-bridge</code> folder you just created in Step 2 (drag it there
+  in Finder/Explorer, or cut-and-paste it).
+</p>
+<a class="dl-btn" id="dl-bridge" href="#">⬇ Download osc-bridge.js</a>
+<a class="dl-btn secondary" href="#nodejs-code">View source below</a>
+
+<h3>Step 4 — Install the two required packages</h3>
+<p>
+  Back in the terminal (still inside the <code>osc-bridge</code> folder from Step 2),
+  run these two commands one at a time:
+</p>
+<pre><code>npm init -y
 npm install ws node-osc</code></pre>
+<p>
+  The first line creates a small config file. The second downloads the two
+  packages the bridge script needs — you'll see a progress bar and then a
+  summary line like <code>added 12 packages</code>. This will create a new
+  <code>node_modules</code> folder alongside the script — that's expected and normal.
+</p>
+<div class="callout warn">
+  <strong>If <code>npm</code> is not recognized:</strong> Node.js wasn't fully
+  installed, or your terminal still needs restarting — go back to
+  <a href="#nodejs-step2">Step 1b</a>'s last step.
+</div>
 
-<h3>Usage</h3>
+<h3>Step 5 — Run the bridge</h3>
+<p>Type this and press Enter:</p>
+<pre><code>node osc-bridge.js</code></pre>
+<p>
+  You should see something like:
+</p>
+<pre><code>OSC Bridge running
+WebSocket server: ws://localhost:8080
+Sending OSC to: 127.0.0.1:57120
+Listening for OSC on: 57121</code></pre>
+<div class="callout tip">
+  <strong>This is correct — nothing is "stuck".</strong> The terminal window
+  will just sit there showing this message with no further output most of the
+  time. That's the bridge running and waiting for connections, not frozen. Leave
+  this window open for as long as you want the editor to be able to talk to
+  your software — closing it (or pressing <kbd>Ctrl</kbd>+<kbd>C</kbd>) stops the bridge.
+</div>
+
+<h3>Step 6 — Connect the editor to the bridge</h3>
+<ol class="steps">
+  <li><div>In the editor, click the <strong>OSC</strong> button in the toolbar.</div></li>
+  <li><div>Enter <code>ws://localhost:8080</code> as the WebSocket URL (this matches the address shown when the bridge started in Step 5).</div></li>
+  <li><div>Click <strong>Save &amp; Connect</strong>. The status dot next to the OSC button should turn green within a second or two.</div></li>
+</ol>
+<p>
+  If it stays red or grey, see <a href="#osc-receive">Receiving OSC</a> for
+  troubleshooting steps, and double check the bridge's terminal window is still
+  open and hasn't shown an error.
+</p>
+
+<h3>Running it again next time</h3>
+<p>
+  You only do Steps 1–4 once. For every future session: open a terminal,
+  navigate back into the folder, and start the bridge:
+</p>
+<pre><code>cd osc-bridge
+node osc-bridge.js</code></pre>
+<p>
+  Then repeat Step 6 to connect the editor. Some people find it easier to
+  create a shortcut/script that does this in one click — ask any AI coding
+  assistant to make you a "<code>.bat</code> file for Windows" or
+  "<code>.command</code> file for Mac" that runs those two lines.
+</p>
+
+<h3>Command-line options</h3>
+<p>
+  All optional — running <code>node osc-bridge.js</code> with nothing after it
+  uses sensible defaults (shown in Step 5's output).
+</p>
 <pre><code><span class="comment"># Basic — listens on WS port 8080, sends OSC to localhost:57120</span>
 node osc-bridge.js
 
-<span class="comment"># Custom ports and target</span>
+<span class="comment"># Custom ports and target — e.g. sending to another computer on your network</span>
 node osc-bridge.js --ws 9000 --host 192.168.1.50 --port 57110 --listen 57121
 
-<span class="comment"># With verbose logging</span>
+<span class="comment"># With verbose logging — prints every message the bridge sends/receives</span>
 node osc-bridge.js --verbose</code></pre>
-
-<h3>Download the script</h3>
-<a class="dl-btn" id="dl-bridge" href="#">⬇ Download osc-bridge.js</a>
-<a class="dl-btn secondary" href="#nodejs-code">View source below</a>
 
 <h3 id="nodejs-code">Full source</h3>
 <pre><code id="bridge-source-display"></code></pre>
