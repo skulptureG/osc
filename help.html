@@ -262,6 +262,7 @@ footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border
     <div class="nav-group-title">OSC</div>
     <a href="#osc-intro">OSC basics</a>
     <a href="#osc-send">Sending OSC</a>
+    <a href="#https-wss">HTTPS &amp; "ws:// blocked" error</a>
     <a href="#osc-receive">Receiving OSC</a>
     <a href="#monitor">Monitor</a>
     <a href="#osc-page">Page switching via OSC</a>
@@ -278,8 +279,11 @@ footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border
     <a href="#max">Max/MSP</a>
     <a href="#pd">Pure Data</a>
     <a href="#touchdesigner">TouchDesigner</a>
+    <a href="#isadora">Isadora</a>
     <a href="#reaper">REAPER</a>
     <a href="#resolume">Resolume</a>
+    <a href="#disguise">Disguise</a>
+    <a href="#hive">HIVE</a>
     <a href="#qlcplus">QLC+</a>
   </div>
 </nav>
@@ -298,8 +302,8 @@ footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border
     touch interfaces with sliders, knobs, buttons, XY pads, DJ-style jog wheels,
     step sequencers, and more — then send and receive
     <strong>Open Sound Control (OSC)</strong> messages to control any compatible
-    software: Max/MSP, Pure Data, TouchDesigner, REAPER, Resolume, QLC+, and
-    hundreds of others.
+    software: Max/MSP, Pure Data, TouchDesigner, Isadora, REAPER, Resolume,
+    Disguise, HIVE, QLC+, and hundreds of others.
   </p>
 </div>
 
@@ -958,6 +962,92 @@ node osc-bridge.js --verbose</code></pre>
   reconnect in the background.
 </div>
 
+<!-- ───────────────────────── HTTPS / WSS ───────────────────────── -->
+<h2 id="https-wss">HTTPS &amp; the "ws:// blocked" error</h2>
+<p>
+  If you're running the editor from a hosted URL (one that starts with
+  <code>https://</code> — GitHub Pages, Netlify, most hosting is HTTPS-only
+  today) and see an error saying <code>ws://</code> is blocked and you need
+  <code>wss://</code> instead, this is a <strong>browser security rule, not a
+  bug</strong>. There's no setting or flag that overrides it — every browser
+  enforces this the same way, and it can't be turned off from within the page.
+</p>
+<h3>Why this happens</h3>
+<p>
+  Browsers call this <strong>mixed content</strong>: a secure page
+  (<code>https://</code>) is not allowed to open an insecure connection
+  (<code>ws://</code>), even if that connection is only going to
+  <code>localhost</code> on your own machine. The browser has no way to know
+  the destination is "safe" just because it's local — the rule is applied
+  purely based on the two protocols not matching, with no exceptions.
+</p>
+<p>There are two real ways around it — pick whichever fits your setup:</p>
+
+<h3>Option A — Run the editor locally instead (simplest)</h3>
+<p>
+  If you don't specifically need the hosted version, this sidesteps the
+  problem entirely: <code>file://</code> and <code>http://</code> pages are
+  not "secure origins", so the mixed-content rule never applies to them and
+  plain <code>ws://</code> connects normally.
+</p>
+<ul>
+  <li>Use the <a href="#standalone">Standalone Export</a> feature to download
+      a self-contained copy of the editor and open it straight from disk, or</li>
+  <li>Run the editor's own files through a plain local web server (no TLS) —
+      e.g. <code>npx serve</code> in the editor's folder, then visit the
+      <code>http://localhost:...</code> address it gives you.</li>
+</ul>
+<div class="callout tip">
+  <strong>This is the right choice for most people.</strong> If your OSC
+  bridge is running on the same machine as your browser (the common case),
+  there's rarely a real reason to need the HTTPS-hosted version — Option A
+  avoids all of the setup below.
+</div>
+
+<h3>Option B — Give the bridge a real <code>wss://</code> address</h3>
+<p>
+  If you specifically need the hosted HTTPS version (for example, other
+  people load the editor from a public URL), the bridge itself needs to speak
+  encrypted WebSocket. This means it needs a TLS certificate, the same way a
+  website does.
+</p>
+<p><strong>Using a tunnelling service (easiest way to get Option B working):</strong></p>
+<ol class="steps">
+  <li><div>Keep your bridge running normally on <code>ws://localhost:8080</code> exactly as already set up.</div></li>
+  <li><div>Install a tunnelling tool — <a href="https://ngrok.com" target="_blank" rel="noopener">ngrok</a> and
+      <a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/" target="_blank" rel="noopener">Cloudflare Tunnel</a>
+      both have free tiers and work well for this.</div></li>
+  <li><div>Run it pointed at your bridge's port, e.g. with ngrok: <code>ngrok http 8080</code></div></li>
+  <li><div>It gives you a public address starting with <code>https://</code> — use the same address but change it to
+      <code>wss://</code> in the editor's WebSocket URL field.</div></li>
+</ol>
+<p>
+  This works because the tunnel provider terminates the TLS connection for
+  you with a certificate the browser already trusts, then forwards the
+  traffic to your local <code>ws://</code> bridge unencrypted over
+  a private connection — you don't manage any certificates yourself.
+</p>
+<div class="callout warn">
+  <strong>Security note:</strong> a tunnel exposes your bridge to the public
+  internet for as long as it's running. Anyone with the URL could send OSC to
+  your software. Fine for a quick test or a controlled demo; close the tunnel
+  when you're done, and look into your tunnelling tool's authentication
+  options if you'll leave it running for longer.
+</div>
+<p><strong>Self-signed certificate (no external service, stays fully local):</strong></p>
+<p>
+  A more advanced path if you don't want to expose anything to the internet:
+  generate a locally-trusted certificate with
+  <a href="https://github.com/FiloSottile/mkcert" target="_blank" rel="noopener">mkcert</a>,
+  then modify the bridge script to start an HTTPS/WSS server using that
+  certificate instead of a plain WebSocket server. This keeps everything on
+  your local network with no external dependency, but requires editing the
+  bridge script's server setup — ask an AI coding assistant to help adapt the
+  <code>WebSocketServer</code> call in <code>osc-bridge.js</code> to use
+  Node's <code>https</code> module with your generated cert and key files if
+  you want to go this route.
+</p>
+
 <!-- ───────────────────────── OSC RECEIVE ───────────────────────── -->
 <h2 id="osc-receive">Receiving OSC</h2>
 <p>
@@ -1185,6 +1275,33 @@ https://yourdomain.com/index.html?kiosk&amp;theme=stealth</code></pre>
 the address column to your widget addresses. For sending feedback, use <strong>OSC Out DAT</strong>
 pointed at <code>localhost:57121</code> (your bridge's listen port).</p>
 
+<h2 id="isadora">Isadora</h2>
+<p>
+  Add an <strong>OSC Listener</strong> actor to receive, and an
+  <strong>OSC Transmit</strong> actor to send feedback back out. Isadora's
+  default OSC port is <code>1234</code>, set in
+  <strong>Preferences → MIDI/Net → Open Sound Control (OSC) → IP Port
+  Number</strong> — this must match the port your bridge sends to.
+</p>
+<p>
+  Isadora listens on built-in addresses <code>/isadora/1</code> through
+  <code>/isadora/100</code> out of the box — an OSC Listener's <em>channel</em>
+  input of <code>4</code> receives whatever arrives at <code>/isadora/4</code>,
+  with no further setup needed. To use your own widget addresses instead
+  (recommended once a patch grows past a handful of controls), open
+  <strong>Communications → Stream Setup</strong>, tick
+  <strong>Auto-Detect Input</strong>, then trigger each widget once from the
+  editor — its address will appear in the list, ready to assign to a channel
+  number.
+</p>
+<div class="callout tip">
+  <strong>Tip:</strong> Isadora auto-scales incoming values based on the
+  target input's own range, so a widget sending <code>0–1</code> can drive a
+  parameter expecting <code>0–100</code> without any manual conversion —
+  right-click the OSC Listener's <em>value</em> output and check
+  Scale Min/Max if the mapping looks off.
+</div>
+
 <h2 id="reaper">REAPER</h2>
 <p>
   Install the <strong>ReaOSC</strong> plugin or use the built-in <strong>Web interface
@@ -1198,6 +1315,56 @@ pointed at <code>localhost:57121</code> (your bridge's listen port).</p>
   Widget OSC addresses must match Resolume's parameter paths exactly, e.g.
   <code>/composition/layers/1/video/opacity</code>.
 </p>
+
+<h2 id="disguise">Disguise (d3)</h2>
+<p>
+  Create an <strong>OSC Device</strong> in Disguise Designer (Devices manager
+  → add device → <em>OscDevice</em> — a default one called <code>osc 1</code>
+  already exists on a fresh project). Its default input port is
+  <code>7401</code>.
+</p>
+<p>Two ways to address parameters, depending on what you're controlling:</p>
+<ul>
+  <li><strong>Transport / playback</strong> — fixed addresses like
+      <code>/d3/showcontrol/play</code>, <code>/d3/showcontrol/stop</code>, and
+      <code>/d3/showcontrol/cue</code> (send a list of integers as the cue
+      number, e.g. <code>7 8 9</code> triggers cue <code>7.8.9</code>).</li>
+  <li><strong>Layer parameters</strong> — pattern
+      <code>/d3/layer/[layer_name]/[property]</code>, e.g.
+      <code>/d3/layer/show_intro/opacity</code>. The layer name in the
+      address is whatever you've renamed that layer to in the timeline.</li>
+</ul>
+<p>
+  For controlling every parameter on a layer without typing addresses by
+  hand, right-click the layer → <strong>Patch to OSC…</strong>, select your
+  OSC Device — the layer turns green and every field becomes OSC-controllable
+  immediately. Right-click the layer again → <strong>Edit OSC Patch → View
+  Personality…</strong> to see the exact address and example value for every
+  field, and export the full list to a text file for reference.
+</p>
+
+<h2 id="hive">HIVE</h2>
+<p>
+  HIVE (<a href="https://hive.run" target="_blank" rel="noopener">hive.run</a>)
+  is a media server platform controllable natively over OSC, UDP, ArtNet, and
+  a few other protocols, aimed at large-scale playback and LED/projection
+  installs. OSC target port is configured per-device in HIVE's own network
+  settings — check that device's OSC/Network settings page for its current
+  port number, since it's not a fixed default across all HIVE hardware.
+</p>
+<p>
+  Every controllable command doubles as an OSC address — the command name
+  itself, prefixed with <code>/</code>. Any arguments the command takes
+  become the OSC value(s) sent to that address. Commands are per-layer:
+  substitute the layer number in the address (commands for Layer 1 have a
+  matching Layer 2 version) to target the second playback layer.
+</p>
+<div class="callout info">
+  HIVE publishes a full OSC and Scheduler command reference as a PDF from
+  their knowledge base — check <a href="https://hive.run" target="_blank" rel="noopener">hive.run</a>
+  for the current link, since exact addresses vary by parameter and by
+  software version.
+</div>
 
 <h2 id="qlcplus">QLC+</h2>
 <p>
