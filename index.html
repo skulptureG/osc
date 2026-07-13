@@ -3326,12 +3326,12 @@ function makeWidget(type, x, y) {
                   } }; // 'image' | 'video'
   switch(type) {
     case 'button':
-      return { ...base, w:140, h:70, toggle:true, onVal:1, offVal:0 };
+      return { ...base, w:140, h:70, toggle:true, onVal:1, offVal:0, opacity:1 };
     case 'arcadebutton':
       // Momentary by default (press-to-fire feel) — square default size so
       // it starts life as a true circle; same toggle/momentary options as
       // the standard button are available in its props panel.
-      return { ...base, w:90, h:90, toggle:false, onVal:1, offVal:0 };
+      return { ...base, w:90, h:90, toggle:false, onVal:1, offVal:0, opacity:1 };
     case 'hslider':
       return { ...base, w:220, h:60 };
     case 'vslider':
@@ -3767,6 +3767,7 @@ function wHTML(w) {
         style="background-color:${on ? lc : 'rgba(0,0,0,0.5)'};
                border-color:${lc};
                color:${on ? '#000' : lc};
+               opacity:${w.opacity??1};
                font-size:${Math.max(9, Math.min(16, w.h * 0.22))}px">
         ${bgLayer}<span style="position:relative;z-index:1">${esc(w.label)}</span>
       </div>${rxBadge}`;
@@ -3788,6 +3789,7 @@ function wHTML(w) {
                  background-image:${gloss};
                  border-color:${lc};
                  color:${on ? '#000' : lc};
+                 opacity:${w.opacity??1};
                  font-size:${Math.max(9, Math.min(16, size * 0.18))}px">
           ${bgLayer}<span style="position:relative;z-index:2">${esc(w.label)}</span>
         </div>
@@ -4119,6 +4121,7 @@ function refreshButtonState(el, w) {
   btn.style.backgroundColor = on ? lc : 'rgba(0,0,0,0.5)';
   btn.style.borderColor     = lc;
   btn.style.color           = on ? '#000' : lc;
+  btn.style.opacity         = w.opacity ?? 1;
   if (isArcade) {
     const size = Math.max(30, Math.min(w.w, w.h));
     btn.style.width  = size + 'px';
@@ -4863,6 +4866,10 @@ function propsHTML_button(w) {
       <input type="number" class="pi" id="pi-onval"  value="${w.onVal}"  step="any"></div>
     <div class="pr"><span class="pl">Off value</span>
       <input type="number" class="pi" id="pi-offval" value="${w.offVal}" step="any"></div>
+    <div class="pr"><span class="pl">Opacity (%)</span>
+      <input type="number" class="pi" id="pi-btn-opacity"
+        value="${Math.round((w.opacity??1)*100)}" min="0" max="100" step="5"
+        title="0% is fully see-through, 100% is normal"></div>
   </div>`;
 }
 
@@ -5270,6 +5277,7 @@ function propsBinds_button(w, bind) {
   bind('pi-toggle', 'toggle', v => v === '1');
   bind('pi-onval',  'onVal',  parseFloat);
   bind('pi-offval', 'offVal', parseFloat);
+  bind('pi-btn-opacity', 'opacity', v => clamp(parseFloat(v) / 100, 0, 1));
 }
 
 function propsBinds_xypad(w, bind) {
